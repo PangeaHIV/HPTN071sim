@@ -77,7 +77,7 @@ prog.HPTN071.parser.v1<- function()
 							tmp<- df.sample[['s.n.INC']][ which(df.sample[['YR']]==YR) ]
 							tmp<- sample(seq_along(IDREC), tmp)
 							list( 	IDPOP=IDREC[tmp], TIME_TR=TIME_TR[tmp], 
-									TIME_SEQ=runif(length(tmp),min=TIME_TR[tmp],max=TIME_TR[tmp]), 
+									TIME_SEQ=TIME_TR[tmp]+rexp(length(tmp), rate=1/(3*30))/365, 
 									INCIDENT_SEQ=rep('Y',length(tmp) ) )
 						}, by='YR']
 	df.inds	<- merge(df.inds, subset(tmp, select=c(IDPOP, TIME_SEQ, INCIDENT_SEQ)), by='IDPOP', all.x=1)			
