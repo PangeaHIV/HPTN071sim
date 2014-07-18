@@ -17,12 +17,26 @@ prog.HPTN071.parser.v1<- function()
 	fout.trm	<- '/Users/Oliver/git/HPTN071sim/sim/140716_RUN001_TRM.csv'
 	
 	
-	setup.df<- data.table(stat= c('yr.start','yr.end','s.INC.recent','s.INC.recent.len', 's.PREV.min', 's.PREV.max'), v=c(1980, 2020, 0.1, 5, 0.01, 0.25) )
+	setup.df<- data.table(stat= c('yr.start','yr.end','s.INC.recent','s.INC.recent.len', 's.PREV.min', 's.PREV.max', 'epi.dt'), v=c(1980, 2020, 0.1, 5, 0.01, 0.25, 1/48) )
 	setkey(setup.df, stat)	
 	
 	df.trm	<- as.data.table(read.csv(fin.trm, stringsAsFactors=FALSE, sep=' ', dec='.'))
-	setnames(df.trm, c("IdInfector","IdInfected","TimeOfInfection","IsInfectorAcute"), c('IDTR','IDREC','TIME_TR','TR_ACUTE'))
-	set(df.trm, NULL, 'YR', df.trm[, floor(TIME_TR)])	
+	setnames(df.trm, c("IdInfector","IdInfected","TimeOfInfection","IsInfectorAcute"), c('IDTR','IDREC','TIME_TR','TR_ACUTE'))		
+	#	transmissions happen either at baseline, or at unique times.
+	#	the epi simulation allocates transmissions in 1/48 of a year, so draw a uniform number if there are more transmission per TIME_TR
+	df.trm	<- df.trm[, {
+							z<- TIME_TR
+							if(TIME_TR>setup.df['yr.start',][,v] & length(IDTR)>1)
+								z<- sort(runif(length(IDTR), z, max(setup.df['yr.end',][,v], z+setup.df['epi.dt',][,v])))
+							list(IDTR=IDTR, IDREC=IDREC, TIME_TR.new=z, TR_ACUTE=TR_ACUTE, l=length(IDTR))
+						}, by='TIME_TR']
+	df.trm[, TIME_TR:=NULL]
+	setnames(df.trm, 'TIME_TR.new', 'TIME_TR')
+	set(df.trm, NULL, 'YR', df.trm[, floor(TIME_TR)])
+	#	check that all transmission times except baseline are unique
+	tmp		<- subset(df.trm, TIME_TR>setup.df['yr.start',][,v])
+	stopifnot( nrow(tmp)==tmp[,length(unique(TIME_TR))] )
+	
 	
 	df.ind	<- as.data.table(read.csv(fin.ind, stringsAsFactors=FALSE))		
 	setnames(df.ind, c("Id","Gender","DoB","DateOfDeath","RiskGroup","Circumcised"), c('IDPOP','GENDER','DOB','DOD','RISK','CIRCM'))
@@ -106,7 +120,7 @@ prog.HPTN071.parser.v1<- function()
 	tmp	<- subset(df.inds, !is.na(TIME_SEQ))[, list(s.n.TOTAL=length(IDPOP)), by='TIME_SEQYR']
 	setkey(tmp, TIME_SEQYR)
 	set(tmp,NULL,'s.n.CUMTOTAL',tmp[, cumsum(s.n.TOTAL)])
-	stopifnot( all( tmp[,s.n.TOTAL]==df.sample[, s.n.TOTAL] ) )
+	stopifnot(  tmp[,tail(s.n.CUMTOTAL,1)]==df.sample[, tail(s.n.CUMTOTAL,1)] ) 
 	#	set sampling in df.trm
 	tmp		<- subset( df.inds, !is.na(TIME_SEQ), select=c(IDPOP, TIME_SEQ) )
 	setnames(tmp, c('IDPOP','TIME_SEQ'), c('IDREC','SAMPLED_REC'))
