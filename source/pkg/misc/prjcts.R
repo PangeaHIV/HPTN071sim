@@ -6,6 +6,280 @@ prog.hello<- function()
 	print('hello')
 }
 ##--------------------------------------------------------------------------------------------------------
+##	run BEAST
+##--------------------------------------------------------------------------------------------------------
+project.PANGEA.RootSeqSim.BEAST.run<- function()
+{
+	require(hivclust)
+	
+	DATA		<<- "/work/or105/Gates_2014"
+	#indir		<- paste(DATA,'methods_comparison_rootseqsim/140727',sep='/')
+	#infile		<- 'ALLv02.n100.rlx.gmrf' 
+	indir		<- paste(DATA,'methods_comparison_rootseqsim/140729',sep='/')
+	infile		<- 'ALLv04.n97.rlx.gmrf' 
+	insignat	<- 'Sun_Jul_27_09-00-00_2014'
+	cmd			<- hivc.cmd.beast.runxml(indir, infile, insignat, prog.beast=PR.BEAST, prog.beastmcc=PR.BEASTMCC, beastmcc.burnin=500, beastmcc.heights="median", hpc.tmpdir.prefix="beast", hpc.ncpu=1)
+	cat(cmd)
+	
+	cmd			<- hivc.cmd.hpcwrapper(cmd, hpc.q="pqeph", hpc.nproc=1, hpc.walltime=91, hpc.mem="1800mb")
+	outdir		<- indir
+	outfile		<- paste("b2m.",paste(strsplit(date(),split=' ')[[1]],collapse='_',sep=''),sep='')					
+	hivc.cmd.hpccaller(outdir, outfile, cmd)
+}
+##--------------------------------------------------------------------------------------------------------
+##	get sequences from BEAST XML, create concatenated file
+##--------------------------------------------------------------------------------------------------------
+project.PANGEA.RootSeqSim.BEAST.getancestralseq.from.output<- function()
+{
+	#dir.name	<- "/work/or105/Gates_2014"
+	dir.name	<- '/Users/Oliver/duke/2014_Gates'  
+	
+	if(1)	#	devel
+	{		
+		indir				<- paste(dir.name,'methods_comparison_rootseqsim/140730',sep='/')
+		outdir				<- indir
+		infile.xml			<- 'working.xml'
+		infile.beastparsed	<- 'working.R'
+		outfile				<- 'working_ancseq.R'
+		
+		#	load BEAST PARSER output
+		file		<- paste(indir, '/',infile.beastparsed, sep='')
+		load(file)	#	expect tree, node.stat		
+		#	get original sequences
+		file		<- paste(indir, '/',infile.xml, sep='')
+		bxml		<- xmlTreeParse(file, useInternalNodes=TRUE, addFinalizer = TRUE)
+		bseq		<- hivc.beast.get.sequences(bxml, verbose=1)	
+		bseq		<- merge(bseq, data.table(ALIGNMENT_ID=paste('alignment',1:3,sep=''), GENE=c('env','gag','pol')), by='ALIGNMENT_ID')				
+		#	compute gag pol env		
+		tmp			<- PANGEA.RootSeqSim.get.ancestral.seq(tree, node.stat, bseq, tree.id.sep='_', tree.id.idx.mcmcit=2, tree.id.burnin=1, label.sep='|', label.idx.ctime=2)
+		ancseq.gag	<- tmp$GAG
+		ancseq.env	<- tmp$ENV
+		ancseq.pol	<- tmp$POL
+		#	save as R
+		file		<- paste(outdir, outfile, sep='/')
+		save(ancseq.gag, ancseq.env, ancseq.pol, file=file)			
+		#	save as FASTA
+		file		<- paste(outdir, paste(substr(outfile,1,nchar(outfile)-1),'fasta',sep=''), sep='/')		
+		write.dna(cbind(ancseq.gag, ancseq.env, ancseq.pol), file, format = "fasta")		
+		#
+		#	sample ancestral sequences between 1980-2000 and reconstruct tree with RAxML
+		#
+		ancseq				<- cbind(ancseq.gag, ancseq.env, ancseq.pol)
+		label.sep			<- '|'
+		label.idx.tree.id	<- 1
+		label.idx.node.id	<- 2
+		label.idx.ctime		<- 3
+		ancseq.label		<- data.table(	TREE_ID= sapply(strsplit(rownames(ancseq), label.sep, fixed=1),'[[',label.idx.tree.id),
+				NODE_ID= as.numeric(sapply(strsplit(rownames(ancseq), label.sep, fixed=1),'[[',label.idx.node.id)),
+				CALENDAR_TIME= as.numeric(sapply(strsplit(rownames(ancseq), label.sep, fixed=1),'[[',label.idx.ctime)))
+		hist( ancseq.label[, CALENDAR_TIME], breaks=100 )
+	}
+	if(0)
+	{
+		
+		tmp	<- subset(node.stat, select=c(TREE_ID, NODE_ID, CALENDAR_TIME))
+		setkey(tmp, TREE_ID, NODE_ID)
+		hist(tmp[, CALENDAR_TIME], breaks=seq(1930,2011,1))
+		#	reconstruct gene sequences and store in ape format
+		#	get calendar time for gene sequence
+		set(node.stat, NULL, 'VALUE', node.stat[, gsub('\"','',VALUE)])
+		#	check seq lengths
+		tmp		<- node.stat[, list(NCHAR=nchar(VALUE)), by=c('STAT','NODE_ID','TREE_ID')]
+		stopifnot( tmp[, list(CHECK=all(NCHAR[1]==NCHAR)), by='STAT'][, all(CHECK)] )
+		
+		tmp[, list(CHECK=unique(NCHAR)), by='STAT']
+		
+		ENV.CP1<- "AGA"
+		ENV.CP2<- "XYZ"
+		ENV.CP3<- "KLM"
+		tmp		<- do.call('rbind',sapply(list(ENV.CP1,ENV.CP2,ENV.CP3), strsplit, ''))
+		tmp		<- paste(as.vector(tmp), collapse='')
+		
+		subset(node.stat, TREE_ID=='STATE_0' & NODE_ID==which(btree[[1]]$tip.label=='C.BW.AF443074|1996'))
+		
+	}
+	if(0)	#devel
+	{
+		dir.name			<- '/Users/Oliver/duke/2014_Gates'  
+		indir				<- paste(dir.name,'methods_comparison_rootseqsim/140801',sep='/')
+		infile				<- 'ALLv06.n97.rlx.gmrf' 		
+		insignat			<- 'Sun_Jul_27_09-00-00_2014'	
+		file				<- paste(indir, '/', infile, '_', insignat, '.timetrees', sep='')
+		
+		indir				<- paste(dir.name,'methods_comparison_rootseqsim/140730',sep='/')		
+		infile.timetrees	<- 'working.timetrees'
+		outdir				<- indir
+		
+		file				<- paste(indir, '/', infile.timetrees, sep='')
+		tmp					<- hivc.beast2out.read.nexus.and.stats(file, tree.id=NA, method.node.stat='any.node')
+		tree				<- tmp$tree
+		node.stat			<- tmp$node.stat
+		
+		file				<- paste(indir,'/',paste(substr(infile.timetrees,1,nchar(infile.timetrees)-9),'R',sep=''),sep='')
+		save(tree, node.stat, file=file)
+	}	
+}
+##--------------------------------------------------------------------------------------------------------
+##	get sequences from BEAST XML, create concatenated file
+##--------------------------------------------------------------------------------------------------------
+project.PANGEA.RootSeqSim.DATA.checkDrugResistanceMask<- function()
+{
+	require(XML)
+	require(ape)
+	DATA		<<- "/work/or105/Gates_2014"
+	DATA		<<- '/Users/Oliver/duke/2014_Gates'
+	indir		<- paste(DATA,'methods_comparison_rootseqsim/140727',sep='/')
+	outdir		<- paste(DATA,'methods_comparison_rootseqsim/140728',sep='/')
+	infile		<- 'ALLv02.n100.rlx.gmrf' 
+	insignat	<- 'Sun_Jul_27_09-00-00_2014'
+	
+	file			<- '/Users/Oliver/duke/2014_Gates/methods_comparison_rootseqsim/140727/ALLv01.n100.rlx.gmrf_Sun_Jul_27_09-00-00_2014.xml'
+	file			<- '/Users/Oliver/duke/2014_Gates/methods_comparison_rootseqsim/140801/ALLv06.n97.rlx.gmrf_Sun_Jul_27_09-00-00_2014.xml'
+	bxml			<- xmlTreeParse(file, useInternalNodes=TRUE, addFinalizer = TRUE)
+	bseq			<- hivc.beast.get.sequences(bxml, verbose=1)	
+	bseq			<- merge(bseq, data.table(ALIGNMENT_ID=paste('alignment',1:3,sep=''), GENE=c('env','gag','pol')), by='ALIGNMENT_ID')
+	#	check all seq of same length per gene
+	bseq			<- merge(bseq, bseq[, list(SEQ_N=nchar(SEQ)), by=c('GENE','TAXON_ID')], by=c('GENE','TAXON_ID'))
+	stopifnot( bseq[, all(SEQ_N==SEQ_N[1]), by='GENE'][, all(V1)] )
+	#	check 3 genes per taxon
+	stopifnot( bseq[, length(SEQ)==3, by='TAXON_ID'][, all(V1)] )
+	#	check if indeed patterns are compressed
+	if(0)
+	{
+		bseq	<- subset(bseq, GENE=='env')
+		tmp		<- tolower(do.call('rbind',strsplit(bseq[, SEQ],'')))
+		bseq.CP1<- tmp[, seq.int(1, ncol(tmp), by=3)]
+		bseq.CP2<- tmp[, seq.int(2, ncol(tmp), by=3)]
+		bseq.CP3<- tmp[, seq.int(3, ncol(tmp), by=3)]
+		
+		tmp		<- bseq.CP3
+		tmp2	<- apply( tmp, 1, function(x) paste(x,sep='',collapse=''))	#identical sequences?	
+		cat(paste('\nunique sequences, n=',length(unique(tmp2))))		
+		tmp2	<- apply( tmp, 2, function(x) paste(x,sep='',collapse=''))	#identical patterns? 
+		cat(paste('\nunique patterns, n=',length(unique(tmp2))))
+		tmp2	<- apply( tmp, 2, function(x) all(x==x[1]))					#invariant sites?
+		length(which(tmp2))
+	}
+	#	check for drug resistance mutations
+	if(0)
+	{
+		tmp				<- subset(bseq, GENE=='pol')
+		bseq.pol.m		<- do.call('rbind',strsplit(tmp[, SEQ],''))
+		
+		file			<- '/Users/Oliver/git/hivclust/pkg/data/IAS_primarydrugresistance_201303.rda'
+		alignment.start	<- 2085
+		load(file)
+		IAS_primarydrugresistance_201303		<- as.data.table(IAS_primarydrugresistance_201303)
+		set(IAS_primarydrugresistance_201303, NULL, "Alignment.nuc.pos", IAS_primarydrugresistance_201303[,Alignment.nuc.pos]-alignment.start+1)
+		#pol not in HXB2 consensus coordinates - TODO would have to align against consensus
+		z<- seq.rm.drugresistance(bseq.pol.m, IAS_primarydrugresistance_201303, verbose=1, rtn.DNAbin=0)		
+	}
+	#	concatenate into single DNAbin matrix and save
+	tmp		<- dcast.data.table(bseq, TAXON_ID ~ GENE, value.var="SEQ")	
+	tmp[, SEQ_ALL:=paste(gag, pol, env, sep='')]
+	tmp2	<- tolower(do.call('rbind',strsplit(tmp[, SEQ_ALL],'')))
+	rownames(tmp2)	<- tmp[, TAXON_ID]
+	seq		<- as.DNAbin(tmp2)		
+	outfile	<- paste(infile,'_conc_',insignat,'.R',sep='')
+	save(seq, file=paste(outdir, outfile, sep='/'))
+}
+##--------------------------------------------------------------------------------------------------------
+##	check for recombinants
+##--------------------------------------------------------------------------------------------------------
+project.PANGEA.RootSeqSim.DATA.checkRecombinants<- function()
+{
+	require(XML)
+	require(ape)
+	require(r3SEQ)
+	DATA			<<- "/work/or105/Gates_2014"
+	DATA			<<- '/Users/Oliver/duke/2014_Gates'
+	indir			<- paste(DATA,'methods_comparison_rootseqsim/140728',sep='/')	
+	infile			<- 'ALLv02.n100.rlx.gmrf_conc'
+	outfile			<- 'ALLv03.n97.rlx.gmrf'
+	insignat		<- 'Sun_Jul_27_09-00-00_2014'
+	
+	#file		<- paste(indir, '/', infile, '_', insignat, '.R', sep='')
+	#load(file)
+	#	run 3SEQ
+	infile.3seq		<- paste(infile, '_', insignat, '.R', sep='')
+	pipeline.recom.run.3seq(indir, infile.3seq, batch.n=1, hpc.walltime=1, hpc.q=NA, hpc.mem="500mb", hpc.nproc=1)
+	#	parse 3SEQ output
+	argv			<<-	cmd.recombination.process.3SEQ.output(indir, infile.3seq, '', resume=1, verbose=1) 
+	argv			<<- unlist(strsplit(argv,' '))
+	df.recomb		<- prog.recom.process.3SEQ.output()	
+	#	select potential recombinants with p-value < 1e-3
+	df.recomb		<- subset( df.recomb, adjp<1e-3 )
+	cat(paste('\nfound potential recombinants, n=',nrow(df.recomb)))
+	#
+	#	remove potential recombinants from XML file
+	#
+	file			<- '/Users/Oliver/duke/2014_Gates/methods_comparison_rootseqsim/140727/ALLv02.n100.rlx.gmrf_Sun_Jul_27_09-00-00_2014.xml'
+	bxml.template	<- xmlTreeParse(file, useInternalNodes=TRUE, addFinalizer = TRUE)
+	bseq			<- hivc.beast.get.sequences(bxml.template, verbose=1)	
+	bseq			<- merge(bseq, data.table(ALIGNMENT_ID=paste('alignment',1:3,sep=''), GENE=c('env','gag','pol')), by='ALIGNMENT_ID')
+	bseq			<- subset(bseq, !TAXON_ID%in%df.recomb[, child])
+	#
+	#	write XML file with new sequences
+	#		
+	bxml			<- newXMLDoc(addFinalizer=T)
+	bxml.beast		<- newXMLNode("beast", doc=bxml, addFinalizer=T)
+	newXMLCommentNode(text=paste("Generated by HIVCLUST from template",file), parent=bxml.beast, doc=bxml, addFinalizer=T)
+	#	add new set of ENV sequences into alignment ID 1	
+	set( bseq, NULL, 'SEQ', bseq[, tolower(SEQ)] )
+	tmp				<- subset(bseq, GENE=='env')
+	tmp2			<- tmp[, do.call('rbind',strsplit(tmp[, SEQ],''))]
+	rownames(tmp2)	<- tmp[, TAXON_ID]
+	tmp2			<- as.DNAbin(tmp2)
+	bxml			<- hivc.beast.add.seq(bxml, tmp2, df=NULL, beast.label.datepos= 2, beast.label.sep= '|', beast.date.direction= "forwards", beast.date.units= "years", beast.alignment.id="alignment1", beast.alignment.dataType= "nucleotide", verbose=1)
+	#	add new set of GAG sequences into alignment ID 2
+	tmp				<- subset(bseq, GENE=='gag')
+	tmp2			<- tmp[, do.call('rbind',strsplit(tmp[, SEQ],''))]
+	rownames(tmp2)	<- tmp[, TAXON_ID]
+	tmp2			<- as.DNAbin(tmp2)
+	bxml			<- hivc.beast.add.seq(bxml, tmp2, df=NULL, beast.label.datepos= 2, beast.label.sep= '|', beast.date.direction= "forwards", beast.date.units= "years", beast.alignment.id="alignment2", beast.alignment.dataType= "nucleotide", verbose=1)
+	#	add new set of POL sequences into alignment ID 3
+	tmp				<- subset(bseq, GENE=='pol')
+	tmp2			<- tmp[, do.call('rbind',strsplit(tmp[, SEQ],''))]
+	rownames(tmp2)	<- tmp[, TAXON_ID]
+	tmp2			<- as.DNAbin(tmp2)
+	bxml			<- hivc.beast.add.seq(bxml, tmp2, df=NULL, beast.label.datepos= 2, beast.label.sep= '|', beast.date.direction= "forwards", beast.date.units= "years", beast.alignment.id="alignment3", beast.alignment.dataType= "nucleotide", verbose=1)
+	#	copy rest from template	
+	bt.beast		<- getNodeSet(bxml.template, "//beast")[[1]]
+	dummy			<- sapply(seq.int( max(which( xmlSApply(bt.beast, xmlName)=="alignment" ))+1, xmlSize(bt.beast) ), function(i)
+			{
+				if( class(bt.beast[[i]])[1]=="XMLInternalCommentNode" )
+					dummy<- newXMLCommentNode(text=xmlValue(bt.beast[[i]]), parent=bxml.beast, doc=bxml, addFinalizer=T)
+				else
+					dummy<- addChildren( bxml.beast, xmlClone( bt.beast[[i]], addFinalizer=T, doc=bxml ) )
+			})
+	#	change outfile name 
+	bxml.onodes	<- getNodeSet(bxml, "//*[@fileName]")
+	tmp			<- sapply(bxml.onodes, function(x) xmlGetAttr(x,"fileName"))
+	tmp			<- gsub("(time).","time",tmp,fixed=1)
+	tmp			<- gsub("(subst).","subst",tmp,fixed=1)	
+	tmp			<- sapply(strsplit(tmp,'.',fixed=1), function(x)	paste(outfile,'_',insignat, '.', tail(x,1), sep=''))		
+	dummy		<- sapply(seq_along(bxml.onodes), function(i){		xmlAttrs(bxml.onodes[[i]])["fileName"]<- tmp[i]		})
+	#	write to file
+	file		<- paste(indir,'/',outfile,'_',insignat,".xml", sep='')
+	if(verbose)	cat(paste("\nwrite xml file to",file))
+	saveXML(bxml, file=file)
+
+	if(0)
+	{
+		#	get RAXML trees
+		triplets			<- 1
+		#triplets			<- 147:nrow(df.recomb)
+		dummy	<- lapply(triplets, function(i)
+				{				
+					i<- 1
+					if(verbose)	cat(paste("\nprocess triplet number",i,"\n"))
+					argv				<<- cmd.recombination.check.candidates(indir, infile.3seq, '', i, resume=resume, verbose=1, hpc.walltime=1, hpc.q=NA, hpc.mem='500mb', hpc.nproc=1)
+					argv				<<- unlist(strsplit(argv,' '))
+					prog.recom.get.incongruence()		#this starts ExaML for the ith triplet			
+				})	
+	}		
+}
+##--------------------------------------------------------------------------------------------------------
 ##	simple first program to generate files for Matt s phylo simulator
 ##--------------------------------------------------------------------------------------------------------
 prog.HPTN071.parser.v1<- function()	
