@@ -6,25 +6,271 @@ prog.hello<- function()
 	print('hello')
 }
 ##--------------------------------------------------------------------------------------------------------
-##	run BEAST
+##	select between host sequences
 ##--------------------------------------------------------------------------------------------------------
-project.PANGEA.RootSeqSim.BEAST.run<- function()
+project.PANGEA.RootSeqSim.DATA.SSAfg.select.between.host<- function()
+{
+	label.sep				<- '|'
+	label.idx.country.id	<- 2
+	label.idx.label			<- 3
+	label.idx.ctime			<- 4		
+	#read hand aligned sequences
+	DATA		<<- '~/git/HPTN071sim/raw_rootseq'
+	infile.gag	<- 'PANGEA_SSAfg_gag_140806_n556_final.fasta'
+	infile.pol	<- 'PANGEA_SSAfg_pol_140806_n556_final.fasta'
+	infile.env	<- 'PANGEA_SSAfg_env_140806_n556_final.fasta'
+	seq.gag		<- read.dna( paste(DATA,'/',infile.gag, sep=''), format='fasta' )
+	seq.pol		<- read.dna( paste(DATA,'/',infile.pol, sep=''), format='fasta' )
+	seq.env		<- read.dna( paste(DATA,'/',infile.env, sep=''), format='fasta' )
+	#check seq names are the same
+	stopifnot( all(rownames(seq.gag)==rownames(seq.pol)), all(rownames(seq.gag)==rownames(seq.env)) )	
+	#ensure unique seq names
+	tmp			<- paste( rownames(seq.gag), seq_len(nrow(seq.gag)), sep=label.sep )
+	rownames(seq.gag)	<- rownames(seq.pol)	<- rownames(seq.env)	<- tmp	
+	tmp			<- strsplit( rownames(seq.gag), label.sep, fixed=1 )
+	label.info	<- data.table( SEQ_NAME=sapply(tmp, function(x) paste(x, collapse=label.sep)), COUNTRY_ID= sapply(tmp, '[[', label.idx.country.id), LABEL= sapply(tmp, '[[', label.idx.label), CALENDAR_TIME= sapply(tmp, '[[', label.idx.ctime))
+	label.info	<- label.info[, {
+							list(SEQ_NAME=SEQ_NAME, COUNTRY_ID=COUNTRY_ID, LABEL_UNIQUE=paste(LABEL,seq_along(SEQ_NAME),sep=label.sep), CALENDAR_TIME=CALENDAR_TIME)
+						}, by=LABEL]
+	setkey(label.info, SEQ_NAME)
+	tmp			<- label.info[rownames(seq.gag), ][, paste('C',COUNTRY_ID,LABEL_UNIQUE,CALENDAR_TIME,sep=label.sep) ]
+	rownames(seq.gag)	<- rownames(seq.pol)	<- rownames(seq.env)	<- tmp
+	set(label.info, NULL, 'SEQ_NAME', label.info[, paste('C',COUNTRY_ID,LABEL_UNIQUE,CALENDAR_TIME,sep=label.sep) ])	
+	#concatenate gag pol env
+	seq.c		<- do.call('cbind', list(seq.gag, seq.pol, seq.env))
+	#keep only first sequence with same label	
+	tmp			<- label.info[, as.integer(sapply( strsplit( LABEL_UNIQUE, label.sep, fixed=1 ), '[[', 2 ))]
+	label.info[, LABEL_NO:= tmp]
+	label.info[, SELECT:= FALSE]	
+	#search for further within host seqs: break up label by '.' or '_'
+	setkey(label.info, LABEL)
+	tmp			<- label.info[, which( grepl('\\.', LABEL) | grepl('_', LABEL) ) ]	
+	#select manually not within host seqs
+	include		<- c( "00BW3876_9", "00BW3886_8", "00BW3891_6", "00BW3970_2", "00BW5031_1","02ET_288","4403bmLwk4_fl7",                   
+		"702010141_CH141.w12","702010293_CH293.w8a","702010432_CH432.w4","702010440_CH440.w4","703010085_CH085.w4a",
+		"703010131_CH131_TF", "703010167_CH167.w8", "703010200_CH200_TFa", "703010228_CH228_TFa", "703010256_CH256.w96", 
+		"703010269_CH269.w24", "704010042_CH042.mo6", "705010067_CH067_TF", "705010162_CH162.mo6", "705010185_CH185.mo6", 
+		"705010198_CH198_TF", "705010534_CH534.w12", "706010164_CH164.mo6", "707010457_CH457.w8", "89SM_145", "90SE_364", 
+		"93MW_965", "96BWMO1_5", "BD16_10", "BD22_11", "BD39_8", "BD9_11", "C.703010159.S.0dps.fl", "C.704010042.S.0dps.fl", 
+		"C.705010162.e.wg2", "C.CAP210.w02.0dps.1_00_F4","C.CAP239.w02.0dps.1_02_F32", "C.CAP45.w02.0dps.1_05_T1", "CAP174_4w", "CAP206_8w_F1",	              
+		"CAP210_5w", "CAP228_8w_F2", "CAP229_7w", "CAP239_5w_F1", "CAP244_8w_F1", "CAP248_9w", "CAP255_8w_F1", "CAP256_6w",                    
+		"CAP257_7w_F1", "CAP30_5w_F4", "CAP45_5w_F1", "CAP61_8w_F3", "CAP63_5w_F4", "CAP65_6w", "CAP84_3w_F2", "CAP85_5w_F1",                  
+		"CAP88_5w_F2", "CAP8_3w_F2", "C_ZA_1069MB", "C_ZA_1184MB", "C_ZA_1189MB", "C_ZA_J112MA", "TV001_patent", "TV002_patent",
+		"ZM246F_flA1", "ZM247F_flA1", "ZM249M_flC1", "pZAC_R3714")
+	include		<- c(include, label.info[ !grepl('\\.', LABEL) & !grepl('_', LABEL),   ][, LABEL])
+	#these are excluded based on the '.' and '_' search:
+	#c("4403bmLwk4_fl11","702010293_CH293.w8b","703010200_CH200_TFb","703010200_CH200_TFc", "703010228_CH228_TFb",
+	#	"703010256_CH256_TF", "704010042_CH042_TF", "705010162_CH162_TF", "705010185_CH185_TF", "706010164_CH164_TF",
+	#	"C.CAP210.w02.0dps.1_00_T11", "C.CAP210.w02.0dps.1_00_T2B", "C.CAP210.w02.0dps.1_00_T3", "C.CAP210.w02.0dps.1_00_T36",
+	#	"C.CAP210.w02.0dps.1_00_T3C", "C.CAP210.w02.0dps.1_00_T4", "C.CAP210.w02.0dps.1_00_T43", "C.CAP210.w02.0dps.1_00_T5",
+	#	"C.CAP210.w02.0dps.1_00_T6", "C.CAP210.w05.21dps.2_00", "C.CAP210.w12.70dps.2_05_T13", "C.CAP210.w12.70dps.2_05_T13C",
+	#	"C.CAP210.w12.70dps.2_05_T2", "C.CAP210.w12.70dps.2_05_T39w", "C.CAP210.w12.70dps.2_05_T42", "C.CAP210.w12.70dps.2_05_T5",
+	#	"C.CAP210.w12.70dps.2_05_T8", "C.CAP210.w26.168dps.3_10_T13B", "C.CAP210.w26.168dps.3_10_T20w", "C.CAP210.w26.168dps.3_10_T23B", 
+	#	"C.CAP210.w26.168dps.3_10_T24B", "C.CAP210.w26.168dps.3_10_T24C", "C.CAP210.w26.168dps.3_10_T28", "C.CAP210.w26.168dps.3_10_T40",
+	#	"C.CAP210.w26.168dps.3_10_T42", "C.CAP210.w26.168dps.3_10_T43B", "C.CAP210.w26.168dps.3_10_T47", "C.CAP210.w26.168dps.3_10_T49B",
+	#	"C.CAP239.w02.0dps.1_02_T8", "C.CAP239.w05.21dps.2_00", "C.CAP239.w05.21dps.2_00_T11", "C.CAP239.w05.21dps.2_00_T17", 
+	#	"C.CAP239.w05.21dps.2_00_T18", "C.CAP239.w05.21dps.2_00_T19", "C.CAP239.w05.21dps.2_00_T21", "C.CAP239.w05.21dps.2_00_T3",
+	#	"C.CAP239.w05.21dps.2_00_T49", "C.CAP239.w05.21dps.2_00_T8", "C.CAP239.w11.63dps.2_05_T37", "C.CAP239.w11.63dps.2_05_T47",
+	#	"C.CAP239.w117.805dps.4_21_T44", "C.CAP239.w117.805dps.4_21_T46", "C.CAP239.w117.805dps.4_21_T50", "C.CAP239.w22.140dps.3_09_F1", 
+	#	"C.CAP239.w22.140dps.3_09_T10", "C.CAP239.w22.140dps.3_09_T17", "C.CAP239.w22.140dps.3_09_T20", "C.CAP239.w22.140dps.3_09_T36", 
+	#	"C.CAP239.w22.140dps.3_09_T39", "C.CAP239.w22.140dps.3_09_W16", "C.CAP45.w02.0dps.1_05_F3", "C.CAP45.w02.0dps.1_05_T2", "C.CAP45.w05.21dps.2_00", 
+	#	"C.CAP45.w05.21dps.2_00_T11", "C.CAP45.w05.21dps.2_00_T12", "C.CAP45.w05.21dps.2_00_T14", "C.CAP45.w05.21dps.2_00_T5", "C.CAP45.w05.21dps.2_00_T9", 
+	#	"C.CAP45.w12.70dps.2_05_F1", "C.CAP45.w12.70dps.2_05_T11", "C.CAP45.w12.70dps.2_05_T13b", "C.CAP45.w12.70dps.2_05_T18",
+	#	"C.CAP45.w65.455dps.4_17_T14", "C.CAP45.w65.455dps.4_17_T14B", "ZM246F_flA10", "ZM246F_flA2", "ZM246F_flA6", "ZM246F_flB1", 
+	#	"ZM246F_flC12", "ZM246F_flC3" , "ZM246F_flC5", "ZM246F_flC7", "ZM246F_flD5", "ZM247F_flA12", "ZM247F_flA2", "ZM247F_flB8", 
+	#	"ZM247F_flB9", "ZM247F_flE10", "ZM247F_flE11", "ZM247F_flE3", "ZM247F_flF10", "ZM247F_flF7", "ZM247F_flG11", "ZM247F_flH1",
+	#	"ZM249M_flC5", "ZM249M_flE10", "ZM249M_flE8", "ZM249M_flF1", "TV001_patent", "TV001_patent", "TV002_patent", "chimeric_MJ4")
+	exclude	<- c(	'C|ZA|C_ZA_1184MB|1|2000','C|ZA|C_ZA_1189MB|1|2000','C|ZA|C_ZA_J112MA|1|2000','C|ZA|C_ZA_1069MB|1|2000',
+					'C|ZA|TV001_patent|1|1998','C|ZA|TV002_patent|1|1998','C|ZA|03ZASK212B1|1|2003',
+					'C|ZA|C.CAP239.w02.0dps.1_02_F32|1|2005',"C|ZA|C.CAP210.w02.0dps.1_00_F4|1|2005","C|ZA|C.CAP45.w02.0dps.1_05_T1|1|2005",
+					'C|MW|C.703010159.S.0dps.fl|1|2007','C|ZA|C.704010042.S.0dps.fl|1|2007','C|ZA|705010162_CH162.mo6|1|2007',
+					'C|BW|96BW15C05|1|1996','C|BW|96BW15B03|1|1996',
+					'C|BW|96BW01B22|1|1996','C|BW|96BW01B03|1|1996',"C|BW|96BW11B01|1|1996","C|BW|96BW1104|1|1996",
+					'C|BW|96BW16B01|1|1996','C|BW|96BW1626|1|1996', "C|BW|96BW0502|1|1996", "C|BW|96BW06H51|1|1996","C|BW|96BW06|1|1996",
+					"C|BW|96BW0407|1|1996","C|BW|96BW0402|1|1996","C|BW|96BW0410|1|1996","C|BW|96BW0408|1|1996")
+	set(label.info, label.info[, which(  LABEL_NO==1L & LABEL%in%include )], 'SELECT', TRUE)
+	set(label.info, label.info[, which(  SEQ_NAME%in%exclude )], 'SELECT', FALSE)
+	#select
+	tmp			<- subset(label.info, SELECT)[, SEQ_NAME]
+	seq.c		<- seq.c[tmp, ]
+	#save the whole lot
+	tmp			<- rownames(seq.c)
+	seq.gag		<- seq.gag[tmp, ]
+	seq.pol		<- seq.pol[tmp, ]
+	seq.env		<- seq.env[tmp, ]
+	seq			<- seq.c			#need 'seq' because expected for 3SEQ
+	outdir		<- '~/duke/2014_Gates/methods_comparison_rootseqsim/140811'
+	outfile		<- 'PANGEA_SSAfgBwh_140811_n415_final.R'
+	file		<- paste(outdir, '/', outfile, sep='')
+	save(seq, seq.gag, seq.pol, seq.env, file=file)
+	#check for recombinants
+}
+##--------------------------------------------------------------------------------------------------------
+##	run 3SEQ
+##--------------------------------------------------------------------------------------------------------
+project.PANGEA.RootSeqSim.3SEQ.SSAfg.rm.recombinants<- function()
+{
+	require(XML)
+	require(ape)
+	require(r3SEQ)
+	#DATA			<<- "/work/or105/Gates_2014"
+	DATA			<<- '/Users/Oliver/duke/2014_Gates'
+	indir			<- paste(DATA,'methods_comparison_rootseqsim/140811',sep='/')	
+	infile			<- 'PANGEA_SSAfgBwh_140811_n415_final.R'
+	outfile			<- 'PANGEA_SSAfgBwhRc-_140811_n390.R'
+	#
+	#	run 3SEQ
+	r3seq.pipe.run.3seq(indir, infile, batch.n=5, hpc.walltime=1, hpc.q=NA, hpc.mem="500mb", hpc.nproc=1)
+	#	parse 3SEQ output
+	argv			<<-	r3seq.cmd.process.3SEQ.output(indir, infile, '', resume=1, verbose=1) 
+	argv			<<- unlist(strsplit(argv,' '))
+	df.recomb		<- r3seq.prog.process.3SEQ.output()	
+	#	subset( df.recomb, adjp<1e-4 & min_rec_length>500)[, hist(log10(adjp), breaks=100)]
+	df.recomb		<- subset( df.recomb, adjp<1e-7 & min_rec_length>500)
+	cat(paste('\nfound potential recombinants, n=',nrow(df.recomb)))
+	#
+	file		<- paste(indir, '/', infile, sep='')
+	load(file)
+	tmp			<- setdiff(rownames(seq), df.recomb[, child])
+	seq.gag		<- seq.gag[tmp,]
+	seq.pol		<- seq.pol[tmp,]
+	seq.env		<- seq.env[tmp,]
+	seq			<- seq[tmp,]
+	file		<- paste(indir, '/', outfile, sep='')
+	save(seq, seq.gag, seq.pol, seq.env, file=file)
+}
+##--------------------------------------------------------------------------------------------------------
+##	run BEAST XML file
+##--------------------------------------------------------------------------------------------------------
+project.PANGEA.RootSeqSim.BEAST.SSAfg.run<- function()
+{
+	#DATA		<<- "/work/or105/Gates_2014"
+	DATA		<<- '/Users/Oliver/duke/2014_Gates'	
+	indir		<- paste(DATA,'methods_comparison_rootseqsim/140811',sep='/')
+	#search for XML files in indir
+	infiles		<- list.files(indir, pattern=paste(".xml$",sep=''))
+	insignat	<- ''	
+	hpc.ncpu	<- 8
+	
+	for(infile in infiles)
+	{
+		infile		<- substr(infile, 1, nchar(infile)-4) 		
+		cmd			<- hivc.cmd.beast.runxml(indir, infile, insignat, prog.beast=PR.BEAST, prog.beast.opt=" -beagle -working", hpc.tmpdir.prefix="beast", hpc.ncpu=hpc.ncpu)
+		tmp			<- paste(infile,'.timetrees',sep='')	
+		cmd			<- paste(cmd, hivc.cmd.beast.read.nexus(indir, tmp, indir, tree.id=NA, method.node.stat='any.node'), sep='\n')
+		cmd			<- paste(cmd, hivc.cmd.beast.run.treeannotator(indir, infile, insignat, prog.beastmcc=PR.BEASTMCC, beastmcc.burnin=500, beastmcc.heights="median"), sep='\n')
+		cat(cmd)	
+		cmd			<- hivc.cmd.hpcwrapper(cmd, hpc.q="pqeph", hpc.nproc=hpc.ncpu, hpc.walltime=91, hpc.mem="3700mb")		
+		outdir		<- indir
+		outfile		<- paste("b2m.",paste(strsplit(date(),split=' ')[[1]],collapse='_',sep=''),sep='')					
+		hivc.cmd.hpccaller(outdir, outfile, cmd)		
+	}
+}
+##--------------------------------------------------------------------------------------------------------
+##	create BEAST XML file
+##--------------------------------------------------------------------------------------------------------
+project.PANGEA.RootSeqSim.BEAST.SSAfg.createXML<- function()
 {
 	require(hivclust)
+	require(XML)
+	require(ape)
+	require(r3SEQ)
+	#DATA			<<- "/work/or105/Gates_2014"
+	DATA			<<- '/Users/Oliver/duke/2014_Gates'
 	
-	DATA		<<- "/work/or105/Gates_2014"
-	#indir		<- paste(DATA,'methods_comparison_rootseqsim/140727',sep='/')
-	#infile		<- 'ALLv02.n100.rlx.gmrf' 
-	indir		<- paste(DATA,'methods_comparison_rootseqsim/140729',sep='/')
-	infile		<- 'ALLv04.n97.rlx.gmrf' 
-	insignat	<- 'Sun_Jul_27_09-00-00_2014'
-	cmd			<- hivc.cmd.beast.runxml(indir, infile, insignat, prog.beast=PR.BEAST, prog.beastmcc=PR.BEASTMCC, beastmcc.burnin=500, beastmcc.heights="median", hpc.tmpdir.prefix="beast", hpc.ncpu=1)
-	cat(cmd)
-	
-	cmd			<- hivc.cmd.hpcwrapper(cmd, hpc.q="pqeph", hpc.nproc=1, hpc.walltime=91, hpc.mem="1800mb")
-	outdir		<- indir
-	outfile		<- paste("b2m.",paste(strsplit(date(),split=' ')[[1]],collapse='_',sep=''),sep='')					
-	hivc.cmd.hpccaller(outdir, outfile, cmd)
+	if(1)	
+	{		
+		#
+		#	to define sequences for each BEAST run
+		#	compute NJ tree and define clusters
+		#
+		infile.beast	<- '/Users/Oliver/git/HPTN071sim/raw_rootseq/BEAST_template_v07.xml'
+		indir			<- paste(DATA,'methods_comparison_rootseqsim/140811',sep='/')	
+		infile			<- 'PANGEA_SSAfgBwhRc-_140811_n390.R'
+		file			<- paste(indir, '/', infile, sep='')
+		load(file)
+		#	get NJ tree and plot
+		tmp				<- dist.dna( seq )
+		seq.ph			<- nj(tmp)				
+		file			<- paste( indir, '/', substr(infile,1,nchar(infile)-2), '_njtree.pdf', sep='' )	
+		pdf(file=file, w=10, h=80)
+		plot(seq.ph, show.tip=TRUE)
+		dev.off()	
+		#
+		#	get 3 sequence pools of equal size
+		#
+		pool.n			<- 3
+		tmp				<- hivc.clu.brdist.stats(seq.ph, eval.dist.btw="leaf", stat.fun=hivc.clu.min.transmission.cascade)
+		thresh.brl		<- 0.055
+		clustering		<- hivc.clu.clusterbythresh(seq.ph, thresh.brl=thresh.brl, dist.brl=tmp, retval="all")
+		#	allocate clustering tips into 3 distinct clusters
+		seq.clumem		<- data.table( PH_NODE_ID=seq_len(Ntip(seq.ph)), CLU_ID=clustering$clu.mem[ seq_len(Ntip(seq.ph)) ] )
+		setkey(seq.clumem, CLU_ID)		
+		tmp				<- which(!is.na(seq.clumem[, CLU_ID]))
+		tmp				<- seq.clumem[tmp,][, list(CLU_N=-length(PH_NODE_ID)), by='CLU_ID']
+		setkey(tmp, CLU_N)
+		set(tmp, NULL, 'POOL_ID', tmp[, cumsum(-CLU_N)]) 		
+		set(tmp, NULL, 'POOL_ID', tmp[, ceiling( POOL_ID / max(POOL_ID) * pool.n ) ] )
+		seq.clumem		<- merge(seq.clumem, subset(tmp, select=c(CLU_ID, POOL_ID)), by='CLU_ID', all.x=TRUE)
+		#	allocate non-clustering tips into 3 distinct clusters
+		tmp				<- subset(seq.clumem,!is.na(POOL_ID))[, list(NOCLU_N= nrow(seq.clumem) / pool.n - length(PH_NODE_ID)), by='POOL_ID']
+		set(seq.clumem, seq.clumem[, which(is.na(POOL_ID))], 'POOL_ID',  rep(tmp[,POOL_ID], tmp[,NOCLU_N]) )
+		seq.clumem[, table(POOL_ID)]	
+		#
+		#	for each sequence pool, set up BEAST run
+		#
+		verbose			<- 1
+		bxml.template	<- xmlTreeParse(infile.beast, useInternalNodes=TRUE, addFinalizer = TRUE)
+		for(pool.id in seq_len(pool.n))
+		{
+			pool.infile		<- paste(  substr(infile,1,nchar(infile)-2),'_pool',pool.id, sep='' )
+			pool.seqnames	<- seq.ph$tip.label[ subset(seq.clumem, POOL_ID==pool.id)[, PH_NODE_ID] ]
+			cat(paste('\ncreate BEAST XML file for seqs=',paste(pool.seqnames, collapse=' ')))
+			#	write XML file with new sequences
+			bxml			<- newXMLDoc(addFinalizer=T)
+			bxml.beast		<- newXMLNode("beast", doc=bxml, addFinalizer=T)
+			newXMLCommentNode(text=paste("Generated by HIVCLUST from template",infile.beast), parent=bxml.beast, doc=bxml, addFinalizer=T)
+			#	add new set of ENV sequences into alignment ID 1
+			tmp				<- seq.env[pool.seqnames,]
+			bxml			<- hivc.beast.add.seq(bxml, tmp, df=NULL, beast.label.datepos= 5, beast.label.sep= '|', beast.date.direction= "forwards", beast.date.units= "years", beast.alignment.id="alignment1", beast.alignment.dataType= "nucleotide", verbose=1)
+			#	add new set of GAG sequences into alignment ID 2
+			tmp				<- seq.gag[pool.seqnames,]
+			bxml			<- hivc.beast.add.seq(bxml, tmp, df=NULL, beast.label.datepos= 5, beast.label.sep= '|', beast.date.direction= "forwards", beast.date.units= "years", beast.alignment.id="alignment2", beast.alignment.dataType= "nucleotide", verbose=1)
+			#	add new set of POL sequences into alignment ID 3
+			tmp				<- seq.pol[pool.seqnames,]
+			bxml			<- hivc.beast.add.seq(bxml, tmp, df=NULL, beast.label.datepos= 5, beast.label.sep= '|', beast.date.direction= "forwards", beast.date.units= "years", beast.alignment.id="alignment3", beast.alignment.dataType= "nucleotide", verbose=1)
+			#	copy from template	
+			bt.beast		<- getNodeSet(bxml.template, "//beast")[[1]]
+			dummy			<- sapply(seq.int( 1, xmlSize(bt.beast) ), function(i)
+					{
+						if( class(bt.beast[[i]])[1]=="XMLInternalCommentNode" )
+							dummy<- newXMLCommentNode(text=xmlValue(bt.beast[[i]]), parent=bxml.beast, doc=bxml, addFinalizer=T)
+						else
+							dummy<- addChildren( bxml.beast, xmlClone( bt.beast[[i]], addFinalizer=T, doc=bxml ) )
+					})
+			#	change gmrf dimensions	
+			tmp			<- getNodeSet(bxml, "//*[@id='skyride.logPopSize']")
+			if(length(tmp)!=1)	stop("unexpected number of *[@id='skyride.logPopSize'")
+			tmp			<- tmp[[1]]
+			xmlAttrs(tmp)["dimension"]	<-	length(pool.seqnames)-1  
+			tmp			<- getNodeSet(bxml, "//*[@id='skyride.groupSize']")
+			if(length(tmp)!=1)	stop("unexpected number of *[@id='skyride.groupSize'")
+			tmp			<- tmp[[1]]
+			xmlAttrs(tmp)["dimension"]	<-	length(pool.seqnames)-1			
+			#	change outfile name 
+			bxml.onodes	<- getNodeSet(bxml, "//*[@fileName]")
+			tmp			<- sapply(bxml.onodes, function(x) xmlGetAttr(x,"fileName"))
+			tmp			<- gsub("(time).","time",tmp,fixed=1)
+			tmp			<- gsub("(subst).","subst",tmp,fixed=1)	
+			tmp			<- sapply(strsplit(tmp,'.',fixed=1), function(x)	paste(pool.infile, '.', tail(x,1), sep=''))
+			dummy		<- sapply(seq_along(bxml.onodes), function(i){		xmlAttrs(bxml.onodes[[i]])["fileName"]<- tmp[i]		})
+			#	write to file
+			file		<- paste(indir,'/',pool.infile,".xml", sep='')
+			if(verbose)	cat(paste("\nwrite xml file to",file))
+			saveXML(bxml, file=file)
+		}		
+	}
+	#
 }
 ##--------------------------------------------------------------------------------------------------------
 ##	get sequences from BEAST XML, create concatenated file
@@ -118,6 +364,195 @@ project.PANGEA.RootSeqSim.BEAST.getancestralseq.from.output<- function()
 		file				<- paste(indir,'/',paste(substr(infile.timetrees,1,nchar(infile.timetrees)-9),'R',sep=''),sep='')
 		save(tree, node.stat, file=file)
 	}	
+}
+##--------------------------------------------------------------------------------------------------------
+##	prepare LANL download
+##	downloaded 556 full genome sequences from SSA on 06-08-2014
+##--------------------------------------------------------------------------------------------------------
+project.PANGEA.RootSeqSim.DATA.SSAfg.process.LosAlamos<- function()
+{
+	DATA			<<- '/Users/Oliver/duke/2014_Gates'
+	indir			<- paste(DATA,'methods_comparison_rootseqsim/140806',sep='/')
+	infile.fasta	<- 'PANGEA_SSAfg_140806_n557.fasta'
+	infile.fasta.gag<- 'PANGEA_SSAfg_gag_140806_n557.fasta'
+	infile.fasta.pol<- 'PANGEA_SSAfg_pol_140806_n557.fasta'
+	infile.fasta.env<- 'PANGEA_SSAfg_env_140806_n557.fasta'
+	file	<- paste(indir, '/', infile.fasta,sep='')
+	seq		<- read.dna(file, format='fasta')	
+	
+	label.sep				<- '|'
+	label.idx.country.id	<- 2
+	label.idx.label			<- 3
+	label.idx.ctime			<- 4
+	tmp						<- strsplit(names(seq), label.sep, fixed=1)
+	
+	seq.label				<- data.table(	LABEL= names(seq),
+			COUNTRY_ID= sapply(tmp,'[[',label.idx.country.id),
+			NAME= sapply(strsplit(names(seq), label.sep, fixed=1),'[[',label.idx.label),
+			CALENDAR_TIME= sapply(strsplit(names(seq), label.sep, fixed=1),'[[',label.idx.ctime))
+	#	remove sequences without a sampling date								
+	seq.label	<- subset( seq.label, !is.na(as.numeric(CALENDAR_TIME)) )							
+	set(seq.label, NULL, 'CALENDAR_TIME', seq.label[, as.numeric(CALENDAR_TIME)])
+	#	histogram of sample dates and sample location	
+	ggplot(seq.label, aes(x=CALENDAR_TIME)) + geom_histogram(binwidth=1)
+	ggplot(seq.label, aes(x=COUNTRY_ID)) + geom_histogram()
+	#
+	#	some seqs are crap and have duplicate runs, need to edit manually. ISOLATING GAG POL ENV
+	#
+	data(refseq_hiv1_hxb2)
+	seq.gag.c	<- as.character(read.dna(file='~/git/hivclust/pkg/data/LosAlamos_HIV1B_CONSENSUS_2004_gag_DNA.fasta', format='fasta'))
+	seq.pol.c	<- as.character(read.dna(file='~/git/hivclust/pkg/data/LosAlamos_HIV1B_CONSENSUS_2004_pol_DNA.fasta', format='fasta'))
+	seq.env.c	<- as.character(read.dna(file='~/git/hivclust/pkg/data/LosAlamos_HIV1B_CONSENSUS_2004_env_DNA.fasta', format='fasta'))
+	#	located gag start at 1009 manually, rm everything before
+	seq			<- as.character(seq)
+	for(i in seq_along(seq))	seq[[i]][1:1008]<- "-"
+	tmp		<- c(1041:1043, 1218:1220, 1321:1322, 1326, 1341:1352, 1366:1389, 1395:1397, 1402:1407, 1411:1413, 1417:1440, 1443:1445, 1447:1449, 1896:1898, 2271:2291, 2455:2466, 2507:2509, 
+			2511:2513, 2521:2523, 2551:2577, 2596, 2640, 2644:2655, 2668:2670 )	
+	for(i in seq_along(seq))	seq[[i]][tmp]	<- '-'	
+	#	add '-' to get all seqs of same length					
+	tmp			<- max(sapply(seq, length))
+	seq			<- lapply(seq, function(x) c(x, rep('-',tmp-length(x))) 	)
+	#	get into matrix DNAbin	
+	seq			<- as.DNAbin(do.call('rbind', seq))
+	#	rm '-' columns so far
+	seq			<- seq.rmallchar(seq, rm.char='-', verbose=1)
+	file		<- paste(indir, '/fixup1_', infile.fasta,sep='')
+	write.dna(seq, file=file, format='fasta')
+	#	located pol/prot start at 1657 manually, cut and rm gaps and re-align gag
+	seq				<- as.character(seq)
+	seq.gag			<- seq[, 1:1656]
+	tmp				<- rownames(seq.gag)
+	seq.gag			<- lapply(seq_len(nrow(seq.gag)), function(i){	seq.gag[i, seq.gag[i,]!="-" ]	})
+	seq.gag[[length(seq.gag)+1]]	<- hxb2[, as.character(HXB2.K03455)]
+	seq.gag[[length(seq.gag)+1]]	<- seq.gag.c['CONSENSUS_C',]
+	names(seq.gag)	<- c(tmp,'HXB2','CONSENSUS_C')	
+	seq.gag			<- as.DNAbin(seq.gag)
+	file			<- paste(indir, '/', infile.fasta.gag,sep='')
+	write.dna(seq.gag, file=file, format='fasta')
+	#	align GAG
+	tmp			<- hivc.cmd.clustalo(indir, infile.fasta.gag, signat='', outdir=indir, prog= PR.CLUSTALO, hmm=PR.CLUSTALO.HMM, nproc=1, verbose=1)
+	#	continue fixup for POL	
+	file			<- paste(indir, '/fixup1_', infile.fasta,sep='')
+	seq				<- read.dna(file, format='fasta')
+	seq				<- as.character(seq)
+	seq[, 1:1656]	<- "-"
+	#	located end of POL at 4597	- found length issues, align with own HXB2 
+	seq.pol			<- seq[, 1:4700]	
+	tmp				<- rownames(seq.pol)
+	seq.pol			<- lapply(seq_len(nrow(seq.pol)), function(i){	seq.pol[i, seq.pol[i,]!="-" ]	})	
+	seq.pol[[length(seq.pol)+1]]	<- hxb2[, as.character(HXB2.K03455)]
+	seq.pol[[length(seq.pol)+1]]	<- seq.pol.c['CONSENSUS_C',]	
+	names(seq.pol)	<- c(tmp,'HXB2','CONSENSUS_C')	
+	seq.pol			<- as.DNAbin( seq.pol )
+	file			<- paste(indir, '/', infile.fasta.pol,sep='')
+	write.dna(seq.pol, file=file, format='fasta')
+	#	align POL
+	#	/Users/Oliver/git/hivclust/pkg/inst/mafft-mac/mafft.bat --op 1.8 --ep 0.4 --maxiterate 15 --thread 4 /Users/Oliver/duke/2014_Gates/methods_comparison_rootseqsim/140806/PANGEA_SSAfg_pol_140806_n557.fasta > /Users/Oliver/duke/2014_Gates/methods_comparison_rootseqsim/140806/PANGEA_SSAfg_pol_140806_n557.fasta.mafft
+	#tmp				<- hivc.cmd.clustalo(indir, infile.fasta.pol, signat='', outdir=indir, prog= PR.CLUSTALO, hmm=PR.CLUSTALO.HMM, nproc=1, verbose=1)
+	#
+	#	located start of ENV around 5918			which( seq[nrow(seq), 4597:ncol(seq)]=='-' )		which( seq[nrow(seq), 5918:ncol(seq)]=='-' )	-> 660 -> 9058
+	#	located end of ENV around 9176 
+	file			<- paste(indir, '/fixup1_', infile.fasta,sep='')
+	seq				<- read.dna(file, format='fasta')
+	seq				<- as.character(seq)
+	seq.env			<- seq[, 5850:9250]
+	tmp				<- rownames(seq.env)
+	seq.env			<- lapply(seq_len(nrow(seq.env)), function(i){	seq.env[i, seq.env[i,]!="-" ]	})	
+	seq.env[[length(seq.env)+1]]	<- hxb2[, as.character(HXB2.K03455)]
+	seq.env[[length(seq.env)+1]]	<- seq.env.c['CONSENSUS_C',]	
+	names(seq.env)	<- c(tmp,'HXB2','CONSENSUS_C')
+	seq.env			<- as.DNAbin( seq.env )
+	file			<- paste(indir, '/', infile.fasta.env,sep='')
+	write.dna(seq.env, file=file, format='fasta')
+	#	align ENV
+	tmp			<- hivc.cmd.clustalo(indir, infile.fasta.env, signat='', outdir=indir, prog= PR.CLUSTALO, hmm=PR.CLUSTALO.HMM, nproc=1, verbose=1)
+	#
+	#	process GAG
+	#	
+	file		<- paste(indir, '/', infile.fasta.gag,'.mafft',sep='')
+	seq.gag		<- read.dna(file, format='fasta')
+	seq.gag		<- as.character(seq.gag)
+	seq.gag		<- seq.gag[,790:2698]
+	tmp			<- rownames(seq.gag)
+	seq.gag		<- lapply(seq_len(nrow(seq.gag)), function(i){	seq.gag[i, seq.gag[i,]!="-" ]	})
+	names(seq.gag)	<- tmp
+	seq.gag			<- as.DNAbin(seq.gag)
+	infile.fasta.gag<- 'PANGEA_SSAfg_gag2_140806_n557.fasta'
+	file			<- paste(indir, '/', infile.fasta.gag,sep='')
+	write.dna(seq.gag, file=file, format='fasta')	
+	#/Users/Oliver/git/hivclust/pkg/inst/mafft-mac/mafft.bat --op 3.0 --ep 1.5 --maxiterate 1000 --thread 4 /Users/Oliver/duke/2014_Gates/methods_comparison_rootseqsim/140806/PANGEA_SSAfg_gag2_140806_n557.fasta > /Users/Oliver/duke/2014_Gates/methods_comparison_rootseqsim/140806/PANGEA_SSAfg_gag2_140806_n557.fasta.mafft
+	#	manual edits
+	file			<- paste(indir, '/', infile.fasta.gag,'.mafft',sep='')
+	seq.gag			<- read.dna(file, format='fasta')
+	seq.gag			<- as.character(seq.gag)
+	seq.gag[, c(1361:1404, 1406:1413, 1421:1458)]	<- '-'
+	seq.gag			<- seq.rmgaps(seq.gag, rm.only.col.gaps=1, verbose=1)
+	infile.fasta.gag<- 'PANGEA_SSAfg_gag3_140806_n557.fasta'
+	file			<- paste(indir, '/', infile.fasta.gag,sep='')
+	write.dna(seq.gag, file=file, format='fasta')
+	#	final without HXB2 / CONSENSUS
+	seq.gag			<- seq.gag[ -c( which(grepl('HXB2',rownames(seq.gag))), which(grepl('CONSENSUS',rownames(seq.gag))) ),  ]
+	seq.gag			<- seq.rmgaps(seq.gag, rm.only.col.gaps=1, verbose=1)	
+	infile.fasta.gag<- 'PANGEA_SSAfg_gag_140806_n556_final.fasta'
+	file			<- paste(indir, '/', infile.fasta.gag,sep='')
+	write.dna(seq.gag, file=file, format='fasta')	
+	#
+	#	process POL
+	#	
+	file			<- paste(indir, '/', infile.fasta.pol,'.mafft',sep='')
+	seq.pol			<- read.dna(file, format='fasta')
+	#	start: 2253		end: 5096	
+	seq.pol			<- seq.pol[,2253:5096]
+	seq.pol			<- seq.pol[ -c( which(grepl('HXB2',rownames(seq.pol))), which(grepl('CONSENSUS',rownames(seq.pol))) ),  ]
+	infile.fasta.pol<- 'PANGEA_SSAfg_pol_140806_n556_final.fasta'
+	file			<- paste(indir, '/', infile.fasta.pol,sep='')
+	write.dna(seq.pol, file=file, format='fasta')
+	#
+	#	process ENV
+	#
+	#	start 6216	end 9734
+	file		<- paste(indir, '/', infile.fasta.env,'.mafft',sep='')
+	seq.env		<- read.dna(file, format='fasta')
+	seq.env		<- as.character(seq.env)
+	tmp			<- names(seq.env)
+	seq.env		<- t(sapply( seq_along(seq.env), function(i){	seq.env[[i]][ 6216:9734 ]	}))
+	seq.env		<- lapply(seq_len(nrow(seq.env)), function(i){	seq.env[i, seq.env[i,]!="-" ]	})	
+	names(seq.env)	<- tmp
+	seq.env			<- as.DNAbin(seq.env)
+	infile.fasta.env<- 'PANGEA_SSAfg_env2_140806_n557.fasta'
+	file			<- paste(indir, '/', infile.fasta.env,sep='')
+	write.dna(seq.env, file=file, format='fasta')	
+	#	align on LosAlamos + manual edits
+	file			<- paste(indir, '/', infile.fasta.env,'.hivalign',sep='')
+	seq.env			<- read.dna(file, format='fasta')	
+	seq.env			<- as.character(seq.env)
+	seq.env[,c(1613:1645,2852:2932) ]	<- '-'  
+	seq.env			<- seq.rmgaps(seq.env, rm.only.col.gaps=1, verbose=1)	
+	infile.fasta.env<- 'PANGEA_SSAfg_env3_140806_n557.fasta'
+	file			<- paste(indir, '/', infile.fasta.env,sep='')
+	write.dna(seq.env, file=file, format='fasta', colsep='', nbcol=-1)
+	#	align on LosAlamos + manual edits
+	file			<- paste(indir, '/', infile.fasta.env,'.hivalignnt',sep='')
+	seq.env			<- read.dna(file, format='fasta')	
+	seq.env			<- as.character(seq.env)
+	tmp				<- max(sapply(seq.env, length))
+	seq.env			<- t(sapply(seq.env, function(x) c(x, rep('-',tmp-length(x))) 	))
+	seq.env[,c(430:543) ]	<- '-'		#rm non-consensus jitter
+	seq.env[,c(1294:1344) ]	<- '-'		#rm non-consensus jitter
+	seq.env			<- seq.rmgaps(seq.env, rm.only.col.gaps=1, verbose=1)
+	infile.fasta.env<- 'PANGEA_SSAfg_env4_140806_n557.fasta'
+	file			<- paste(indir, '/', infile.fasta.env,sep='')
+	write.dna(seq.env, file=file, format='fasta', colsep='', nbcol=-1)
+	#seq.env[,c(1:9) ]	<- '-'			#C consensus start
+	#!! There are two extra AA that are not in consensus C TAGTAG at pos 561
+	#!! There are two extra AA that are not in consensus C at pos 2310
+	#fixed some final issues manually
+	seq.env			<- read.dna(file, format='fasta')
+	seq.env 		<- seq.env[ -c( which(grepl('HXB2',rownames(seq.env))), which(grepl('CONSENSUS',rownames(seq.env))) ),  ]
+	seq.env			<- seq.rmgaps(seq.env, rm.only.col.gaps=1, verbose=1)
+	infile.fasta.env<- 'PANGEA_SSAfg_env_140806_n556_final.fasta'
+	file			<- paste(indir, '/', infile.fasta.env,sep='')
+	write.dna(seq.env, file=file, format='fasta', colsep='', nbcol=-1)
 }
 ##--------------------------------------------------------------------------------------------------------
 ##	get sequences from BEAST XML, create concatenated file
