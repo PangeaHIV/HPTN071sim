@@ -184,18 +184,29 @@ project.PANGEA.RootSeqSim.BEAST.SSAfg.createXML<- function()
 		#	to define sequences for each BEAST run
 		#	compute NJ tree and define clusters
 		#
-		infile.beast	<- '/Users/Oliver/git/HPTN071sim/raw_rootseq/BEAST_template_v07.xml'
-		indir			<- paste(DATA,'methods_comparison_rootseqsim/140811',sep='/')	
+		infile.beast	<- '/Users/Oliver/git/HPTN071sim/raw_rootseq/BEAST_template_v08.xml'
+		indir			<- paste(DATA,'methods_comparison_rootseqsim/140813',sep='/')	
 		infile			<- 'PANGEA_SSAfgBwhRc-_140811_n390.R'
 		file			<- paste(indir, '/', infile, sep='')
-		load(file)
+		load(file)		
+		#	remove sequences without calendar time 		
+		label.sep				<- '|'
+		label.idx.ctime			<- 5		
+		tmp						<- sapply( strsplit( rownames(seq.gag), label.sep, fixed=1 ), '[[', label.idx.ctime )
+		tmp						<- rownames(seq.gag)[ which(is.na(as.numeric(tmp))) ]
+		cat(paste('\nExclude sequences with no calendar date, ', paste(tmp, collapse=' ')))
+		tmp						<- setdiff(rownames(seq.gag), tmp)		
+		seq.gag					<- seq.gag[tmp,]
+		seq.pol					<- seq.pol[tmp,]
+		seq.env					<- seq.env[tmp,]
+		seq						<- seq[tmp,]
 		#	get NJ tree and plot
 		tmp				<- dist.dna( seq )
 		seq.ph			<- nj(tmp)				
 		file			<- paste( indir, '/', substr(infile,1,nchar(infile)-2), '_njtree.pdf', sep='' )	
 		pdf(file=file, w=10, h=80)
 		plot(seq.ph, show.tip=TRUE)
-		dev.off()	
+		dev.off()			
 		#
 		#	get 3 sequence pools of equal size
 		#
@@ -213,7 +224,8 @@ project.PANGEA.RootSeqSim.BEAST.SSAfg.createXML<- function()
 		set(tmp, NULL, 'POOL_ID', tmp[, ceiling( POOL_ID / max(POOL_ID) * pool.n ) ] )
 		seq.clumem		<- merge(seq.clumem, subset(tmp, select=c(CLU_ID, POOL_ID)), by='CLU_ID', all.x=TRUE)
 		#	allocate non-clustering tips into 3 distinct clusters
-		tmp				<- subset(seq.clumem,!is.na(POOL_ID))[, list(NOCLU_N= nrow(seq.clumem) / pool.n - length(PH_NODE_ID)), by='POOL_ID']
+		tmp				<- subset(seq.clumem,!is.na(POOL_ID))[, list(NOCLU_N= ceiling( nrow(seq.clumem) / pool.n ) - length(PH_NODE_ID)), by='POOL_ID']		
+		set(tmp, 1L, 'NOCLU_N', tmp[1,NOCLU_N] - ( tmp[, sum(NOCLU_N)] - ( Ntip(seq.ph) - nrow(subset(seq.clumem,!is.na(POOL_ID))) )) )		
 		set(seq.clumem, seq.clumem[, which(is.na(POOL_ID))], 'POOL_ID',  rep(tmp[,POOL_ID], tmp[,NOCLU_N]) )
 		seq.clumem[, table(POOL_ID)]	
 		#
@@ -273,9 +285,255 @@ project.PANGEA.RootSeqSim.BEAST.SSAfg.createXML<- function()
 	#
 }
 ##--------------------------------------------------------------------------------------------------------
-##	get sequences from BEAST XML, create concatenated file
+##	get anecestral sequences from BEAST XML
 ##--------------------------------------------------------------------------------------------------------
-project.PANGEA.RootSeqSim.BEAST.getancestralseq.from.output<- function()
+project.PANGEA.RootSeqSim.BEAST.SSAfg.getancestralseq.from.output<- function()
+{
+	tree.id.burnin		<- 2e7
+	tree.id.labelsep	<- '|'
+	dir.name			<- '/Users/Oliver/duke/2014_Gates'  	
+	indir				<- paste(dir.name,'methods_comparison_rootseqsim/140813',sep='/')
+	outdir				<- indir
+	#	search for BEAST output
+	files				<- list.files(indir)
+	files				<- files[ sapply(files, function(x) grepl('pool[0-9].R$',x) ) ]	
+	if(!length(files))	stop('cannot find files matching criteria')
+	
+	#	load and process BEAST PARSER output
+	anc.seq				<- lapply(files, function(file)
+			{
+				cat(paste('\nProcess file=', file  ))
+				load( paste(indir, file, sep='/') )	#	expect tree, node.stat
+				#	compute gag pol env ancestral sequences		
+				anc.seq	<- PANGEA.RootSeqSim.get.ancestral.seq(tree, node.stat, tree.id.sep='_', tree.id.idx.mcmcit=2, tree.id.burnin=tree.id.burnin, label.sep=tree.id.labelsep, label.idx.ctime=5)				
+				set(anc.seq, NULL, 'LABEL', anc.seq[, paste( substr(file,1,nchar(file)-2), LABEL, sep=tree.id.labelsep )] )				
+				set(anc.seq, NULL, 'TREE_ID', NULL )
+				set(anc.seq, NULL, 'NODE_ID', NULL )
+				set(anc.seq, NULL, 'BEAST_MCMC_IT', NULL )
+				anc.seq
+			})
+	anc.seq				<- do.call('rbind',anc.seq)
+	#
+	#	return DNAbin
+	#
+	anc.seq.gag				<- tolower(do.call('rbind',strsplit(anc.seq[, GAG],'')))
+	rownames(anc.seq.gag)	<- anc.seq[, LABEL]
+	anc.seq.gag				<- as.DNAbin(anc.seq.gag)		
+	anc.seq.pol				<- tolower(do.call('rbind',strsplit(anc.seq[, POL],'')))
+	rownames(anc.seq.pol)	<- anc.seq[, LABEL]
+	anc.seq.pol				<- as.DNAbin(anc.seq.pol)		
+	anc.seq.env				<- tolower(do.call('rbind',strsplit(anc.seq[, ENV],'')))
+	rownames(anc.seq.env)	<- anc.seq[, LABEL]
+	anc.seq.env				<- as.DNAbin(anc.seq.env)	
+	
+	set( anc.seq, NULL, 'GAG', NULL )
+	set( anc.seq, NULL, 'POL', NULL )
+	set( anc.seq, NULL, 'ENV', NULL )
+	anc.seq.info			<- anc.seq
+	#anc.seq					<- cbind(anc.seq.gag, anc.seq.pol, anc.seq.env)
+	#
+	outfile				<- paste( substr(files[1],1,nchar(files[1])-7), 'AncSeq.R',sep='' )
+	file				<- paste(outdir, outfile, sep='/')
+	cat(paste('\nwrite Ancestral Sequences to ',file))
+	save(file=file, anc.seq.gag, anc.seq.pol, anc.seq.env, anc.seq.info)
+}
+##--------------------------------------------------------------------------------------------------------
+##	check ancestral sequences from BEAST XML, create random draw to check
+##--------------------------------------------------------------------------------------------------------
+project.PANGEA.RootSeqSim.SIMU.SSAfg.checkancestralseq.createdataset<- function()
+{
+	tree.id.burnin		<- 2e7
+	tree.id.labelsep	<- '|'
+	dir.name			<- '/Users/Oliver/duke/2014_Gates'  	
+	indir				<- paste(dir.name,'methods_comparison_rootseqsim/140813',sep='/')	
+	infile				<- "PANGEA_SSAfgBwhRc-_140811_n390_AncSeq.R"	
+	outdir				<- indir
+	outfile.fg			<- infile
+	outfile.partialpol	<- "PANGEA_SSApolBwhRc-_140811_n390_AncSeq.R"
+	outsignat			<- "Mon_Aug_17_17:05:23_2014"	
+	#	load ancestral sequences
+	load( paste(indir, infile, sep='/') ) #	expect anc.seq.gag, anc.seq.pol, anc.seq.env, anc.seq.info
+	#
+	#	basic checks
+	#	
+	if(0)
+	{
+		tmp					<- anc.seq.info[, 	sapply( strsplit(LABEL, tree.id.labelsep, fixed=TRUE),'[[', 1) ]
+		anc.seq.info[, POOL:= regmatches(tmp, regexpr('pool[0-9]+', tmp))]
+		set(anc.seq.info, NULL, 'POOL', anc.seq.info[, as.numeric(substr(POOL, 5, nchar(POOL)))])
+		ggplot(anc.seq.info, aes(x=CALENDAR_TIME)) + geom_histogram(binwidth=2) + facet_grid(.~POOL, margins=0)
+		#	most sequences between 1940 - 1980
+		subset(anc.seq.info, floor(CALENDAR_TIME)==1940)		
+	}
+	#	sample data set to run ExaML
+	anc.seq.info[, CALENDAR_YR:=anc.seq.info[, floor(CALENDAR_TIME)]]	
+	#	~ 1400 sequences from 1940
+	#	sample 10 times 1e3 sequences randomly from exp increasing prevalence and estimate tree to calculate root to tip divergence + clustering on fg and partial pol
+	s.seed						<- 42
+	s.PREV.MAX					<- 0.25
+	s.PREV.MIN					<- 0.01
+	s.RANGE						<- 40
+	s.size						<- 1e3
+	s.baseline.ancseq.time		<- 1940
+	s.baseline.calendar.time	<- 1980
+	s.LENGTH.PARTIAL.POL		<- 1500
+	tree.id.labelidx.ctime		<- 4		
+	tmp							<- log( 1+s.PREV.MAX-s.PREV.MIN ) / (s.RANGE-1)
+	tmp							<- exp( tmp*seq.int(0,s.RANGE-1) ) - 1 + s.PREV.MIN
+	seq.s						<- c(s.PREV.MIN, diff(tmp))
+	seq.s						<- data.table( SEQ_N= round( seq.s/s.PREV.MAX*s.size ), ANCSEQ_YR=seq_along(seq.s)+s.baseline.ancseq.time-1 )
+	anc.seq.info				<- subset(anc.seq.info,  CALENDAR_YR>=s.baseline.ancseq.time & CALENDAR_YR<=(s.baseline.ancseq.time+s.RANGE-1))
+	
+	#	draw partial pol genome sequences - length is first 1500 sites
+	#	and draw full genome sequences
+	set.seed(s.seed)	
+	for(check.draw in 1:5)
+	{
+		#	draw a large enough number of ancseq labels from the 3 pools for each year to accommodate SEQ_N/3 anc seqs from each pool
+		anc.seq.infodraw			<- anc.seq.info[, {
+					tmp	<- seq.s$SEQ_N[ which(seq.s$ANCSEQ_YR==CALENDAR_YR) ]
+					list(LABEL= sample(LABEL, 2*tmp, replace=FALSE), SEQ_N=tmp, SEQ_N_GRACE=2*tmp)
+				}, by='CALENDAR_YR']	
+		anc.seq.draw				<- anc.seq.pol[anc.seq.infodraw[, LABEL], seq_len(s.LENGTH.PARTIAL.POL)]
+		#	make sure the drawn sequences are unique on partial POL
+		anc.seq.draw				<- seq.unique(anc.seq.draw)
+		anc.seq.infodraw			<- merge( data.table(LABEL=rownames(anc.seq.draw)), anc.seq.infodraw, by='LABEL' )	
+		stopifnot( anc.seq.infodraw[, list(SEQ_N_GRACE=length(LABEL), SEQ_N=SEQ_N[1]), by='CALENDAR_YR'][, all(SEQ_N_GRACE>=SEQ_N)] )
+		anc.seq.infodraw			<- anc.seq.infodraw[, list(LABEL= LABEL[seq_len(SEQ_N[1])]), by='CALENDAR_YR']
+		#	set new calendar time for sequences
+		set(anc.seq.infodraw, NULL, 'LABEL_NEW', anc.seq.infodraw[, as.numeric( sapply( strsplit(LABEL,tree.id.labelsep,fixed=TRUE), '[[', tree.id.labelidx.ctime) ) ])
+		set(anc.seq.infodraw, NULL, 'LABEL_NEW', anc.seq.infodraw[, LABEL_NEW-s.baseline.ancseq.time+s.baseline.calendar.time])	
+		anc.seq.infodraw			<- anc.seq.infodraw[,	{
+					tmp							<- strsplit(LABEL,tree.id.labelsep,fixed=TRUE)[[1]]
+					tmp[tree.id.labelidx.ctime]	<- LABEL_NEW
+					list(LABEL_NEW=paste(tmp, collapse=tree.id.labelsep,sep=''))
+				}, by='LABEL']
+		setkey(anc.seq.infodraw, LABEL)
+		#	select partial POL seqs and save to file
+		anc.seq.draw				<- anc.seq.pol[anc.seq.infodraw[, LABEL], seq_len(s.LENGTH.PARTIAL.POL)]		
+		rownames(anc.seq.draw)		<- anc.seq.infodraw[ rownames(anc.seq.draw), ][, LABEL_NEW]
+		file						<- paste( outdir, '/', substr(outfile.partialpol,1,nchar(outfile.partialpol)-2),'_checkdraw', check.draw,'_', insignat, '.R', sep='' )
+		cat(paste('\nsave to file', file))
+		save(anc.seq.draw, file=file)
+		#	select the same full genome seqs and save to file
+		anc.seq.draw				<- do.call( 'cbind', list( anc.seq.gag[anc.seq.infodraw[, LABEL], ], anc.seq.pol[anc.seq.infodraw[, LABEL], ], anc.seq.env[anc.seq.infodraw[, LABEL], ] ) ) 
+		rownames(anc.seq.draw)		<- anc.seq.infodraw[ rownames(anc.seq.draw), ][, LABEL_NEW]
+		file						<- paste( outdir, '/', substr(outfile.fg,1,nchar(outfile.fg)-2),'_checkdraw', check.draw,'_', insignat, '.R', sep='' )
+		cat(paste('\nsave to file', file))
+		save(anc.seq.draw, file=file)
+	}
+}
+##--------------------------------------------------------------------------------------------------------
+##	check ancestral sequences from BEAST XML, run ExaML
+##--------------------------------------------------------------------------------------------------------
+project.PANGEA.RootSeqSim.SIMU.SSAfg.checkancestralseq.runExaML<- function()
+{
+	#DATA			<<- "/work/or105/Gates_2014"
+	DATA				<<- '/Users/Oliver/duke/2014_Gates'
+	dir.name			<- DATA  	
+	indir				<- paste(dir.name,'methods_comparison_rootseqsim/140813',sep='/')
+	#	ExaML bootstrap args
+	bs.from		<- 0
+	bs.to		<- 1
+	bs.n		<- 100
+	
+	#	search for 'checkdraw' files
+	infiles		<- list.files(indir)
+	infiles		<- infiles[ sapply(infiles, function(x) grepl('.*checkdraw[0-9]+.*R$',x) ) ]	
+	if(!length(infiles))	stop('cannot find files matching criteria')
+	
+	outdir		<- indir
+	for(infile in infiles)
+	{
+		#infile		<- files[1]
+		infile		<- substr(infile, 1, nchar(infile)-2)
+		insignat	<- regmatches(infile, regexpr('checkdraw[0-9]+_.*', infile))
+		insignat	<- regmatches(insignat,regexpr('_.*',insignat))
+		insignat	<- substr(insignat,2,nchar(insignat))
+		infile		<- regmatches(infile, regexpr('.*checkdraw[0-9]+', infile))
+		
+		
+		cmd			<- hivc.cmd.examl.bootstrap(indir, infile, insignat, insignat, bs.from=bs.from, bs.to=bs.to,bs.n=bs.n,outdir=outdir, resume=1, verbose=1)
+		dummy		<- lapply(cmd, function(x)
+				{				
+					x		<- hivc.cmd.hpcwrapper(x, hpc.walltime=24, hpc.q= NA, hpc.mem="450mb", hpc.nproc=1)
+					#x		<- hivc.cmd.hpcwrapper(x, hpc.walltime=24, hpc.q="pqeph", hpc.mem="3850mb", hpc.nproc=8)
+					signat	<- paste(strsplit(date(),split=' ')[[1]],collapse='_',sep='')
+					outfile	<- paste("exa",signat,sep='.')
+					#cat(x)
+					hivc.cmd.hpccaller(outdir, outfile, x)
+					Sys.sleep(1)
+				})
+		stop()
+	}
+}
+##--------------------------------------------------------------------------------------------------------
+##	check ancestral sequences from BEAST XML, run ExaML
+##--------------------------------------------------------------------------------------------------------
+project.PANGEA.RootSeqSim.SIMU.SSAfg.checkancestralseq.evalExaML<- function()
+{
+	#DATA			<<- "/work/or105/Gates_2014"
+	DATA				<<- '/Users/Oliver/duke/2014_Gates'
+	dir.name			<- DATA  	
+	indir				<- paste(dir.name,'methods_comparison_rootseqsim/140813',sep='/')
+	label.sep			<- '|'
+	label.idx.ctime		<- 4
+	clu.thresh.bs		<- 0.9
+	clu.thresh.brl		<- 0.045	#0.035
+	bs.n				<- 100
+	#	search for 'checkdraw examl' files
+	infiles				<- list.files(indir)
+	infiles				<- infiles[ grepl('.*checkdraw[0-9]+_examl.*newick$',infiles)  ]	
+	if(!length(infiles))	stop('cannot find files matching criteria')
+	
+	#	read tree
+	infile	<- infiles[1]
+	file	<- paste(indir, infile, sep='/')
+	ph		<- read.tree(file)
+	ph		<- ladderize(ph)	
+	#file	<- paste( indir, '/', substr(infile, 1, nchar(infile)-7), '_Tree.pdf', sep='' )
+	#pdf(file=file, h=150, w=10)
+	#plot(ph, cex=0.7)
+	#dev.off()
+	#
+	#	check root to tip divergence
+	#
+	tmp		<- node.depth.edgelength(ph)
+	ph.info	<- data.table(LABEL=ph$tip.label, ROOT2TIP=tmp[seq_len(Ntip(ph))] )
+	set(ph.info, NULL, 'CALENDAR_TIME', ph.info[, as.numeric(sapply(strsplit(LABEL, label.sep, fixed=TRUE),'[[',label.idx.ctime))] )
+	tmp		<- lm(ROOT2TIP~CALENDAR_TIME, data=ph.info)		 
+	set( ph.info, NULL, 'ROOT2TIP_LM', predict(tmp, type='response') ) 	
+	tmp2	<- c( R2=round(summary(tmp)$r.squared,d=3), SLOPE= as.numeric(round(coef(tmp)['CALENDAR_TIME'],d=4)), TMRCA=as.numeric(round( -coef(tmp)['(Intercept)']/coef(tmp)['CALENDAR_TIME'], d=1 )) )
+	ggplot(ph.info, aes(x=CALENDAR_TIME, y=ROOT2TIP)) + geom_point(alpha=0.5) + geom_line(aes(y=ROOT2TIP_LM)) +
+			#scale_x_continuous(breaks=seq(1980,2020,2)) +						
+			labs(x='Sequence sampling date', y='root-to-tip divergence') +
+			annotate("text", x=ph.info[, min(CALENDAR_TIME)], y=ph.info[, 0.9*max(ROOT2TIP)], label=paste("R2=", tmp2['R2'],'\nSlope=',tmp2['SLOPE'],'\nTMRCA=',tmp2['TMRCA'], sep=''), hjust = 0, size = 4) +
+			theme(legend.position=c(0,1), legend.justification=c(0,1))
+	file	<- paste( indir, '/', substr(infile, 1, nchar(infile)-7), '_Root2Tip.pdf', sep='' )
+	ggsave(file=file, w=10, h=6)
+	#	check brl divergence
+	#brl.tips	<- distTips(ph , method='patristic')
+	#
+	#	check clustering among root seqs - this should be minimal at cut-off 0.045
+	#
+	dist.brl		<- hivc.clu.brdist.stats(ph, eval.dist.btw="leaf", stat.fun=hivc.clu.min.transmission.cascade )
+	quantile(dist.brl,p=c(0.01,0.05,0.1,0.2,0.3,0.4,0.5))
+	hist(dist.brl, breaks=30)
+	ph.node.bs		<- as.numeric( ph$node.label )		
+	ph.node.bs[is.na(ph.node.bs)]	<- 0
+	ph.node.bs		<- ph.node.bs/bs.n
+	ph$node.label	<- ph.node.bs	
+	ph.clu			<- hivc.clu.clusterbythresh(ph, thresh.nodesupport=clu.thresh.bs, thresh.brl=clu.thresh.brl, dist.brl=dist.brl, nodesupport=ph.node.bs, retval="all")
+	#	plot clustering tree
+	file	<- paste( indir, '/', substr(infile, 1, nchar(infile)-7), '_Clutree.pdf', sep='' )
+	pdf(file=file, h=150, w=10)
+	hivc.clu.plot(ph, ph.clu[["clu.mem"]], show.tip.label=TRUE, cex.edge.incluster=1.5)
+	dev.off()
+}
+##--------------------------------------------------------------------------------------------------------
+##	get anecestral sequences from BEAST XML - developper version
+##--------------------------------------------------------------------------------------------------------
+project.PANGEA.RootSeqSim.BEAST.devel.getancestralseq.from.output<- function()
 {
 	#dir.name	<- "/work/or105/Gates_2014"
 	dir.name	<- '/Users/Oliver/duke/2014_Gates'  
@@ -490,9 +748,10 @@ project.PANGEA.RootSeqSim.DATA.SSAfg.process.LosAlamos<- function()
 	infile.fasta.gag<- 'PANGEA_SSAfg_gag3_140806_n557.fasta'
 	file			<- paste(indir, '/', infile.fasta.gag,sep='')
 	write.dna(seq.gag, file=file, format='fasta')
-	#	final without HXB2 / CONSENSUS
+	#	final without HXB2 / CONSENSUS	
+	seq.gag			<- seq.rmgaps(seq.gag, rm.only.col.gaps=1, verbose=1)	#len 1466 -- 3 more than expected; there is an AA insertion for the SA seqs at pos 367
 	seq.gag			<- seq.gag[ -c( which(grepl('HXB2',rownames(seq.gag))), which(grepl('CONSENSUS',rownames(seq.gag))) ),  ]
-	seq.gag			<- seq.rmgaps(seq.gag, rm.only.col.gaps=1, verbose=1)	
+	seq.gag			<- seq.rmgaps(seq.gag, rm.only.col.gaps=1, verbose=1)
 	infile.fasta.gag<- 'PANGEA_SSAfg_gag_140806_n556_final.fasta'
 	file			<- paste(indir, '/', infile.fasta.gag,sep='')
 	write.dna(seq.gag, file=file, format='fasta')	
