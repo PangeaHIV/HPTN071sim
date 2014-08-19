@@ -443,9 +443,9 @@ project.PANGEA.RootSeqSim.SIMU.SSAfg.checkancestralseq.runExaML<- function()
 	if(!length(infiles))	stop('cannot find files matching criteria')
 	
 	outdir		<- indir
-	for(infile in infiles)
+	for(i in seq_along(infiles))
 	{
-		#infile		<- files[1]
+		infile		<- infiles[i]
 		infile		<- substr(infile, 1, nchar(infile)-2)
 		insignat	<- regmatches(infile, regexpr('checkdraw[0-9]+_.*', infile))
 		insignat	<- regmatches(insignat,regexpr('_.*',insignat))
@@ -487,7 +487,8 @@ project.PANGEA.RootSeqSim.SIMU.SSAfg.checkancestralseq.evalExaML<- function()
 	if(!length(infiles))	stop('cannot find files matching criteria')
 	
 	#	read tree
-	infile	<- infiles[1]
+	i		<- 3
+	infile	<- infiles[i]
 	file	<- paste(indir, infile, sep='/')
 	ph		<- read.tree(file)
 	ph		<- ladderize(ph)	
@@ -527,7 +528,7 @@ project.PANGEA.RootSeqSim.SIMU.SSAfg.checkancestralseq.evalExaML<- function()
 	#	plot clustering tree
 	file	<- paste( indir, '/', substr(infile, 1, nchar(infile)-7), '_Clutree.pdf', sep='' )
 	pdf(file=file, h=150, w=10)
-	hivc.clu.plot(ph, ph.clu[["clu.mem"]], show.tip.label=TRUE, cex.edge.incluster=1.5)
+	tmp		<- hivc.clu.plot(ph, ph.clu[["clu.mem"]], show.tip.label=TRUE, cex.edge.incluster=1.5)
 	dev.off()
 }
 ##--------------------------------------------------------------------------------------------------------
@@ -974,20 +975,41 @@ project.PANGEA.RootSeqSim.DATA.checkRecombinants<- function()
 	}		
 }
 ##--------------------------------------------------------------------------------------------------------
-##	simple first program to generate files for Matt s phylo simulator
+##	wrapper to call Matts phylo simulator
 ##--------------------------------------------------------------------------------------------------------
-prog.HPTN071.parser.v1<- function()	
+prog.HPTN071.virus.tree.simulator.v1<- function()	
 {
 	require(data.table)
-	fin.ind		<- '/Users/Oliver/git/HPTN071sim/raw/140716_RUN001_IND.csv'
-	fin.trm		<- '/Users/Oliver/git/HPTN071sim/raw/140716_RUN001_TRM.txt'
-	fout.ind	<- '/Users/Oliver/git/HPTN071sim/sim/140716_RUN001_IND.csv'
-	fout.trm	<- '/Users/Oliver/git/HPTN071sim/sim/140716_RUN001_TRM.csv'
+	indir		<- '/Users/Oliver/git/HPTN071sim/sim_trchain'
+	outdir		<- '/Users/Oliver/duke/2014_Gates/methods_comparison_trchphylosim/140819'
+	fin.ind		<- '140716_RUN001_IND.csv'
+	fin.trm		<- '140716_RUN001_TRM.csv'
+	fout		<- '140716_RUN001_VirusTreeSim.xx'
+	
+	#TODO store this in R package
+	prog.package.dir		<- '/Users/Oliver/git/HPTN071sim/source/pkg/ext' 
+	prog.VIRUSTREESIMULATOR	<- paste(prog.package.dir,'/','VirusTreeSimulator.jar',sep='')
+	#
+	cmd						<- cmd.VirusTreeSimulator(indir, fin.trm, fin.ind, outdir, fout, prog=prog.VIRUSTREESIMULATOR, prog.args='-demoModel Logistic -N0 0.1 -growthRate 1.5 -t50 -4')
+			
+}
+##--------------------------------------------------------------------------------------------------------
+##	simple first program to generate files for Matt s phylo simulator
+##--------------------------------------------------------------------------------------------------------
+prog.HPTN071.input.parser.v1<- function()	
+{
+	require(data.table)
+	fin.ind		<- '/Users/Oliver/git/HPTN071sim/raw_trchain/140716_RUN001_IND.csv'
+	fin.trm		<- '/Users/Oliver/git/HPTN071sim/raw_trchain/140716_RUN001_TRM.txt'
+	fout.ind	<- '/Users/Oliver/git/HPTN071sim/sim_trchain/140716_RUN001_IND.csv'
+	fout.trm	<- '/Users/Oliver/git/HPTN071sim/sim_trchain/140716_RUN001_TRM.csv'
 	
 	
-	setup.df<- data.table(stat= c('yr.start','yr.end','s.INC.recent','s.INC.recent.len', 's.PREV.min', 's.PREV.max', 'epi.dt'), v=c(1980, 2020, 0.1, 5, 0.01, 0.25, 1/48) )
+	setup.df<- data.table(stat= c('yr.start','yr.end','s.INC.recent','s.INC.recent.len', 's.PREV.min', 's.PREV.max', 's.seed', 'epi.dt'), v=c(1980, 2020, 0.1, 5, 0.01, 0.25, 42, 1/48) )
 	setkey(setup.df, stat)	
-	
+	#	set seed
+	set.seed( setup.df['s.seed',][,v] )
+	#
 	df.trm	<- as.data.table(read.csv(fin.trm, stringsAsFactors=FALSE, sep=' ', dec='.'))
 	setnames(df.trm, c("IdInfector","IdInfected","TimeOfInfection","IsInfectorAcute"), c('IDTR','IDREC','TIME_TR','TR_ACUTE'))		
 	#	transmissions happen either at baseline, or at unique times.
