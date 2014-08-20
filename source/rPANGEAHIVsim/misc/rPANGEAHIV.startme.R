@@ -10,7 +10,7 @@
 # 	because the R files are re-loaded below
 #
 # usage from R:
-#> setwd("/Users/Oliver/git/HPTN071sim/source/rPANGEAHIV"); source("misc/rPANGEAHIV.startme.R")
+#> setwd("/Users/Oliver/git/HPTN071sim/source/rPANGEAHIVsim"); source("misc/rPANGEAHIV.startme.R")
 #
 ###############################################################################
 args <- commandArgs()
@@ -20,7 +20,7 @@ if(any(args=='--args'))
 	args<- args[-(1:match("--args", args)) ]
 
 #the package directory (local working copy of the code, not the installed package directory within the R directory 
-CODE.HOME	<<- "/Users/Oliver/git/HPTN071sim/source/rPANGEAHIV"
+CODE.HOME	<<- "/Users/Oliver/git/HPTN071sim/source/rPANGEAHIVsim"
 
 #the home directory of all projects
 HOME		<<- "/Users/Oliver/git/HPTN071sim/"
@@ -34,8 +34,7 @@ LIB.LOC		<<- NULL
 EPS			<<- 1e-12	#Machine precision	
 
 #the default script to be called if -exe is not specified on the command line	
-#default.fun	<- "my.make.documentation"
-default.fun		<- 'prog.hello'
+default.fun		<- 'pipeline.HPTN071'
 ###############################################################################
 #	select script specified with -exe on the command line. If missing, start default script 'default.fun'.
 argv<- list()
@@ -116,9 +115,10 @@ my.dumpframes<- function()
 ###############################################################################
 #	re-load all R files
 require(data.table)
+require(rPANGEAHIVsim)
 print(CODE.HOME)
 function.list<-c(list.files(path= paste(CODE.HOME,"R",sep='/'), pattern = ".R$", all.files = FALSE,
-				full.names = TRUE, recursive = FALSE),paste(CODE.HOME,"misc","prjcts.R",sep='/'))
+				full.names = TRUE, recursive = FALSE),paste(CODE.HOME,"misc","rPANGEAHIV.prjcts.R",sep='/'))
 sapply(function.list,function(x){ source(x,echo=FALSE,print.eval=FALSE, verbose=FALSE) })
 ###############################################################################
 #	run script

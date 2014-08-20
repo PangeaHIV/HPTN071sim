@@ -1,7 +1,7 @@
 #' This file contains R functions that provide an interface to HPC scripting
 #' Shell scripts are generated that can be either run directly, or submitted to an HPC system.
 
-PR.PACKAGE					<- "rPANGEAHIV"
+PR.PACKAGE					<- "rPANGEAHIVsim"
 PR.STARTME					<- system.file(package=PR.PACKAGE, "misc", "rPANGEAHIV.startme.R")
 PR.HPTN071.INPUT.PARSER		<- paste(PR.STARTME,"-exe=HPTN071.INPUT.PARSER",sep=' ')
 PR.VIRUSTREESIMULATOR		<- system.file(package=PR.PACKAGE, "ext", "VirusTreeSimulator.jar")

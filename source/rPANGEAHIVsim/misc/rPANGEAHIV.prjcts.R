@@ -1058,6 +1058,21 @@ project.PANGEA.RootSeqSim.DATA.checkRecombinants<- function()
 	}		
 }
 ##--------------------------------------------------------------------------------------------------------
+##	pipeline to generate sequence data sets from HPTN071 output
+##--------------------------------------------------------------------------------------------------------
+pipeline.HPTN071<- function()
+{
+	indir			<- '/Users/Oliver/git/HPTN071sim/raw_trchain'
+	infile.ind		<- '140716_RUN001_IND.csv'
+	infile.trm		<- '140716_RUN001_TRM.txt'
+	outdir			<- '/Users/Oliver/git/HPTN071sim/sim_trchain'
+	outfile.ind		<- '140716_RUN001_IND.csv'
+	outfile.trm		<- '140716_RUN001_TRM.csv'
+	
+	cmd				<- cmd.HPTN071.input.parser(indir, infile.trm, infile.ind, outdir, outfile.trm, outfile.ind)
+	cat(cmd)
+}
+##--------------------------------------------------------------------------------------------------------
 ##	wrapper to call Matts phylo simulator
 ##--------------------------------------------------------------------------------------------------------
 prog.HPTN071.virus.tree.simulator.v1<- function()	

@@ -1,7 +1,7 @@
-Package: rPANGEAHIV
+Package: rPANGEAHIVsim
 Version: 1.0-0
 Date: 2014/01/20
-Title: rPANGEAHIV
+Title: rPANGEAHIVsim
 Author: {Oliver Ratmann}
 Maintainer: Oliver Ratmann <oliver.ratmann@imperial.ac.uk>
 Depends:
@@ -14,3 +14,5 @@ License: GPL (>=2)
 LazyLoad: yes
 Collate:
     'hptn071.fun.R'
+    'hptn071.cmd.R'
+    'hptn071.prog.R'
