@@ -5,6 +5,7 @@ PR.PACKAGE					<- "rPANGEAHIVsim"
 PR.STARTME					<- system.file(package=PR.PACKAGE, "misc", "rPANGEAHIV.startme.R")
 PR.HPTN071.INPUT.PARSER		<- paste(PR.STARTME,"-exe=HPTN071.INPUT.PARSER",sep=' ')
 PR.VIRUSTREESIMULATOR		<- system.file(package=PR.PACKAGE, "ext", "VirusTreeSimulator.jar")
+PR.SEQGEN					<- system.file(package=PR.PACKAGE, "ext", "seq-gen")
 
 HPC.MPIRUN					<- {tmp<- c("mpirun","mpiexec"); names(tmp)<- c("debug","cx1.hpc.ic.ac.uk"); tmp}
 HPC.CX1.IMPERIAL			<- "cx1.hpc.ic.ac.uk"		#this is set to system('domainname',intern=T) for the hpc cluster of choice
@@ -39,7 +40,7 @@ cmd.VirusTreeSimulator<- function(indir, infile.trm, infile.ind, outdir, outfile
 #######################################################"
 	cmd		<- paste(cmd, paste("\necho \'run ",prog,"\'\n",sep=''))
 	cmd		<- paste(cmd, paste('java -Xms64m -Xmx400m -jar ',prog,' ',prog.args,'  ', indir,'/',infile.trm,' ',indir,'/',infile.ind,' ',outdir,'/',outfile, '\n', sep=''))
-	cmd		<- paste(cmd, 'find . -name "*simple*" -delete\n')
+	cmd		<- paste(cmd, 'find ',outdir,' -name "*simple*" -delete\n', sep='')
 	cmd		<- paste(cmd,paste("echo \'end ",prog,"\'\n",sep=''))
 	cmd		<- paste(cmd,"#######################################################
 # end: run VirusTreeSimulator

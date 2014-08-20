@@ -1062,20 +1062,26 @@ project.PANGEA.RootSeqSim.DATA.checkRecombinants<- function()
 ##--------------------------------------------------------------------------------------------------------
 pipeline.HPTN071<- function()
 {
-	indir			<- '/Users/Oliver/git/HPTN071sim/raw_trchain'
+	indir			<- '/Users/Oliver/git/HPTN071sim/data_HPTN071epimodel_output'
 	infile.ind		<- '140716_RUN001_IND.csv'
-	infile.trm		<- '140716_RUN001_TRM.txt'
-	outdir			<- '/Users/Oliver/git/HPTN071sim/sim_trchain'
-	outfile.ind		<- '140716_RUN001_IND.csv'
-	outfile.trm		<- '140716_RUN001_TRM.csv'
+	infile.trm		<- '140716_RUN001_TRM.csv'
 	
-	cmd				<- cmd.HPTN071.input.parser(indir, infile.trm, infile.ind, outdir, outfile.trm, outfile.ind)
+	tmpdir			<- '/Users/Oliver/git/HPTN071sim/tmp'
+
+	tmpdir.HPTN071	<- paste(tmpdir,'/HPTN071parser',sep='')
+	cmd				<- paste('mkdir -p ', tmpdir.HPTN071,'\n',sep='')
+	cmd				<- paste(cmd, cmd.HPTN071.input.parser(indir, infile.trm, infile.ind, tmpdir.HPTN071,  infile.trm, infile.ind), sep='\n')
+	
+	tmpdir.VTS		<- paste(tmpdir,'/VirusTreeSimulator',sep='')
+	cmd				<- paste(cmd, 'mkdir -p ', tmpdir.VTS,'\n',sep='')
+	outfile			<- substr(infile.ind, 1, nchar(infile.ind)-7)
+	cmd				<- paste(cmd, cmd.VirusTreeSimulator(tmpdir.HPTN071, infile.trm, infile.ind, tmpdir.VTS, outfile, prog.args='-demoModel Logistic -N0 0.1 -growthRate 1.5 -t50 -4'), sep='\n')
 	cat(cmd)
 }
 ##--------------------------------------------------------------------------------------------------------
 ##	wrapper to call Matts phylo simulator
 ##--------------------------------------------------------------------------------------------------------
-prog.HPTN071.virus.tree.simulator.v1<- function()	
+project.HPTN071.virus.tree.simulator.v1<- function()	
 {
 	require(data.table)
 	indir		<- '/Users/Oliver/git/HPTN071sim/sim_trchain'

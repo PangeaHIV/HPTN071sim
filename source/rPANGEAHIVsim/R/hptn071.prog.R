@@ -36,7 +36,7 @@ prog.HPTN071.input.parser.v1<- function()
 		tmp<- na.omit(sapply(argv,function(arg)
 						{	switch(substr(arg,2,7),
 									outdir= return(substr(arg,9,nchar(arg))),NA)	}))
-		if(length(tmp)>0) indir<- tmp[1]		
+		if(length(tmp)>0) outdir<- tmp[1]		
 		tmp<- na.omit(sapply(argv,function(arg)
 						{	switch(substr(arg,2,12),
 									outfile.ind= return(substr(arg,14,nchar(arg))),NA)	}))
@@ -50,6 +50,11 @@ prog.HPTN071.input.parser.v1<- function()
 	{
 		cat('\ninput args\n',paste(indir, infile.ind, infile.trm, outdir, outfile.ind, outfile.trm, sep='\n'))
 	}	
+	infile.ind	<- paste(indir, '/', infile.ind, sep='')
+	infile.trm	<- paste(indir, '/', infile.trm, sep='')
+	outfile.ind	<- paste(outdir, '/', outfile.ind, sep='')
+	outfile.trm	<- paste(outdir, '/', outfile.trm, sep='')
+	
 	#	set seed
 	set.seed( setup.df['s.seed',][,v] )
 	#
