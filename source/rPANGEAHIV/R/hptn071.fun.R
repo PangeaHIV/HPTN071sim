@@ -187,20 +187,3 @@ PANGEA.RootSeqSim.get.ancestral.seq<- function(tree, node.stat, tree.id.sep='_',
 	cat(paste('\nFound ancestral sequences, n=', nrow(node.stat)  ))
 	node.stat
 }
-######################################################################################
-#	return command line to run the VirusTreeSimulator	
-#	olli originally written 19-08-2014
-#	return 		character string 
-cmd.VirusTreeSimulator<- function(indir, infile.trm, infile.ind, outdir, outfile, prog=prog.VIRUSTREESIMULATOR, prog.args='-demoModel Logistic -N0 0.1 -growthRate 1.5 -t50 -4')
-{
-	cmd<- "#######################################################
-# start: run VirusTreeSimulator
-			#######################################################"
-	cmd		<- paste(cmd, paste("\necho \'run ",prog,"\'\n",sep=''))
-	cmd		<- paste(cmd, paste('java -Xms64m -Xmx400m -jar ',prog,' ',prog.args,'  ', indir,'/',infile.trm,' ',indir,'/',infile.ind,' ',outdir,'/',outfile, sep=''))
-	cmd		<- paste(cmd,paste("\necho \'end ",prog,"\'\n",sep=''))
-	cmd		<- paste(cmd,"#######################################################
-# end: run VirusTreeSimulator
-					#######################################################\n",sep='')
-	cmd
-}

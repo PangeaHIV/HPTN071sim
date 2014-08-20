@@ -1,7 +1,7 @@
-Package: HPTN071sim
+Package: rPANGEAHIV
 Version: 1.0-0
 Date: 2014/01/20
-Title: big.phylo
+Title: rPANGEAHIV
 Author: {Oliver Ratmann}
 Maintainer: Oliver Ratmann <oliver.ratmann@imperial.ac.uk>
 Depends:
@@ -9,8 +9,7 @@ Depends:
     ape,
     data.table,
     RColorBrewer
-Description: Some R scripts to convert HPTN071 simulation files into the format 
-    passed to the phylogeny simulator.
+Description: R scripts for the PANGEA-HIV methods comparison exercise.
 License: GPL (>=2)
 LazyLoad: yes
 Collate:

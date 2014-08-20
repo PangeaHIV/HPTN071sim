@@ -10,7 +10,7 @@
 # 	because the R files are re-loaded below
 #
 # usage from R:
-#> setwd("/Users/Oliver/git/HPTN071sim/source/pkg"); source("misc/startme.R")
+#> setwd("/Users/Oliver/git/HPTN071sim/source/rPANGEAHIV"); source("misc/rPANGEAHIV.startme.R")
 #
 ###############################################################################
 args <- commandArgs()
@@ -20,12 +20,13 @@ if(any(args=='--args'))
 	args<- args[-(1:match("--args", args)) ]
 
 #the package directory (local working copy of the code, not the installed package directory within the R directory 
-CODE.HOME	<<- "/Users/Oliver/git/HPTN071sim/source/pkg"
+CODE.HOME	<<- "/Users/Oliver/git/HPTN071sim/source/rPANGEAHIV"
 
 #the home directory of all projects
 HOME		<<- "/Users/Oliver/git/HPTN071sim/"
 #HOME		<<- "/work/or105/UKCA_1309"
 #HOME		<<- "/work/or105/ATHENA_2013"
+DATA		<<- paste(HOME,"data",sep='/')
 
 DEBUG		<<- 0		#If 1, a dump file is created that can be loaded and computations can be inspected at the point of error.
 LIB.LOC		<<- NULL
@@ -51,10 +52,8 @@ if(length(args))
 		if(length(tmp)>1) stop("hivclu.startme.R: duplicate -exe")
 		else default.fun<- switch(tmp[1],
 					ROXYGENIZE				= "package.roxygenize",
-					MAKE.RDATA				= "package.generate.rdafiles",
-					BOOTSTRAPSEQ			= "prog.examl.getbootstrapseq",
-					RM.RESISTANCE			= "prog.remove.resistancemut",
-					EXAML.NPROC				= "pipeline.ExaML.bootstrap.per.proc",
+					MAKE.RDATA				= "package.generate.rdafiles",					
+					HPTN071.INPUT.PARSER	= "prog.HPTN071.input.parser.v1",
 					)
 	}
 	tmp<- na.omit(sapply(args,function(arg)
@@ -74,6 +73,47 @@ if(length(args))
 	argv<<- args
 }
 ###############################################################################
+.ls.objects <- function (pos = 1, pattern, order.by,
+		decreasing=FALSE, head=FALSE, n=5) {
+	napply <- function(names, fn) sapply(names, function(x)
+					fn(get(x, pos = pos)))
+	names <- ls(pos = pos, pattern = pattern)
+	obj.class <- napply(names, function(x) as.character(class(x))[1])
+	obj.mode <- napply(names, mode)
+	obj.type <- ifelse(is.na(obj.class), obj.mode, obj.class)
+	obj.prettysize <- napply(names, function(x) {
+				capture.output(print(object.size(x), units = "auto")) })
+	obj.size <- napply(names, object.size)
+	obj.dim <- t(napply(names, function(x)
+						as.numeric(dim(x))[1:2]))
+	vec <- is.na(obj.dim)[, 1] & (obj.type != "function")
+	obj.dim[vec, 1] <- napply(names, length)[vec]
+	out <- data.frame(obj.type, obj.size, obj.prettysize, obj.dim)
+	names(out) <- c("Type", "Size", "PrettySize", "Rows", "Columns")
+	if (!missing(order.by))
+		out <- out[order(out[[order.by]], decreasing=decreasing), ]
+	if (head)
+		out <- head(out, n)
+	out
+}
+# from: http://stackoverflow.com/questions/1358003/tricks-to-manage-the-available-memory-in-an-r-session
+lsos <- function(..., n=10) {
+	.ls.objects(..., order.by="Size", decreasing=TRUE, head=TRUE, n=n)
+}
+my.mkdir<-function(root,data.name)
+{
+	if(length(dir(root,pattern=paste('^',data.name,'$',sep='')))==0)
+		system(paste("mkdir ",paste(root,data.name,sep='/'),sep=''))
+}
+my.dumpframes<- function()
+{
+	geterrmessage()
+	dump.frames()
+	cat(paste("\nmy.dumpframes dump 'last.dump' to file",paste(DATA,paste("debug_",paste(strsplit(date(),' ')[[1]],collapse='_'),".rda\n",sep=''),sep='/')))
+	save(last.dump, file=paste(DATA,paste("debug_",paste(strsplit(date(),' ')[[1]],collapse='_'),".rda",sep=''),sep='/'))
+	q()
+}
+###############################################################################
 #	re-load all R files
 require(data.table)
 print(CODE.HOME)
@@ -83,6 +123,6 @@ sapply(function.list,function(x){ source(x,echo=FALSE,print.eval=FALSE, verbose=
 ###############################################################################
 #	run script
 if(DEBUG)	options(error= my.dumpframes)	
-cat(paste("\nbig.phylo: ",ifelse(DEBUG,"debug",""),"call",default.fun,"\n"))
+cat(paste("\nrPANGEAHIV: ",ifelse(DEBUG,"debug",""),"call",default.fun,"\n"))
 do.call(default.fun,list()) 	
-cat("\nbig.phylo: ",ifelse(DEBUG,"debug","")," end\n")
+cat("\nrPANGEAHIV: ",ifelse(DEBUG,"debug","")," end\n")

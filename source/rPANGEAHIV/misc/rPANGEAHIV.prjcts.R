@@ -15,7 +15,7 @@ project.PANGEA.RootSeqSim.DATA.SSAfg.select.between.host<- function()
 	label.idx.label			<- 3
 	label.idx.ctime			<- 4		
 	#read hand aligned sequences
-	DATA		<<- '~/git/HPTN071sim/raw_rootseq'
+	DATA		<<- '~/git/HPTN071sim/data_rootseq'
 	infile.gag	<- 'PANGEA_SSAfg_gag_140806_n556_final.fasta'
 	infile.pol	<- 'PANGEA_SSAfg_pol_140806_n556_final.fasta'
 	infile.env	<- 'PANGEA_SSAfg_env_140806_n556_final.fasta'
@@ -184,7 +184,7 @@ project.PANGEA.RootSeqSim.BEAST.SSAfg.createXML<- function()
 		#	to define sequences for each BEAST run
 		#	compute NJ tree and define clusters
 		#
-		infile.beast	<- '/Users/Oliver/git/HPTN071sim/raw_rootseq/BEAST_template_v08.xml'
+		infile.beast	<- '/Users/Oliver/git/HPTN071sim/data_rootseq/BEAST_template_v08.xml'
 		indir			<- paste(DATA,'methods_comparison_rootseqsim/140813',sep='/')	
 		infile			<- 'PANGEA_SSAfgBwhRc-_140811_n390.R'
 		file			<- paste(indir, '/', infile, sep='')
@@ -342,17 +342,22 @@ project.PANGEA.RootSeqSim.BEAST.SSAfg.getancestralseq.from.output<- function()
 ##--------------------------------------------------------------------------------------------------------
 project.PANGEA.RootSeqSim.SIMU.SSAfg.checkancestralseq.createdataset<- function()
 {
-	tree.id.burnin		<- 2e7
-	tree.id.labelsep	<- '|'
-	dir.name			<- '/Users/Oliver/duke/2014_Gates'  	
-	indir				<- paste(dir.name,'methods_comparison_rootseqsim/140813',sep='/')	
-	infile				<- "PANGEA_SSAfgBwhRc-_140811_n390_AncSeq.R"	
-	outdir				<- indir
-	outfile.fg			<- infile
-	outfile.partialpol	<- "PANGEA_SSApolBwhRc-_140811_n390_AncSeq.R"
-	outsignat			<- "Mon_Aug_17_17:05:23_2014"	
+	require(phytools)
+	
+	tree.id.burnin			<- 2e7
+	tree.id.labelsep		<- '|'
+	tree.id.label.idx.ctime	<- 4
+	dir.name				<- '/Users/Oliver/duke/2014_Gates'  	
+	indir					<- paste(dir.name,'methods_comparison_rootseqsim/140813',sep='/')	
+	infile					<- "PANGEA_SSAfgBwhRc-_140811_n390_AncSeq.R"	
+	outdir					<- indir
+	outfile.fg				<- infile
+	outfile.partialpol		<- "PANGEA_SSApolBwhRc-_140811_n390_AncSeq.R"
+	outsignat				<- "Mon_Aug_17_17:05:23_2014"	
 	#	load ancestral sequences
 	load( paste(indir, infile, sep='/') ) #	expect anc.seq.gag, anc.seq.pol, anc.seq.env, anc.seq.info
+	#	load aligned HXB2 as outgroup
+	load('/Users/Oliver/git/HPTN071sim/data_rootseq/PANGEA_SSAfg_140806_HXB2outgroup.R')	#expect "outgroup.seq.gag" "outgroup.seq.pol" "outgroup.seq.env"
 	#
 	#	basic checks
 	#	
@@ -389,13 +394,16 @@ project.PANGEA.RootSeqSim.SIMU.SSAfg.checkancestralseq.createdataset<- function(
 	set.seed(s.seed)	
 	for(check.draw in 1:5)
 	{
+		cat(paste('\nprocess checkdraw',check.draw))
 		#	draw a large enough number of ancseq labels from the 3 pools for each year to accommodate SEQ_N/3 anc seqs from each pool
 		anc.seq.infodraw			<- anc.seq.info[, {
 					tmp	<- seq.s$SEQ_N[ which(seq.s$ANCSEQ_YR==CALENDAR_YR) ]
 					list(LABEL= sample(LABEL, 2*tmp, replace=FALSE), SEQ_N=tmp, SEQ_N_GRACE=2*tmp)
 				}, by='CALENDAR_YR']	
 		anc.seq.draw				<- anc.seq.pol[anc.seq.infodraw[, LABEL], seq_len(s.LENGTH.PARTIAL.POL)]
+		#
 		#	make sure the drawn sequences are unique on partial POL
+		#
 		anc.seq.draw				<- seq.unique(anc.seq.draw)
 		anc.seq.infodraw			<- merge( data.table(LABEL=rownames(anc.seq.draw)), anc.seq.infodraw, by='LABEL' )	
 		stopifnot( anc.seq.infodraw[, list(SEQ_N_GRACE=length(LABEL), SEQ_N=SEQ_N[1]), by='CALENDAR_YR'][, all(SEQ_N_GRACE>=SEQ_N)] )
@@ -409,16 +417,78 @@ project.PANGEA.RootSeqSim.SIMU.SSAfg.checkancestralseq.createdataset<- function(
 					list(LABEL_NEW=paste(tmp, collapse=tree.id.labelsep,sep=''))
 				}, by='LABEL']
 		setkey(anc.seq.infodraw, LABEL)
-		#	select partial POL seqs and save to file
+		#
+		#	select partial POL seqs
+		#
 		anc.seq.draw				<- anc.seq.pol[anc.seq.infodraw[, LABEL], seq_len(s.LENGTH.PARTIAL.POL)]		
 		rownames(anc.seq.draw)		<- anc.seq.infodraw[ rownames(anc.seq.draw), ][, LABEL_NEW]
+		anc.seq.draw				<- rbind(anc.seq.draw, outgroup.seq.pol[, seq_len(s.LENGTH.PARTIAL.POL)])
+		#	save to file, including outgroup
 		file						<- paste( outdir, '/', substr(outfile.partialpol,1,nchar(outfile.partialpol)-2),'_checkdraw', check.draw,'_', insignat, '.R', sep='' )
 		cat(paste('\nsave to file', file))
-		save(anc.seq.draw, file=file)
-		#	select the same full genome seqs and save to file
+		save(anc.seq.draw, file=file)		
+		#	get NJ tree	with HXB2 outgroup		
+		tmp				<- dist.dna(anc.seq.draw)
+		anc.seq.nj		<- nj(tmp)
+		tmp				<- which(anc.seq.nj$tip.label=="HXB2")
+		anc.seq.nj		<- reroot(anc.seq.nj, tmp, anc.seq.nj$edge.length[which(anc.seq.nj$edge[,2]==tmp)])
+		anc.seq.nj		<- ladderize(anc.seq.nj)		
+		file			<- paste( outdir, '/', substr(outfile.partialpol,1,nchar(outfile.partialpol)-2),'_checkdraw', check.draw,'_NJ.pdf', sep='' )	
+		pdf(file=file, w=10, h=80)
+		plot(anc.seq.nj, show.tip=TRUE, cex=0.5)
+		dev.off()			
+		#	get root to tip divergence
+		anc.seq.nj		<- drop.tip(anc.seq.nj,'HXB2')		
+		tmp				<- node.depth.edgelength(anc.seq.nj)
+		anc.seq.nj.info	<- data.table(LABEL=anc.seq.nj$tip.label, ROOT2TIP=tmp[seq_len(Ntip(anc.seq.nj))] )
+		#tmp<- distRoot(anc.seq.nj)
+		#set(anc.seq.nj.info, NULL, 'distRoot', tmp)
+		set(anc.seq.nj.info, NULL, 'CALENDAR_TIME', anc.seq.nj.info[, as.numeric(sapply(strsplit(LABEL, tree.id.labelsep, fixed=TRUE),'[[',tree.id.label.idx.ctime))] )
+		tmp				<- lm(ROOT2TIP~CALENDAR_TIME, data=anc.seq.nj.info)		 
+		set( anc.seq.nj.info, NULL, 'ROOT2TIP_LM', predict(tmp, type='response') ) 	
+		tmp2			<- c( R2=round(summary(tmp)$r.squared,d=3), SLOPE= as.numeric(round(coef(tmp)['CALENDAR_TIME'],d=4)), TMRCA=as.numeric(round( -coef(tmp)['(Intercept)']/coef(tmp)['CALENDAR_TIME'], d=1 )) )
+		ggplot(anc.seq.nj.info, aes(x=CALENDAR_TIME, y=ROOT2TIP)) + geom_point(alpha=0.5) + geom_line(aes(y=ROOT2TIP_LM)) +
+				#scale_x_continuous(breaks=seq(1980,2020,2)) +						
+				labs(x='Sequence sampling date', y='root-to-tip divergence') +
+				annotate("text", x=anc.seq.nj.info[, min(CALENDAR_TIME)], y=anc.seq.nj.info[, 0.9*max(ROOT2TIP)], label=paste("R2=", tmp2['R2'],'\nSlope=',tmp2['SLOPE'],'\nTMRCA=',tmp2['TMRCA'], sep=''), hjust = 0, size = 4) +
+				theme(legend.position=c(0,1), legend.justification=c(0,1))
+		file			<- paste( outdir, '/', substr(outfile.partialpol,1,nchar(outfile.partialpol)-2),'_checkdraw', check.draw,'_Root2Tip.pdf', sep='' )
+		ggsave(file=file, w=10, h=6)		
+		#
+		#	select the same full genome seqs plus aligned HXB2 as outgroup 
+		#
 		anc.seq.draw				<- do.call( 'cbind', list( anc.seq.gag[anc.seq.infodraw[, LABEL], ], anc.seq.pol[anc.seq.infodraw[, LABEL], ], anc.seq.env[anc.seq.infodraw[, LABEL], ] ) ) 
-		rownames(anc.seq.draw)		<- anc.seq.infodraw[ rownames(anc.seq.draw), ][, LABEL_NEW]
-		file						<- paste( outdir, '/', substr(outfile.fg,1,nchar(outfile.fg)-2),'_checkdraw', check.draw,'_', insignat, '.R', sep='' )
+		rownames(anc.seq.draw)		<- anc.seq.infodraw[ rownames(anc.seq.draw), ][, LABEL_NEW]		
+		anc.seq.draw				<- rbind(anc.seq.draw, cbind(outgroup.seq.gag[,seq_len(ncol(anc.seq.gag))], outgroup.seq.pol, outgroup.seq.env))
+		#	get NJ tree	
+		tmp				<- dist.dna(anc.seq.draw)
+		anc.seq.nj		<- nj(tmp)
+		tmp				<- which(anc.seq.nj$tip.label=="HXB2")
+		anc.seq.nj		<- reroot(anc.seq.nj, tmp, anc.seq.nj$edge.length[which(anc.seq.nj$edge[,2]==tmp)])
+		anc.seq.nj		<- ladderize(anc.seq.nj)		
+		file			<- paste( outdir, '/', substr(outfile.fg,1,nchar(outfile.fg)-2),'_checkdraw', check.draw,'_NJ.pdf', sep='' )	
+		pdf(file=file, w=10, h=80)
+		plot(anc.seq.nj, show.tip=TRUE, cex=0.5)
+		dev.off()			
+		#	get root to tip divergence
+		anc.seq.nj		<- drop.tip(anc.seq.nj,'HXB2')
+		tmp				<- node.depth.edgelength(anc.seq.nj)
+		anc.seq.nj.info	<- data.table(LABEL=anc.seq.nj$tip.label, ROOT2TIP=tmp[seq_len(Ntip(anc.seq.nj))] )
+		#tmp<- distRoot(anc.seq.nj)
+		#set(anc.seq.nj.info, NULL, 'distRoot', tmp)
+		set(anc.seq.nj.info, NULL, 'CALENDAR_TIME', anc.seq.nj.info[, as.numeric(sapply(strsplit(LABEL, tree.id.labelsep, fixed=TRUE),'[[',tree.id.label.idx.ctime))] )
+		tmp				<- lm(ROOT2TIP~CALENDAR_TIME, data=anc.seq.nj.info)		 
+		set( anc.seq.nj.info, NULL, 'ROOT2TIP_LM', predict(tmp, type='response') ) 	
+		tmp2			<- c( R2=round(summary(tmp)$r.squared,d=3), SLOPE= as.numeric(round(coef(tmp)['CALENDAR_TIME'],d=4)), TMRCA=as.numeric(round( -coef(tmp)['(Intercept)']/coef(tmp)['CALENDAR_TIME'], d=1 )) )
+		ggplot(anc.seq.nj.info, aes(x=CALENDAR_TIME, y=ROOT2TIP)) + geom_point(alpha=0.5) + geom_line(aes(y=ROOT2TIP_LM)) +
+				#scale_x_continuous(breaks=seq(1980,2020,2)) +						
+				labs(x='Sequence sampling date', y='root-to-tip divergence') +
+				annotate("text", x=anc.seq.nj.info[, min(CALENDAR_TIME)], y=anc.seq.nj.info[, 0.9*max(ROOT2TIP)], label=paste("R2=", tmp2['R2'],'\nSlope=',tmp2['SLOPE'],'\nTMRCA=',tmp2['TMRCA'], sep=''), hjust = 0, size = 4) +
+				theme(legend.position=c(0,1), legend.justification=c(0,1))		
+		file			<- paste( outdir, '/', substr(outfile.fg,1,nchar(outfile.fg)-2),'_checkdraw', check.draw, '_Root2Tip.pdf', sep='' )
+		ggsave(file=file, w=10, h=6)		
+		#	save to file including outgroup
+		file						<- paste( outdir, '/', substr(outfile.fg,1,nchar(outfile.fg)-2),'_checkdraw', check.draw,'_',insignat,'.R', sep='' )
 		cat(paste('\nsave to file', file))
 		save(anc.seq.draw, file=file)
 	}
@@ -636,6 +706,7 @@ project.PANGEA.RootSeqSim.DATA.SSAfg.process.LosAlamos<- function()
 	infile.fasta.gag<- 'PANGEA_SSAfg_gag_140806_n557.fasta'
 	infile.fasta.pol<- 'PANGEA_SSAfg_pol_140806_n557.fasta'
 	infile.fasta.env<- 'PANGEA_SSAfg_env_140806_n557.fasta'
+	outfile.outgroup<- 'PANGEA_SSAfg_140806_HXB2outgroup.R'
 	file	<- paste(indir, '/', infile.fasta,sep='')
 	seq		<- read.dna(file, format='fasta')	
 	
@@ -689,7 +760,7 @@ project.PANGEA.RootSeqSim.DATA.SSAfg.process.LosAlamos<- function()
 	file			<- paste(indir, '/', infile.fasta.gag,sep='')
 	write.dna(seq.gag, file=file, format='fasta')
 	#	align GAG
-	tmp			<- hivc.cmd.clustalo(indir, infile.fasta.gag, signat='', outdir=indir, prog= PR.CLUSTALO, hmm=PR.CLUSTALO.HMM, nproc=1, verbose=1)
+	tmp				<- hivc.cmd.clustalo(indir, infile.fasta.gag, signat='', outdir=indir, prog= PR.CLUSTALO, hmm=PR.CLUSTALO.HMM, nproc=1, verbose=1)
 	#	continue fixup for POL	
 	file			<- paste(indir, '/fixup1_', infile.fasta,sep='')
 	seq				<- read.dna(file, format='fasta')
@@ -751,8 +822,12 @@ project.PANGEA.RootSeqSim.DATA.SSAfg.process.LosAlamos<- function()
 	write.dna(seq.gag, file=file, format='fasta')
 	#	final without HXB2 / CONSENSUS	
 	seq.gag			<- seq.rmgaps(seq.gag, rm.only.col.gaps=1, verbose=1)	#len 1466 -- 3 more than expected; there is an AA insertion for the SA seqs at pos 367
+	outgroup.seq.gag<- seq.gag[ 'HXB2'==rownames(seq.gag),  ]
 	seq.gag			<- seq.gag[ -c( which(grepl('HXB2',rownames(seq.gag))), which(grepl('CONSENSUS',rownames(seq.gag))) ),  ]
-	seq.gag			<- seq.rmgaps(seq.gag, rm.only.col.gaps=1, verbose=1)
+	seq.gag			<- seq.rmgaps(seq.gag, rm.only.col.gaps=1, verbose=2)
+	#	based on verbose output, cut the following sites from outgroup.seq.gag 
+	#	373:381, 1123:1125, 1401:1403, 1408:1410, 1449:1454
+	outgroup.seq.gag<- outgroup.seq.gag[, -c(373:381, 1123:1125, 1401:1403, 1408:1410, 1449:1454)]
 	infile.fasta.gag<- 'PANGEA_SSAfg_gag_140806_n556_final.fasta'
 	file			<- paste(indir, '/', infile.fasta.gag,sep='')
 	write.dna(seq.gag, file=file, format='fasta')	
@@ -763,6 +838,7 @@ project.PANGEA.RootSeqSim.DATA.SSAfg.process.LosAlamos<- function()
 	seq.pol			<- read.dna(file, format='fasta')
 	#	start: 2253		end: 5096	
 	seq.pol			<- seq.pol[,2253:5096]
+	outgroup.seq.pol<- seq.pol[ 'HXB2'==rownames(seq.pol),  ]
 	seq.pol			<- seq.pol[ -c( which(grepl('HXB2',rownames(seq.pol))), which(grepl('CONSENSUS',rownames(seq.pol))) ),  ]
 	infile.fasta.pol<- 'PANGEA_SSAfg_pol_140806_n556_final.fasta'
 	file			<- paste(indir, '/', infile.fasta.pol,sep='')
@@ -808,11 +884,18 @@ project.PANGEA.RootSeqSim.DATA.SSAfg.process.LosAlamos<- function()
 	#!! There are two extra AA that are not in consensus C at pos 2310
 	#fixed some final issues manually
 	seq.env			<- read.dna(file, format='fasta')
+	outgroup.seq.env<- seq.env[ 'HXB2'==rownames(seq.env),  ]
 	seq.env 		<- seq.env[ -c( which(grepl('HXB2',rownames(seq.env))), which(grepl('CONSENSUS',rownames(seq.env))) ),  ]
-	seq.env			<- seq.rmgaps(seq.env, rm.only.col.gaps=1, verbose=1)
+	seq.env			<- seq.rmgaps(seq.env, rm.only.col.gaps=1, verbose=2)
+	#	based on verbose output, cut the following sites from outgroup.seq.env 
+	#	55:66, 919:924, 1057:1059
+	outgroup.seq.env<- outgroup.seq.env[, -c(55:66, 919:924, 1057:1059)]
 	infile.fasta.env<- 'PANGEA_SSAfg_env_140806_n556_final.fasta'
 	file			<- paste(indir, '/', infile.fasta.env,sep='')
 	write.dna(seq.env, file=file, format='fasta', colsep='', nbcol=-1)
+	#	write outgroups
+	file			<- paste(indir, '/', outfile.outgroup, sep='')
+	save(file=file, outgroup.seq.gag, outgroup.seq.pol, outgroup.seq.env)
 }
 ##--------------------------------------------------------------------------------------------------------
 ##	get sequences from BEAST XML, create concatenated file
@@ -982,216 +1065,16 @@ prog.HPTN071.virus.tree.simulator.v1<- function()
 	require(data.table)
 	indir		<- '/Users/Oliver/git/HPTN071sim/sim_trchain'
 	outdir		<- '/Users/Oliver/duke/2014_Gates/methods_comparison_trchphylosim/140819'
-	fin.ind		<- '140716_RUN001_IND.csv'
-	fin.trm		<- '140716_RUN001_TRM.csv'
-	fout		<- '140716_RUN001_VirusTreeSim.xx'
+	infile.ind	<- '140716_RUN001_IND.csv'
+	infile.trm	<- '140716_RUN001_TRM.csv'
+	outfile		<- '140716_RUN001_VirusTreeSim_'
 	
 	#TODO store this in R package
 	prog.package.dir		<- '/Users/Oliver/git/HPTN071sim/source/pkg/ext' 
 	prog.VIRUSTREESIMULATOR	<- paste(prog.package.dir,'/','VirusTreeSimulator.jar',sep='')
 	#
-	cmd						<- cmd.VirusTreeSimulator(indir, fin.trm, fin.ind, outdir, fout, prog=prog.VIRUSTREESIMULATOR, prog.args='-demoModel Logistic -N0 0.1 -growthRate 1.5 -t50 -4')
+	cmd						<- cmd.VirusTreeSimulator(indir, infile.trm, infile.ind, outdir, outfile, prog=prog.VIRUSTREESIMULATOR, prog.args='-demoModel Logistic -N0 0.1 -growthRate 1.5 -t50 -4')
 			
 }
-##--------------------------------------------------------------------------------------------------------
-##	simple first program to generate files for Matt s phylo simulator
-##--------------------------------------------------------------------------------------------------------
-prog.HPTN071.input.parser.v1<- function()	
-{
-	require(data.table)
-	fin.ind		<- '/Users/Oliver/git/HPTN071sim/raw_trchain/140716_RUN001_IND.csv'
-	fin.trm		<- '/Users/Oliver/git/HPTN071sim/raw_trchain/140716_RUN001_TRM.txt'
-	fout.ind	<- '/Users/Oliver/git/HPTN071sim/sim_trchain/140716_RUN001_IND.csv'
-	fout.trm	<- '/Users/Oliver/git/HPTN071sim/sim_trchain/140716_RUN001_TRM.csv'
-	
-	
-	setup.df<- data.table(stat= c('yr.start','yr.end','s.INC.recent','s.INC.recent.len', 's.PREV.min', 's.PREV.max', 's.seed', 'epi.dt'), v=c(1980, 2020, 0.1, 5, 0.01, 0.25, 42, 1/48) )
-	setkey(setup.df, stat)	
-	#	set seed
-	set.seed( setup.df['s.seed',][,v] )
-	#
-	df.trm	<- as.data.table(read.csv(fin.trm, stringsAsFactors=FALSE, sep=' ', dec='.'))
-	setnames(df.trm, c("IdInfector","IdInfected","TimeOfInfection","IsInfectorAcute"), c('IDTR','IDREC','TIME_TR','TR_ACUTE'))		
-	#	transmissions happen either at baseline, or at unique times.
-	#	the epi simulation allocates transmissions in 1/48 of a year, so draw a uniform number if there are more transmission per TIME_TR
-	df.trm	<- df.trm[, {
-							z<- TIME_TR
-							if(TIME_TR>setup.df['yr.start',][,v] & length(IDTR)>1)
-								z<- sort(runif(length(IDTR), z, max(setup.df['yr.end',][,v], z+setup.df['epi.dt',][,v])))
-							list(IDTR=IDTR, IDREC=IDREC, TIME_TR.new=z, TR_ACUTE=TR_ACUTE, l=length(IDTR))
-						}, by='TIME_TR']
-	df.trm[, TIME_TR:=NULL]
-	setnames(df.trm, 'TIME_TR.new', 'TIME_TR')
-	set(df.trm, NULL, 'YR', df.trm[, floor(TIME_TR)])
-	#	check that all transmission times except baseline are unique
-	tmp		<- subset(df.trm, TIME_TR>setup.df['yr.start',][,v])
-	stopifnot( nrow(tmp)==tmp[,length(unique(TIME_TR))] )
-	
-	
-	df.ind	<- as.data.table(read.csv(fin.ind, stringsAsFactors=FALSE))		
-	setnames(df.ind, c("Id","Gender","DoB","DateOfDeath","RiskGroup","Circumcised"), c('IDPOP','GENDER','DOB','DOD','RISK','CIRCM'))
-	set(df.ind, df.ind[, which(CIRCM=='')], 'CIRCM', NA_character_)
-	set(df.ind, NULL, 'CIRCM', df.ind[, factor(CIRCM)])
-	set(df.ind, NULL, 'GENDER', df.ind[, factor(GENDER)])
-	set(df.ind, NULL, 'RISK', df.ind[, factor(RISK)])	
-	set(df.ind, df.ind[, which(DOD==-1)], 'DOD', setup.df['yr.end',][,v]+1.)		
-	tmp			<- subset(df.trm, select=c(IDREC, TIME_TR))
-	setnames(tmp, 'IDREC','IDPOP')
-	df.ind		<- merge(df.ind, tmp, by='IDPOP', all.x=TRUE)
-	
-	
-	# compute prevalence and incidence by year	
-	df.epi		<- df.trm[, list(INC=length(IDREC)), by='YR']
-	tmp			<- df.epi[, 	{
-									alive		<- which( floor(df.ind[['DOB']])<=YR  &  ceiling(df.ind[['DOD']])>YR )
-									infected	<- which( floor(df.ind[['DOB']])<=YR  &  ceiling(df.ind[['DOD']])>YR  &  floor(df.ind[['TIME_TR']])<=YR )
-									list(POP=length(alive), PREV=length(infected))				
-								},by='YR']
-	df.epi		<- merge( tmp, df.epi, by='YR' )	
-	set(df.epi, NULL, 'PREVp', df.epi[, PREV/POP])	
-	set(df.epi, NULL, 'INCp', df.epi[, INC/POP])	
-		
-	# 	SAMPLING PROBABILITIES and TOTALS PER YEAR
-	#
-	#	Can we detect a 25% or 50% reduction in HIV incidence in the most recent 2 or 3 years 
-	#	with 1%, 5%, 10% of all recent incident cases sampled?
-	#
-	#	suppose exponentially increasing sampling over time
-	#	the number of incident cases sampled is the total sampled in that year * the proportion of incident cases out of all non-sampled cases to date
-	#	TODO this needs to be changed to fix the proportion of sequences sampled from incident
-	df.sample	<- subset( df.epi, YR>= setup.df['yr.start',][,v] & YR<setup.df['yr.end',][,v] )
-	#	exponential rate of increasing s.TOTAL (total sampling rate) per year
-	tmp			<- log( 1+setup.df['s.PREV.max',][,v]-setup.df['s.PREV.min',][,v] ) / df.sample[, diff(range(YR))]
-	tmp			<- df.sample[, exp( tmp*(YR-min(YR)) ) - 1 + setup.df['s.PREV.min',][,v] ]
-	set(df.sample, NULL, 's.CUMTOTAL', tmp)		
-	set(df.sample, NULL, 's.n.CUMTOTAL', df.sample[, round(PREV*s.CUMTOTAL)])
-	set(df.sample, NULL, 's.n.TOTAL', c(df.sample[1, s.n.CUMTOTAL], df.sample[, diff(s.n.CUMTOTAL)]))	
-	set(df.sample, NULL, 's.n.INC', df.sample[, round(INC/(PREV-s.n.CUMTOTAL) * s.n.TOTAL)])
-	set(df.sample, NULL, 's.n.notINC', df.sample[, round(s.n.TOTAL-s.n.INC)])	
-	cat(paste('\n total number of sequences sampled=', df.sample[, sum( s.n.TOTAL )]))
-	cat(paste('\n prop of sequences sampled among HIV+=', df.sample[, sum( s.n.TOTAL )] / df.sample[, rev(PREV)[1]]))		
-	cat(paste('\n total number of incident sequences sampled=', df.sample[, sum( s.n.INC )]))
-	cat(paste('\n total number of non-incident sequences sampled=', df.sample[, sum( s.n.notINC )]))
-	
-	#	SAMPLE INFECTED INDIVIDUALS BASED ON NUMBERS PER YEAR
-	#
-	#	sample incident cases by year
-	df.inds	<- copy(df.ind)
-	tmp		<- df.trm[, {
-							tmp<- df.sample[['s.n.INC']][ which(df.sample[['YR']]==YR) ]
-							tmp<- sample(seq_along(IDREC), tmp)
-							list( 	IDPOP=IDREC[tmp], TIME_TR=TIME_TR[tmp], 
-									TIME_SEQ=TIME_TR[tmp]+rexp(length(tmp), rate=1/(3*30))/365, 
-									INCIDENT_SEQ=rep('Y',length(tmp) ) )
-						}, by='YR']
-	df.inds	<- merge(df.inds, subset(tmp, select=c(IDPOP, TIME_SEQ, INCIDENT_SEQ)), by='IDPOP', all.x=1)			
-	#	sample non-incident cases by year
-	for(yr in df.sample[, YR][-1])
-	{
-		#	of all infected and not incident and not yet sampled, sample
-		cat(paste('\nadd non-incident samples in year',yr))
-		tmp		<- subset(df.inds, is.na(TIME_SEQ) & floor(DOB)<=yr & ceiling(DOD)>yr & floor(TIME_TR)<yr)
-		cat(paste('\navailable non-sampled non-incident cases in year=',nrow(tmp)))
-		tmp2	<- df.sample[['s.n.notINC']][ which(df.sample[['YR']]==yr) ]
-		tmp2	<- sample(seq_len(nrow(tmp)), tmp2)
-		#	set variables in df.inds
-		tmp		<- data.table(IDPOP= tmp[tmp2, IDPOP], TIME_SEQ=runif(length(tmp2), min=yr, max=yr+1), INCIDENT_SEQ=rep('N',length(tmp2) ))
-		cat(paste('\nsampled non-incident cases in year=',nrow(tmp)))
-		tmp2	<- sapply(tmp[,IDPOP], function(x) df.inds[,which(IDPOP==x)])
-		set(df.inds, tmp2, 'TIME_SEQ', tmp[,TIME_SEQ])
-		set(df.inds, tmp2, 'INCIDENT_SEQ', tmp[,INCIDENT_SEQ])		
-	}
-	cat(paste('\n total number of HIV+ in df.inds=', nrow(subset(df.inds, !is.na(TIME_TR)))))
-	cat(paste('\n total number of sampled HIV+ in df.inds=', nrow(subset(df.inds, !is.na(TIME_TR) & !is.na(TIME_SEQ)))))
-	#
-	#	check that allocation OK
-	#
-	set(df.inds, NULL, 'TIME_SEQYR', df.inds[, floor(TIME_SEQ)])
-	tmp	<- subset(df.inds, !is.na(TIME_SEQ))[, list(s.n.TOTAL=length(IDPOP)), by='TIME_SEQYR']
-	setkey(tmp, TIME_SEQYR)
-	set(tmp,NULL,'s.n.CUMTOTAL',tmp[, cumsum(s.n.TOTAL)])
-	stopifnot(  tmp[,tail(s.n.CUMTOTAL,1)]==df.sample[, tail(s.n.CUMTOTAL,1)] ) 
-	#	set sampling in df.trm
-	tmp		<- subset( df.inds, !is.na(TIME_SEQ), select=c(IDPOP, TIME_SEQ) )
-	setnames(tmp, c('IDPOP','TIME_SEQ'), c('IDREC','SAMPLED_REC'))
-	df.trms	<- merge(df.trm, tmp, by='IDREC', all.x=TRUE)
-	setnames(tmp, c('IDREC','SAMPLED_REC'), c('IDTR','SAMPLED_TR'))
-	df.trms	<- merge(df.trms, tmp, by='IDTR', all.x=TRUE)	
-	#
-	#	TRANSMISSION NETWORKS
-	#
-	require(igraph)
-	tmp			<- subset(df.trms, IDTR>=0, select=c(IDTR, IDREC))			
-	tmp			<- graph.data.frame(tmp, directed=TRUE, vertices=NULL)
-	tmp			<- data.table(IDPOP=as.integer(V(tmp)$name), CLU=clusters(tmp, mode="weak")$membership)
-	tmp2		<- tmp[, list(CLU_SIZE=length(IDPOP)), by='CLU']
-	setkey(tmp2, CLU_SIZE)
-	tmp2[, IDCLU:=rev(seq_len(nrow(tmp2)))]
-	tmp			<- subset( merge(tmp, tmp2, by='CLU'), select=c(IDPOP, IDCLU) )
-	df.inds		<- merge( df.inds, tmp, by='IDPOP', all.x=TRUE )
-	setnames(tmp, 'IDPOP', 'IDREC')
-	df.trms		<- merge( df.trms, tmp, by='IDREC', all.x=TRUE )
-	#
-	#	PLOTS
-	#
-	require(ggplot2)
-	require(reshape2)
-	#	plot numbers sampled, prevalent, incident
-	set(df.sample, NULL, 's.n.INC', df.sample[, as.integer(s.n.INC)])
-	set(df.sample, NULL, 's.n.notINC', df.sample[, as.integer(s.n.notINC)])
-	set(df.sample, NULL, 's.n.TOTAL', df.sample[, as.integer(s.n.TOTAL)])
-	tmp	<- data.table(	stat=c('POP','PREV','INC','s.n.TOTAL','s.n.INC','s.n.notINC'), 
-						stat.long=c('population size','HIV infected', 'HIV incident', 'Total\nsequenced', 'Total\nincident\nsequenced', 'Total\nnon-incident\nsequenced'))
-	tmp	<- merge(	melt(df.sample, id.vars='YR', measure.vars=c('POP','PREV','INC','s.n.TOTAL','s.n.INC','s.n.notINC'), variable.name='stat', value.name='v'),
-					tmp, by='stat' )
-	ggplot(tmp, aes(x=YR, y=v, group=stat.long)) + geom_point() +
-			scale_x_continuous(name='year', breaks=seq(1980,2020,2)) + scale_y_continuous(name='total')	+
-			facet_grid(stat.long ~ ., scales='free_y', margins=FALSE)
-	file<- paste(substr(fin.ind, 1, nchar(fin.ind)-7),'INFO_Totals.pdf',sep='')
-	ggsave(file=file, w=16, h=8)
-	#	plot distribution between transmission time and sequencing time
-	tmp	<- subset(df.inds, !is.na(TIME_SEQ))
-	set(tmp, NULL, 'TIME_TO_SEQ', tmp[, TIME_SEQ-TIME_TR])
-	ggplot(tmp, aes(x=TIME_TO_SEQ)) + geom_histogram(binwidth=1) + 
-			scale_x_continuous(name='time from transmission to sequence sampling\n(years)', breaks=seq(0,100,2))
-	file<- paste(substr(fin.ind, 1, nchar(fin.ind)-7),'INFO_Time2Seq.pdf',sep='')
-	ggsave(file=file, w=8, h=8)
-	#	plot transmission network
-	file		<- paste(substr(fin.ind, 1, nchar(fin.ind)-7),'INFO_TrNetworks.pdf',sep='')
-	pdf(file=file, w=20, h=20)
-	dummy	<- sapply( df.inds[, sort(na.omit(unique(IDCLU)))], function(clu)
-			{
-				cat(paste('\nprocess cluster no',clu))
-				tmp					<- subset(df.inds, IDCLU==clu, select=c(IDPOP, GENDER, TIME_SEQ))
-				tmp[, IS_SEQ:= tmp[, factor(!is.na(TIME_SEQ), label=c('N','Y'), levels=c(FALSE, TRUE))]]
-				clu.igr				<- graph.data.frame(subset(df.trms, IDCLU==clu & IDTR>=0, select=c(IDTR, IDREC)), directed=TRUE, vertices=subset(tmp, select=c(IDPOP, GENDER, IS_SEQ)))
-				V(clu.igr)$color	<- ifelse( get.vertex.attribute(clu.igr, 'IS_SEQ')=='Y', 'green', 'grey90' )
-				V(clu.igr)$shape	<- ifelse( get.vertex.attribute(clu.igr, 'GENDER')=='M', 'circle', 'square' )
-				
-				par(mai=c(0,0,1,0))
-				plot(clu.igr, main=paste('IDCLU=',clu,sep=''), vertex.size=2, vertex.label.cex=0.25, edge.arrow.size=0.5, layout=layout.fruchterman.reingold(clu.igr, niter=1e3) )
-				legend('bottomright', fill=c('green','grey90'), legend=c('sequence sampled','sequence not sampled'), bty='n')
-				legend('bottomleft', legend=c('square= Female','circle= Male'), bty='n')				
-			})
-	dev.off()
-	#
-	#	SAVE SAMPLED RECIPIENTS AND TRANSMISSIONS TO SAMPLED RECIPIENTS
-	#
-	#	save for us
-	file		<- paste(substr(fin.ind, 1, nchar(fin.ind)-7),'SAVE.R',sep='')
-	save(file=file, df.epi, df.trms, df.inds, df.sample)
-	#	save for Matt
-	#	exclude columns that are not needed	
-	df.inds	<- subset(df.inds, !is.na(TIME_TR))
-	df.inds[, RISK:=NULL]
-	df.inds[, INCIDENT_SEQ:=NULL]
-	df.inds[, TIME_SEQYR:=NULL]	
-	df.trms[, TR_ACUTE:=NULL]
-	df.trms[, YR:=NULL]	
-	cat(paste('\nwrite to file',fout.ind))
-	write.csv(file=fout.ind, df.inds)
-	cat(paste('\nwrite to file',fout.trm))
-	write.csv(file=fout.trm, df.trms)
-	
-}
+
 
