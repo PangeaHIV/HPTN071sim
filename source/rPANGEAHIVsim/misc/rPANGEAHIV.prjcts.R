@@ -542,6 +542,9 @@ project.PANGEA.RootSeqSim.SIMU.SSAfg.checkancestralseq.runExaML<- function()
 ##--------------------------------------------------------------------------------------------------------
 project.PANGEA.RootSeqSim.SIMU.SSAfg.checkancestralseq.evalExaML<- function()
 {
+	require(ape)
+	require(phytools)
+	require(ggplot2)
 	#DATA			<<- "/work/or105/Gates_2014"
 	DATA				<<- '/Users/Oliver/duke/2014_Gates'
 	dir.name			<- DATA  	
@@ -556,50 +559,106 @@ project.PANGEA.RootSeqSim.SIMU.SSAfg.checkancestralseq.evalExaML<- function()
 	infiles				<- infiles[ grepl('.*checkdraw[0-9]+_examl.*newick$',infiles)  ]	
 	if(!length(infiles))	stop('cannot find files matching criteria')
 	
-	#	read tree
-	i		<- 3
-	infile	<- infiles[i]
-	file	<- paste(indir, infile, sep='/')
-	ph		<- read.tree(file)
-	ph		<- ladderize(ph)	
-	#file	<- paste( indir, '/', substr(infile, 1, nchar(infile)-7), '_Tree.pdf', sep='' )
-	#pdf(file=file, h=150, w=10)
-	#plot(ph, cex=0.7)
-	#dev.off()
-	#
-	#	check root to tip divergence
-	#
-	tmp		<- node.depth.edgelength(ph)
-	ph.info	<- data.table(LABEL=ph$tip.label, ROOT2TIP=tmp[seq_len(Ntip(ph))] )
-	set(ph.info, NULL, 'CALENDAR_TIME', ph.info[, as.numeric(sapply(strsplit(LABEL, label.sep, fixed=TRUE),'[[',label.idx.ctime))] )
-	tmp		<- lm(ROOT2TIP~CALENDAR_TIME, data=ph.info)		 
-	set( ph.info, NULL, 'ROOT2TIP_LM', predict(tmp, type='response') ) 	
-	tmp2	<- c( R2=round(summary(tmp)$r.squared,d=3), SLOPE= as.numeric(round(coef(tmp)['CALENDAR_TIME'],d=4)), TMRCA=as.numeric(round( -coef(tmp)['(Intercept)']/coef(tmp)['CALENDAR_TIME'], d=1 )) )
-	ggplot(ph.info, aes(x=CALENDAR_TIME, y=ROOT2TIP)) + geom_point(alpha=0.5) + geom_line(aes(y=ROOT2TIP_LM)) +
-			#scale_x_continuous(breaks=seq(1980,2020,2)) +						
-			labs(x='Sequence sampling date', y='root-to-tip divergence') +
-			annotate("text", x=ph.info[, min(CALENDAR_TIME)], y=ph.info[, 0.9*max(ROOT2TIP)], label=paste("R2=", tmp2['R2'],'\nSlope=',tmp2['SLOPE'],'\nTMRCA=',tmp2['TMRCA'], sep=''), hjust = 0, size = 4) +
-			theme(legend.position=c(0,1), legend.justification=c(0,1))
-	file	<- paste( indir, '/', substr(infile, 1, nchar(infile)-7), '_Root2Tip.pdf', sep='' )
-	ggsave(file=file, w=10, h=6)
-	#	check brl divergence
-	#brl.tips	<- distTips(ph , method='patristic')
-	#
-	#	check clustering among root seqs - this should be minimal at cut-off 0.045
-	#
-	dist.brl		<- hivc.clu.brdist.stats(ph, eval.dist.btw="leaf", stat.fun=hivc.clu.min.transmission.cascade )
-	quantile(dist.brl,p=c(0.01,0.05,0.1,0.2,0.3,0.4,0.5))
-	hist(dist.brl, breaks=30)
-	ph.node.bs		<- as.numeric( ph$node.label )		
-	ph.node.bs[is.na(ph.node.bs)]	<- 0
-	ph.node.bs		<- ph.node.bs/bs.n
-	ph$node.label	<- ph.node.bs	
-	ph.clu			<- hivc.clu.clusterbythresh(ph, thresh.nodesupport=clu.thresh.bs, thresh.brl=clu.thresh.brl, dist.brl=dist.brl, nodesupport=ph.node.bs, retval="all")
-	#	plot clustering tree
-	file	<- paste( indir, '/', substr(infile, 1, nchar(infile)-7), '_Clutree.pdf', sep='' )
-	pdf(file=file, h=150, w=10)
-	tmp		<- hivc.clu.plot(ph, ph.clu[["clu.mem"]], show.tip.label=TRUE, cex.edge.incluster=1.5)
-	dev.off()
+	#	unexpected:		R2 differs largely from NJ tree to ExaML tree, especially for i=3
+	for(i in seq_along(infiles))
+	{
+		#i		<- 3
+		infile	<- infiles[i]
+		file	<- paste(indir, infile, sep='/')
+		ph		<- read.tree(file)
+		tmp		<- which(ph$tip.label=="HXB2")
+		ph		<- reroot(ph, tmp, ph$edge.length[which(ph$edge[,2]==tmp)])
+		ph		<- ladderize(ph)
+		#
+		file	<- paste( indir, '/', substr(infile, 1, nchar(infile)-7), '_Tree.pdf', sep='' )
+		pdf(file=file, h=150, w=10)
+		plot(ph, cex=0.7)
+		dev.off()
+		#
+		#	check root to tip divergence
+		#
+		ph		<- drop.tip(ph,'HXB2')
+		tmp		<- node.depth.edgelength(ph)
+		ph.info	<- data.table(LABEL=ph$tip.label, ROOT2TIP=tmp[seq_len(Ntip(ph))] )
+		set(ph.info, NULL, 'CALENDAR_TIME', ph.info[, as.numeric(sapply(strsplit(LABEL, label.sep, fixed=TRUE),'[[',label.idx.ctime))] )
+		tmp		<- lm(ROOT2TIP~CALENDAR_TIME, data=ph.info)		 
+		set( ph.info, NULL, 'ROOT2TIP_LM', predict(tmp, type='response') ) 	
+		tmp2	<- c( R2=round(summary(tmp)$r.squared,d=3), SLOPE= as.numeric(round(coef(tmp)['CALENDAR_TIME'],d=4)), TMRCA=as.numeric(round( -coef(tmp)['(Intercept)']/coef(tmp)['CALENDAR_TIME'], d=1 )) )
+		ggplot(ph.info, aes(x=CALENDAR_TIME, y=ROOT2TIP)) + geom_point(alpha=0.5) + geom_line(aes(y=ROOT2TIP_LM)) +
+				#scale_x_continuous(breaks=seq(1980,2020,2)) +						
+				labs(x='Sequence sampling date', y='root-to-tip divergence') +
+				annotate("text", x=ph.info[, min(CALENDAR_TIME)], y=ph.info[, 0.9*max(ROOT2TIP)], label=paste("R2=", tmp2['R2'],'\nSlope=',tmp2['SLOPE'],'\nTMRCA=',tmp2['TMRCA'], sep=''), hjust = 0, size = 4) +
+				theme(legend.position=c(0,1), legend.justification=c(0,1))
+		file	<- paste( indir, '/', substr(infile, 1, nchar(infile)-7), '_Root2Tip.pdf', sep='' )
+		ggsave(file=file, w=10, h=6)
+		if(0)
+		{
+			#	check brl divergence
+			#brl.tips	<- distTips(ph , method='patristic')
+			#
+			#	check clustering among root seqs - this should be minimal at cut-off 0.045
+			#
+			dist.brl		<- hivc.clu.brdist.stats(ph, eval.dist.btw="leaf", stat.fun=hivc.clu.min.transmission.cascade )
+			quantile(dist.brl,p=c(0.01,0.05,0.1,0.2,0.3,0.4,0.5))
+			hist(dist.brl, breaks=30)
+			ph.node.bs		<- as.numeric( ph$node.label )		
+			ph.node.bs[is.na(ph.node.bs)]	<- 0
+			ph.node.bs		<- ph.node.bs/bs.n
+			ph$node.label	<- ph.node.bs	
+			ph.clu			<- hivc.clu.clusterbythresh(ph, thresh.nodesupport=clu.thresh.bs, thresh.brl=clu.thresh.brl, dist.brl=dist.brl, nodesupport=ph.node.bs, retval="all")
+			#	plot clustering tree
+			file	<- paste( indir, '/', substr(infile, 1, nchar(infile)-7), '_Clutree.pdf', sep='' )
+			pdf(file=file, h=150, w=10)
+			tmp		<- hivc.clu.plot(ph, ph.clu[["clu.mem"]], show.tip.label=TRUE, cex.edge.incluster=1.5)
+			dev.off()	
+		}		
+	}
+	#	consider all bootstrap trees	
+	indirs	<- c(	'/Users/Oliver/duke/2014_Gates/methods_comparison_rootseqsim/140813/PANGEA_SSApolBwhRc-_140811_n390_AncSeq_checkdraw1_examlout_Mon_Aug_17_17:05:23_2014',
+					'/Users/Oliver/duke/2014_Gates/methods_comparison_rootseqsim/140813/PANGEA_SSApolBwhRc-_140811_n390_AncSeq_checkdraw2_examlout_Mon_Aug_17_17:05:23_2014',
+					'/Users/Oliver/duke/2014_Gates/methods_comparison_rootseqsim/140813/PANGEA_SSApolBwhRc-_140811_n390_AncSeq_checkdraw3_examlout_Mon_Aug_17_17:05:23_2014'	)
+	df.r2t	<- lapply(seq_along(indirs), function(i)
+		{
+			indir				<- indirs[i]
+			infiles				<- list.files(indir)
+			infiles				<- infiles[ grepl('^ExaML_result.*finaltree*',infiles)  ]	
+			if(!length(infiles))	stop('cannot find files matching criteria')
+					
+			df.r2t	<- lapply(seq_along(infiles), function(j)
+					{					
+						infile	<- infiles[j]
+						cat(paste('\nprocess file', infile))
+						file	<- paste(indir, infile, sep='/')
+						ph		<- read.tree(file)
+						tmp		<- which(ph$tip.label=="HXB2")
+						ph		<- reroot(ph, tmp, ph$edge.length[which(ph$edge[,2]==tmp)])
+						ph		<- ladderize(ph)
+						ph		<- drop.tip(ph,'HXB2')
+						tmp		<- node.depth.edgelength(ph)
+						ph.info	<- data.table(LABEL=ph$tip.label, ROOT2TIP=tmp[seq_len(Ntip(ph))] )
+						set(ph.info, NULL, 'CALENDAR_TIME', ph.info[, as.numeric(sapply(strsplit(LABEL, label.sep, fixed=TRUE),'[[',label.idx.ctime))] )	
+						set(ph.info, NULL, 'BS', as.numeric(substr(infile, nchar(infile)-2, nchar(infile))) )
+						ph.info
+					})
+			df.r2t	<- do.call('rbind',df.r2t)
+			set(df.r2t, NULL, 'FILE', i)
+			df.r2t
+		})	
+	df.r2t	<- do.call('rbind',df.r2t)
+	#	the EXAML root to tip divergence is highly variable!
+	#ggplot( subset( df.r2t, LABEL=='PANGEA_SSAfgBwhRc-_140811_n390_pool1|STATE_20400000|250|1987.78' ), aes(x=ROOT2TIP)) + geom_histogram()
+	#	get R2 across all bootstrap ExaML tree
+	df.r2t.su<- df.r2t[,	{
+					tmp		<- lm(ROOT2TIP ~ CALENDAR_TIME)		 					 	
+					list( R2=round(summary(tmp)$r.squared,d=3) )				
+				},by=c('BS','FILE')]
+	set(df.r2t.su, NULL, 'FILE', df.r2t.su[, factor(FILE)])	
+		
+	ggplot( df.r2t.su, aes(x=R2, fill=FILE)) + geom_histogram(binwidth=0.05) + facet_grid(.~FILE) +
+			labs(fill='draw of 1000\nancestral\nsequences', x='R2 of lm(ROOT2TIP ~ CALENDAR_TIME)')
+	indir		<- paste(dir.name,'methods_comparison_rootseqsim/140813',sep='/')
+	file		<- paste(indir, '/','PANGEA_SSApolBwhRc-_140811_n390_AncSeq_checkdraw1-3_examlout.pdf', sep='')
+	ggsave(file=file, w=10, h=5)
 }
 ##--------------------------------------------------------------------------------------------------------
 ##	get anecestral sequences from BEAST XML - developper version
@@ -1078,10 +1137,79 @@ pipeline.HPTN071<- function()
 	cmd				<- paste(cmd, cmd.VirusTreeSimulator(tmpdir.HPTN071, infile.trm, infile.ind, tmpdir.VTS, outfile, prog.args='-demoModel Logistic -N0 0.1 -growthRate 1.5 -t50 -4'), sep='\n')
 	cat(cmd)
 }
+
+
+
 ##--------------------------------------------------------------------------------------------------------
-##	wrapper to call Matts phylo simulator
+##	devel code to call SeqGen
 ##--------------------------------------------------------------------------------------------------------
-project.HPTN071.virus.tree.simulator.v1<- function()	
+project.PANGEA.SeqGen.createInputFile<- function()
+{
+	label.sep		<- '|'
+
+	indir.epi		<- '/Users/Oliver/git/HPTN071sim/data_HPTN071epimodel_output'
+	infile.epi		<- '140716_RUN001_SAVE.R'
+	
+	indir.vts		<- '/Users/Oliver/git/HPTN071sim/tmp/VirusTreeSimulator'
+	infile.prefix	<- '140716_RUN001_'
+	
+	file		<- paste(indir.epi, '/', infile.epi, sep='')
+	load(file)	#expect "df.epi"    "df.trms"   "df.inds"   "df.sample"
+	rER.pol	<- PANGEA.WithinHostEvolutionaryRate.create.sampler.v1()
+	
+	infiles		<- list.files(indir.vts)
+	tmp			<- paste('^',infile.prefix,'.*nex$',sep='')
+	infiles		<- infiles[ grepl(tmp, infiles)  ]	
+	if(!length(infiles))	stop('cannot find files matching criteria')
+	
+	#TODO crashes!
+	df.ph			<- vector('list', length(infiles))
+	df.nodestat		<- vector('list', length(infiles))	
+	for(i in seq_along(infiles))
+	{
+		infile			<- infiles[i]
+		file			<- paste(indir.vts, '/', infile, sep='')
+		#	read brl, units from annotated nexus file. attention: () may not contain two nodes
+		tmp				<- hivc.beast2out.read.nexus.and.stats(file, method.node.stat='any.node')
+		ph				<- tmp$tree
+		node.stat		<- tmp$node.stat
+		node.stat		<- subset(node.stat, STAT=='Unit')
+		set(node.stat, NULL, 'VALUE', node.stat[, gsub('\"','',VALUE)])
+		node.stat[, IDPOP:= as.integer(node.stat[,substr(VALUE, 4, nchar(VALUE))])]
+		node.stat		<- merge(subset(df.inds, select=c(IDPOP, GENDER, DOB, TIME_SEQ, IDCLU)), subset(node.stat, select=c(IDPOP, NODE_ID)), by='IDPOP')	
+		#
+		#	create collapsed Newick tree with expected substitutions / site for each branch 
+		#
+		#	draw evolutionary rates for every individual in the transmission chain
+		#	TODO: this is currently a simple LOGNO from some HIV-1B pol data
+		node.stat		<- merge(node.stat, data.table( IDPOP=node.stat[, unique(IDPOP)], ER= rER.pol(node.stat[, length(unique(IDPOP))]) ), by='IDPOP')		
+		#	get calendar time of root so we can draw ancestral seq
+		ph$root.edge	<- ph$edge.length[	 match(Ntip(ph)+1, ph$edge[, 1])	]
+		tmp				<- collapse.singles(ph)
+		tmp2			<- regmatches(tmp$tip.label[1], regexpr('ID_[0-9]+',tmp$tip.label[1]))
+		tmp2			<- as.numeric(substr(tmp2, 4, nchar(tmp2)))
+		tmp2			<- subset(node.stat, IDPOP==tmp2)[, TIME_SEQ]
+		root.ctime		<- tmp2 - (node.depth.edgelength(tmp)[1] + ph$root.edge)	
+		#	set expected numbers of substitutions per branch within individual IDPOP
+		ph$edge.length	<- ph$edge.length * node.stat[ ph$edge[, 2], ][, ER]
+		#	once expected number of substitutions / site are simulated, can collapse singleton nodes
+		#	make sure root edge is not collapsed away
+		ph$root.edge	<- ph$edge.length[	 match(Ntip(ph)+1, ph$edge[, 1])	]			
+		ph				<- collapse.singles(ph)	
+		#	set tip label so that IDPOP can be checked for consistency	
+		node.stat[, LABEL:= node.stat[, paste('IDPOP_',IDPOP,label.sep,GENDER,label.sep,'DOB_',round(DOB,d=3),label.sep,round(TIME_SEQ,d=3),sep='')]]
+		setkey(node.stat, NODE_ID)
+		ph$tip.label	<- node.stat[seq_len(Ntip(ph)), ][, LABEL]
+		#
+		df.nodestat[[i]]<- node.stat
+		df.ph[[i]]		<- data.table(ROOT_CALENDAR_TIME= root.ctime, IDCLU=node.stat[, unique(IDCLU)], NEWICK= write.tree(ph, digits = 10))	
+	}
+	
+}
+##--------------------------------------------------------------------------------------------------------
+##	devel code to call VirusTreeSimulator
+##--------------------------------------------------------------------------------------------------------
+project.PANGEA.VirusTreeSimulator.v1<- function()	
 {
 	require(data.table)
 	indir		<- '/Users/Oliver/git/HPTN071sim/sim_trchain'
@@ -1089,12 +1217,9 @@ project.HPTN071.virus.tree.simulator.v1<- function()
 	infile.ind	<- '140716_RUN001_IND.csv'
 	infile.trm	<- '140716_RUN001_TRM.csv'
 	outfile		<- '140716_RUN001_VirusTreeSim_'
-	
-	#TODO store this in R package
-	prog.package.dir		<- '/Users/Oliver/git/HPTN071sim/source/pkg/ext' 
-	prog.VIRUSTREESIMULATOR	<- paste(prog.package.dir,'/','VirusTreeSimulator.jar',sep='')
+		
 	#
-	cmd						<- cmd.VirusTreeSimulator(indir, infile.trm, infile.ind, outdir, outfile, prog=prog.VIRUSTREESIMULATOR, prog.args='-demoModel Logistic -N0 0.1 -growthRate 1.5 -t50 -4')
+	cmd						<- cmd.VirusTreeSimulator(indir, infile.trm, infile.ind, outdir, outfile, prog.args='-demoModel Logistic -N0 0.1 -growthRate 1.5 -t50 -4')
 			
 }
 

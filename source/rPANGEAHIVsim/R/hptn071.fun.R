@@ -1,4 +1,32 @@
 ######################################################################################
+#	return within host evolutionary rate sampler	
+#	olli originally written 21-08-2014
+PANGEA.WithinHostEvolutionaryRate.create.sampler.v1<- function()
+{
+	if(0)
+	{	
+		#extremely basic model of within host evolutionary rate from HIV-1B pol estimates in the literature
+		#median log10 ER of pol in Alizon / Fraser
+		df.er	<- data.table(ER= 10^c(-1.85, -2.2, -2.5, -2.7, -2.72, -3.2), GENE='POL')		
+		tmp		<- gamlss(ER~1, data=df.er, family=LOGNO)
+		x		<- seq(0.0005, 0.02, 0.0001)
+		plot(x, dLOGNO(x, mu=coef(tmp, what='mu'), sigma=exp(coef(tmp, what='sigma'))), type='l')
+		lines(x, dLOGNO(x, mu=log(0.005), sigma=0.8), col='blue')		
+	}	
+	rER.pol<- function(n)
+				{		
+					ans	<- numeric(0)
+					while(length(ans)<n)
+					{
+						tmp		<- rLOGNO(2*n, mu=log(0.005), sigma=0.8)
+						tmp[which(tmp>0.02)]	<- NA
+						ans		<- c(ans, na.omit(tmp))						
+					}			
+					ans[seq_len(n)]
+				}
+	rER.pol
+}
+######################################################################################
 #	return GAG POL ENV ancestral sequences from BEAST PARSER output	
 #	olli originally written 06-08-2014
 #	tree 		beast trees in ape format, needed to compute calendar time for each ancestral sequence
