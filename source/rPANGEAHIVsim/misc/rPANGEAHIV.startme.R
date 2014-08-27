@@ -18,7 +18,6 @@ if(!any(args=='--args'))
 	args<- vector("numeric",0)
 if(any(args=='--args'))
 	args<- args[-(1:match("--args", args)) ]
-
 #the package directory (local working copy of the code, not the installed package directory within the R directory 
 CODE.HOME	<<- "/Users/Oliver/git/HPTN071sim/source/rPANGEAHIVsim"
 
@@ -53,6 +52,8 @@ if(length(args))
 					ROXYGENIZE				= "package.roxygenize",
 					MAKE.RDATA				= "package.generate.rdafiles",					
 					HPTN071.INPUT.PARSER	= "prog.HPTN071.input.parser.v1",
+					PR.SEQGEN.FILECREATOR	= "prog.PANGEA.SeqGen.createInputFile",
+					PR.SEQGEN.READER		= "prog.PANGEA.SeqGen.readOutput"
 					)
 	}
 	tmp<- na.omit(sapply(args,function(arg)
@@ -115,6 +116,11 @@ my.dumpframes<- function()
 ###############################################################################
 #	re-load all R files
 require(data.table)
+require(grid)
+require(reshape2)
+require(ggplot2)
+require(gamlss)
+require(hivclust)
 require(rPANGEAHIVsim)
 print(CODE.HOME)
 function.list<-c(list.files(path= paste(CODE.HOME,"R",sep='/'), pattern = ".R$", all.files = FALSE,

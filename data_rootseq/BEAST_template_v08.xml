@@ -1030,7 +1030,7 @@
       </column>
     </log>
     <!-- write log to file                                                       -->
-    <log id="fileLog" logEvery="100000" fileName="ALLv08.n97.rlx.gmrf_Sun_Jul_27_09-00-00_2014.log" overwrite="false">
+    <log id="fileLog" logEvery="10000" fileName="ALLv08.n97.rlx.gmrf_Sun_Jul_27_09-00-00_2014.log" overwrite="false">
       <posterior idref="posterior"/>
       <prior idref="prior"/>
       <likelihood idref="likelihood"/>

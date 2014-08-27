@@ -1,4 +1,73 @@
 ######################################################################################
+#	return ancestral sequence sampler	
+#	olli originally written 22-08-2014
+PANGEA.RootSeq.create.sampler.v1<- function(root.ctime.grace= 0.5, sample.grace= 3, sample.shift= 40)
+{	
+	tree.id.labelsep<- '|'
+	tree.id.labelidx.ctime<- 4
+	#	TODO move this into R data folder
+	file	<- '/Users/Oliver/git/HPTN071sim/data_rootseq/PANGEA_SSAfgBwhRc-_140811_n390_AncSeq.R'
+	load(file)		#expect "anc.seq.gag"  "anc.seq.pol"  "anc.seq.env"  "anc.seq.info"
+	setkey(anc.seq.info, CALENDAR_TIME)
+	rANCSEQ.args<- list(	root.ctime.grace=root.ctime.grace, sample.grace=sample.grace, sample.shift=sample.shift, 
+			anc.seq.info=anc.seq.info, anc.seq.gag=anc.seq.gag, anc.seq.pol=anc.seq.pol, anc.seq.env=anc.seq.env)	
+	
+	rANCSEQ<- function(root.ctime, rANCSEQ.args)
+	{		
+		tmp		<- lapply(seq_along(root.ctime), function(i)
+				{
+					tmp	<- subset(rANCSEQ.args$anc.seq.info, CALENDAR_TIME+rANCSEQ.args$sample.shift>root.ctime[i]-rANCSEQ.args$root.ctime.grace &  CALENDAR_TIME+rANCSEQ.args$sample.shift<=root.ctime[i]+rANCSEQ.args$root.ctime.grace)
+					stopifnot(nrow(tmp)>rANCSEQ.args$sample.grace*100)
+					data.table( LABEL= tmp[, sample( LABEL, rANCSEQ.args$sample.grace ) ], CALENDAR_TIME=root.ctime[i], DRAW=i )
+				})
+		tmp		<- do.call('rbind',tmp)
+		#	get unique seqs
+		setkey(tmp, LABEL)
+		tmp				<- unique(tmp)	
+		anc.seq.draw	<- do.call( 'cbind', list( rANCSEQ.args$anc.seq.gag[tmp[, LABEL], ], rANCSEQ.args$anc.seq.pol[tmp[, LABEL], ], rANCSEQ.args$anc.seq.env[tmp[, LABEL], ] ) ) 
+		anc.seq.draw	<- seq.unique(anc.seq.draw)
+		#	check if at least one seq for each draw
+		tmp				<- merge( data.table(LABEL=rownames(anc.seq.draw)), tmp, by='LABEL' )	
+		stopifnot( !length(setdiff( seq_along(root.ctime), tmp[, unique(DRAW)] )) )
+		#	take first seq for each draw	
+		tmp				<- tmp[, list(LABEL= LABEL[1]), by='DRAW']
+		setkey(tmp, DRAW)
+		anc.seq.draw	<- anc.seq.draw[ tmp[, LABEL], ]
+		#	set new calendar time for sequences
+		#set(tmp, NULL, 'LABEL_NEW', tmp[, as.numeric( sapply( strsplit(LABEL,tree.id.labelsep,fixed=TRUE), '[[', tree.id.labelidx.ctime) ) ])
+		#set(tmp, NULL, 'LABEL_NEW', tmp[, LABEL_NEW+sample.shift])	
+		#tmp			<- tmp[,	{
+		#							z							<- strsplit(LABEL,tree.id.labelsep,fixed=TRUE)[[1]]
+		#							z[tree.id.labelidx.ctime]	<- LABEL_NEW
+		#							list(LABEL_NEW=paste(z, collapse=tree.id.labelsep,sep=''))
+		#						}, by='LABEL']
+		#setkey(tmp, LABEL)
+		#rownames(anc.seq.draw)		<- tmp[ rownames(anc.seq.draw), ][, LABEL_NEW]		
+		anc.seq.draw
+	}
+	list(rANCSEQ=rANCSEQ, rANCSEQ.args=rANCSEQ.args)
+}
+######################################################################################
+#	return within host evolutionary rate sampler	
+#	olli originally written 21-08-2014
+PANGEA.BetweenHostEvolutionaryRateModifier.create.sampler.v1<- function()
+{
+	if(0)
+	{
+		#from Vrancken et al:
+		#c(3.5/2.5, 7.0/4.2) #1.4, 1.67	draw this from lognormal with mean 1.5 and variance so that tail captures 1.8
+		x		<- seq(1.01, 2, 0.01)
+		plot(x, dLOGNO(x, mu=log(1.5), sigma=0.1), type='l')
+		lines(x, dLOGNO(x, mu=log(1.5), sigma=0.07), col='blue' )
+		lines(x, dLOGNO(x, mu=log(1.5), sigma=0.12), col='red' )		
+	}
+	rER.bwm<- function(n)
+	{
+		rLOGNO(n, mu=log(1.5), sigma=0.1)
+	}
+	rER.bwm
+}
+######################################################################################
 #	return within host evolutionary rate sampler	
 #	olli originally written 21-08-2014
 PANGEA.WithinHostEvolutionaryRate.create.sampler.v1<- function()

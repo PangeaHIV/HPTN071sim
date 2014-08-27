@@ -285,6 +285,59 @@ project.PANGEA.RootSeqSim.BEAST.SSAfg.createXML<- function()
 	#
 }
 ##--------------------------------------------------------------------------------------------------------
+##	process BEAST log file and extract GTR parameters
+##--------------------------------------------------------------------------------------------------------
+project.PANGEA.RootSeqSim.BEAST.SSAfg.getGTR<- function()
+{
+	tree.id.burnin		<- 2e7
+	tree.id.labelsep	<- '|'
+	dir.name			<- '/Users/Oliver/duke/2014_Gates'  	
+	indir				<- paste(dir.name,'methods_comparison_rootseqsim/140813',sep='/')
+	outdir				<- indir
+	#	search for BEAST output
+	infiles				<- list.files(indir)
+	infiles				<- infiles[ sapply(infiles, function(x) grepl('pool[0-9].log$',x) ) ]
+	#	collect log variables
+	log.df	<- lapply(seq_along(infiles), function(i)
+			{
+				infile	<- infiles[i]
+				cat(paste('\nprocess file', infile))
+				file	<- paste(indir, '/', infile, sep='')
+				df		<- as.data.table(read.delim(file, comment.char='#'))
+				cat(paste('\nignore logs for\n',paste(colnames(df)[ !grepl('state|POL|GAG|ENV|ucld|meanRate',colnames(df)) ], collapse=', ') ))	
+				df		<- subset(df, select=which(grepl('state|POL|GAG|ENV|ucld|meanRate',colnames(df))))
+				log.df	<- c( paste('frequencies',1:4,sep=''), 'mu', 'alpha', '\\.at', '\\.ac', '\\.cg', '\\.ag', '\\.gt', 'treeLikelihood' )
+				log.df	<- lapply( log.df, function(x)
+						{
+							tmp		<- melt( subset(df, select=which(grepl(paste('state|',x,sep=''),colnames(df)))), id='state', value.name=x)
+							tmp[, GENE:= tmp[,substr(variable, 1, 3)]]
+							tmp[, CODON_POS:=tmp[, regmatches(variable, regexpr('CP[1-3]',variable))]]
+							subset(tmp, select=which(colnames(tmp)!='variable'))				
+						})
+				tmp		<- log.df[[1]]
+				for(j in seq_along(log.df)[-1])
+					tmp	<- merge(tmp, log.df[[j]], by=c('state','GENE','CODON_POS'))
+				log.df	<- tmp	
+				log.df	<- merge(log.df, subset(df, select=which(grepl('state|ucld|meanRate',colnames(df)))), by='state')
+				log.df[, FILE:= regmatches(infile, regexpr('pool[0-9]+',infile))]
+				log.df
+			})
+	log.df	<- do.call('rbind',log.df)	
+	setnames(log.df, colnames(log.df), gsub('\\.','',colnames(log.df),fixed=TRUE))
+	setnames(log.df, paste('frequencies',1:4,sep=''), c('a','c','g','t') )
+	log.df	<- subset(log.df, state>tree.id.burnin)
+	file	<- paste( substr(infiles[1],1,nchar(infiles[1])-9),'log.R',sep='' )
+	file	<- paste( outdir, '/', file, sep='')
+	cat(paste('\nsave to file', file))
+	save(file=file, log.df)
+	# 
+	tmp		<- copy(log.df)
+	tmp		<- melt(tmp, id=c('state','GENE','CODON_POS','FILE'))
+	ggplot( tmp, aes(x=value, fill=FILE)) + geom_histogram() + facet_grid(GENE+CODON_POS~variable, scales='free')
+	file	<- paste( substr(file,1,nchar(file)-1),'pdf',sep='' )
+	ggsave(file, h=15, w=20)
+}
+##--------------------------------------------------------------------------------------------------------
 ##	get anecestral sequences from BEAST XML
 ##--------------------------------------------------------------------------------------------------------
 project.PANGEA.RootSeqSim.BEAST.SSAfg.getancestralseq.from.output<- function()
@@ -340,6 +393,66 @@ project.PANGEA.RootSeqSim.BEAST.SSAfg.getancestralseq.from.output<- function()
 ##--------------------------------------------------------------------------------------------------------
 ##	check ancestral sequences from BEAST XML, create random draw to check
 ##--------------------------------------------------------------------------------------------------------
+project.PANGEA.SIMU.SSAfg.checksimus<- function()
+{
+	require(phytools)
+	tree.id.labelsep		<- '|'
+	tree.id.label.idx.ctime	<- 4 
+	dir.name	<- '/Users/Oliver/git/HPTN071sim/tmp140827'  
+	outdir		<- '/Users/Oliver/git/HPTN071sim/data_HPTN071epimodel_output'
+	indir		<- paste(dir.name,'Simu',sep='/')
+	infile		<- '140716_RUN001_SIMULATED_INTERNAL.R'
+	#	load simulated data
+	file			<- paste(indir, '/', infile, sep='')	
+	load(file)		#expect "df.epi"    "df.trms"   "df.inds"   "df.sample" "df.seq"
+	#	load aligned HXB2 as outgroup
+	load('/Users/Oliver/git/HPTN071sim/data_rootseq/PANGEA_SSAfg_140806_HXB2outgroup.R')	#expect "outgroup.seq.gag" "outgroup.seq.pol" "outgroup.seq.env"
+	
+	
+	tmp				<- tolower(do.call('rbind',strsplit(df.seq[, GAG],'')))
+	rownames(tmp)	<- df.seq[, LABEL]
+	df.seq.gag		<- as.DNAbin(tmp)
+	tmp				<- tolower(do.call('rbind',strsplit(df.seq[, POL],'')))
+	rownames(tmp)	<- df.seq[, LABEL]
+	df.seq.pol		<- as.DNAbin(tmp)	
+	tmp				<- tolower(do.call('rbind',strsplit(df.seq[, ENV],'')))
+	rownames(tmp)	<- df.seq[, LABEL]
+	df.seq.env		<- as.DNAbin(tmp)
+	
+	#get R2 for df.seq.pol
+	df.seq			<- df.seq.pol
+	df.seq			<- rbind(df.seq, outgroup.seq.pol[, seq_len(ncol(df.seq))])
+	#	get NJ tree	
+	tmp				<- dist.dna(df.seq)
+	nj				<- nj(tmp)
+	tmp				<- which(nj$tip.label=="HXB2")
+	nj				<- reroot(nj, tmp, nj$edge.length[which(nj$edge[,2]==tmp)])
+	nj				<- ladderize(nj)		
+	file			<- paste( outdir, '/', substr(infile,1,nchar(infile)-20),'INFO_simu_NJ.pdf', sep='' )	
+	pdf(file=file, w=10, h=150)
+	plot(nj, show.tip=TRUE, cex=0.5)
+	add.scale.bar()
+	dev.off()			
+	#	get root to tip divergence
+	nj				<- drop.tip(nj,'HXB2')
+	tmp				<- node.depth.edgelength(nj)
+	nj.info			<- data.table(LABEL=nj$tip.label, ROOT2TIP=tmp[seq_len(Ntip(nj))] )
+	set(nj.info, NULL, 'CALENDAR_TIME', nj.info[, as.numeric(sapply(strsplit(LABEL, tree.id.labelsep, fixed=TRUE),'[[',tree.id.label.idx.ctime))] )
+	tmp				<- lm(ROOT2TIP~CALENDAR_TIME, data=nj.info)		 
+	set( nj.info, NULL, 'ROOT2TIP_LM', predict(tmp, type='response') ) 	
+	tmp2			<- c( R2=round(summary(tmp)$r.squared,d=3), SLOPE= as.numeric(round(coef(tmp)['CALENDAR_TIME'],d=4)), TMRCA=as.numeric(round( -coef(tmp)['(Intercept)']/coef(tmp)['CALENDAR_TIME'], d=1 )) )
+	ggplot(nj.info, aes(x=CALENDAR_TIME, y=ROOT2TIP)) + geom_point(alpha=0.5) + geom_line(aes(y=ROOT2TIP_LM)) +
+			#scale_x_continuous(breaks=seq(1980,2020,2)) +						
+			labs(x='Sequence sampling date', y='root-to-tip divergence') +
+			annotate("text", x=nj.info[, min(CALENDAR_TIME)], y=nj.info[, 0.9*max(ROOT2TIP)], label=paste("R2=", tmp2['R2'],'\nSlope=',tmp2['SLOPE'],'\nTMRCA=',tmp2['TMRCA'], sep=''), hjust = 0, size = 4) +
+			theme(legend.position=c(0,1), legend.justification=c(0,1))		
+	file			<- paste( outdir, '/', substr(infile,1,nchar(infile)-20),'INFO_simu_R2.pdf', sep='' )
+	ggsave(file=file, w=10, h=6)
+		
+}
+##--------------------------------------------------------------------------------------------------------
+##	check ancestral sequences from BEAST XML, create random draw to check
+##--------------------------------------------------------------------------------------------------------
 project.PANGEA.RootSeqSim.SIMU.SSAfg.checkancestralseq.createdataset<- function()
 {
 	require(phytools)
@@ -367,6 +480,8 @@ project.PANGEA.RootSeqSim.SIMU.SSAfg.checkancestralseq.createdataset<- function(
 		anc.seq.info[, POOL:= regmatches(tmp, regexpr('pool[0-9]+', tmp))]
 		set(anc.seq.info, NULL, 'POOL', anc.seq.info[, as.numeric(substr(POOL, 5, nchar(POOL)))])
 		ggplot(anc.seq.info, aes(x=CALENDAR_TIME)) + geom_histogram(binwidth=2) + facet_grid(.~POOL, margins=0)
+		file				<- paste(indir, '/', substr(infile,1,nchar(infile)-2), '_calendartime.pdf' , sep='')
+		ggsave(file=file, w=8, h=6)
 		#	most sequences between 1940 - 1980
 		subset(anc.seq.info, floor(CALENDAR_TIME)==1940)		
 	}
@@ -1121,90 +1236,141 @@ project.PANGEA.RootSeqSim.DATA.checkRecombinants<- function()
 ##--------------------------------------------------------------------------------------------------------
 pipeline.HPTN071<- function()
 {
+	stop()
 	indir			<- '/Users/Oliver/git/HPTN071sim/data_HPTN071epimodel_output'
 	infile.ind		<- '140716_RUN001_IND.csv'
 	infile.trm		<- '140716_RUN001_TRM.csv'
 	
-	tmpdir			<- '/Users/Oliver/git/HPTN071sim/tmp'
-
+	tmpdir			<- '/Users/Oliver/git/HPTN071sim/tmp140827'
+	cmd				<- paste('mkdir -p ', tmpdir,'\n',sep='')
+	
 	tmpdir.HPTN071	<- paste(tmpdir,'/HPTN071parser',sep='')
-	cmd				<- paste('mkdir -p ', tmpdir.HPTN071,'\n',sep='')
+	cmd				<- paste(cmd, 'mkdir -p ', tmpdir.HPTN071,'\n',sep='')
 	cmd				<- paste(cmd, cmd.HPTN071.input.parser(indir, infile.trm, infile.ind, tmpdir.HPTN071,  infile.trm, infile.ind), sep='\n')
 	
 	tmpdir.VTS		<- paste(tmpdir,'/VirusTreeSimulator',sep='')
 	cmd				<- paste(cmd, 'mkdir -p ', tmpdir.VTS,'\n',sep='')
 	outfile			<- substr(infile.ind, 1, nchar(infile.ind)-7)
-	cmd				<- paste(cmd, cmd.VirusTreeSimulator(tmpdir.HPTN071, infile.trm, infile.ind, tmpdir.VTS, outfile, prog.args='-demoModel Logistic -N0 0.1 -growthRate 1.5 -t50 -4'), sep='\n')
+	prog.args		<- '-demoModel Logistic -N0 100000 -growthRate 0.0001 -t50 -0.04'
+	cmd				<- paste(cmd, cmd.VirusTreeSimulator(tmpdir.HPTN071, infile.trm, infile.ind, tmpdir.VTS, outfile, prog.args=prog.args), sep='\n')	
+	
+	tmpdir.SG		<- paste(tmpdir,'/SeqGen',sep='')
+	cmd				<- paste(cmd, 'mkdir -p ', tmpdir.SG,'\n',sep='')
+	infile.epi		<- paste( substr(infile.ind, 1, nchar(infile.ind)-7),'SAVE.R', sep='' )
+	infile.vts		<- substr(infile.ind, 1, nchar(infile.ind)-7)
+	cmd				<- paste(cmd, cmd.SeqGen.createInputFiles(indir, infile.epi, tmpdir.VTS, infile.vts, tmpdir.SG), sep='\n')
+	
+	#	currently requires output from last step so this is a separate batch file
+	cmd				<- ''
+	infile.epi		<- paste( substr(infile.ind, 1, nchar(infile.ind)-7),'SAVE.R', sep='' )
+	plot.file		<- paste(indir, '/', substr(infile.epi,1,nchar(infile.epi)-6),'INFO_sg_ERPOSTERIOR_by_MODEL.pdf', sep='')
+	cmd				<- paste(cmd, cmd.PANGEA.SeqGen(tmpdir.SG, infile.vts, plot.file=plot.file), sep='\n')		
+	tmpdir.sim		<- paste(tmpdir,'/Simu',sep='')
+	cmd				<- paste(cmd, 'mkdir -p ', tmpdir.sim,'\n',sep='')		
+	cmd				<- paste(cmd, cmd.SeqGen.readOutputFiles(indir, infile.epi, tmpdir.SG, tmpdir.sim), sep='')
 	cat(cmd)
+	
+	outfile			<- paste("pngea",paste(strsplit(date(),split=' ')[[1]],collapse='_',sep=''),sep='.')
+	cmd.hpccaller(indir, outfile, cmd)
+	quit("no")
 }
-
-
-
 ##--------------------------------------------------------------------------------------------------------
-##	devel code to call SeqGen
+##	devel code to process SeqGen output
 ##--------------------------------------------------------------------------------------------------------
-project.PANGEA.SeqGen.createInputFile<- function()
+project.PANGEA.SeqGen.readOutput<- function(indir.sg, infile.prefix)
 {
-	label.sep		<- '|'
+	label.idx.codonpos	<- 1
+	label.idx.gene		<- 2
+	label.idx.clu		<- 3
+	treelabel.idx.idpop	<- 1
+	treelabel.idx.sep	<- '|'
 
 	indir.epi		<- '/Users/Oliver/git/HPTN071sim/data_HPTN071epimodel_output'
-	infile.epi		<- '140716_RUN001_SAVE.R'
-	
-	indir.vts		<- '/Users/Oliver/git/HPTN071sim/tmp/VirusTreeSimulator'
-	infile.prefix	<- '140716_RUN001_'
-	
+	infile.epi		<- '140716_RUN001_SAVE.R'	
+	indir.sg		<- '/Users/Oliver/git/HPTN071sim/tmp/SeqGen'
+	outdir			<- '/Users/Oliver/git/HPTN071sim/data_HPTN071epimodel_output'
+	#	load simulated epi data
 	file		<- paste(indir.epi, '/', infile.epi, sep='')
 	load(file)	#expect "df.epi"    "df.trms"   "df.inds"   "df.sample"
-	rER.pol	<- PANGEA.WithinHostEvolutionaryRate.create.sampler.v1()
-	
-	infiles		<- list.files(indir.vts)
-	tmp			<- paste('^',infile.prefix,'.*nex$',sep='')
-	infiles		<- infiles[ grepl(tmp, infiles)  ]	
-	if(!length(infiles))	stop('cannot find files matching criteria')
-	
-	#TODO crashes!
-	df.ph			<- vector('list', length(infiles))
-	df.nodestat		<- vector('list', length(infiles))	
-	for(i in seq_along(infiles))
-	{
-		infile			<- infiles[i]
-		file			<- paste(indir.vts, '/', infile, sep='')
-		#	read brl, units from annotated nexus file. attention: () may not contain two nodes
-		tmp				<- hivc.beast2out.read.nexus.and.stats(file, method.node.stat='any.node')
-		ph				<- tmp$tree
-		node.stat		<- tmp$node.stat
-		node.stat		<- subset(node.stat, STAT=='Unit')
-		set(node.stat, NULL, 'VALUE', node.stat[, gsub('\"','',VALUE)])
-		node.stat[, IDPOP:= as.integer(node.stat[,substr(VALUE, 4, nchar(VALUE))])]
-		node.stat		<- merge(subset(df.inds, select=c(IDPOP, GENDER, DOB, TIME_SEQ, IDCLU)), subset(node.stat, select=c(IDPOP, NODE_ID)), by='IDPOP')	
-		#
-		#	create collapsed Newick tree with expected substitutions / site for each branch 
-		#
-		#	draw evolutionary rates for every individual in the transmission chain
-		#	TODO: this is currently a simple LOGNO from some HIV-1B pol data
-		node.stat		<- merge(node.stat, data.table( IDPOP=node.stat[, unique(IDPOP)], ER= rER.pol(node.stat[, length(unique(IDPOP))]) ), by='IDPOP')		
-		#	get calendar time of root so we can draw ancestral seq
-		ph$root.edge	<- ph$edge.length[	 match(Ntip(ph)+1, ph$edge[, 1])	]
-		tmp				<- collapse.singles(ph)
-		tmp2			<- regmatches(tmp$tip.label[1], regexpr('ID_[0-9]+',tmp$tip.label[1]))
-		tmp2			<- as.numeric(substr(tmp2, 4, nchar(tmp2)))
-		tmp2			<- subset(node.stat, IDPOP==tmp2)[, TIME_SEQ]
-		root.ctime		<- tmp2 - (node.depth.edgelength(tmp)[1] + ph$root.edge)	
-		#	set expected numbers of substitutions per branch within individual IDPOP
-		ph$edge.length	<- ph$edge.length * node.stat[ ph$edge[, 2], ][, ER]
-		#	once expected number of substitutions / site are simulated, can collapse singleton nodes
-		#	make sure root edge is not collapsed away
-		ph$root.edge	<- ph$edge.length[	 match(Ntip(ph)+1, ph$edge[, 1])	]			
-		ph				<- collapse.singles(ph)	
-		#	set tip label so that IDPOP can be checked for consistency	
-		node.stat[, LABEL:= node.stat[, paste('IDPOP_',IDPOP,label.sep,GENDER,label.sep,'DOB_',round(DOB,d=3),label.sep,round(TIME_SEQ,d=3),sep='')]]
-		setkey(node.stat, NODE_ID)
-		ph$tip.label	<- node.stat[seq_len(Ntip(ph)), ][, LABEL]
-		#
-		df.nodestat[[i]]<- node.stat
-		df.ph[[i]]		<- data.table(ROOT_CALENDAR_TIME= root.ctime, IDCLU=node.stat[, unique(IDCLU)], NEWICK= write.tree(ph, digits = 10))	
-	}
-	
+	#	collect simulated sequences
+	infiles		<- list.files(indir.sg)
+	infiles		<- infiles[ grepl('*phy$', infiles)  ]	
+	if(!length(infiles))	stop('cannot find files matching criteria')		
+	infile.df	<- data.table(FILE=infiles)
+	tmp			<- infile.df[, strsplit(FILE, '_') ]
+	infile.df[, CODON_POS:= sapply(tmp, function(x) rev(x)[label.idx.codonpos])]
+	infile.df[, GENE:= sapply(tmp, function(x) rev(x)[label.idx.gene])]
+	infile.df[, IDCLU:= sapply(tmp, function(x) rev(x)[label.idx.clu])]
+	set(infile.df, NULL, 'CODON_POS', infile.df[, substr(CODON_POS,1,3)])
+	#
+	#	read simulated sequences
+	#
+	df.seq		<- infile.df[,	{
+									cat(paste('\nread seq in file',FILE))
+									file	<- paste(indir.sg,'/',FILE,sep='')
+									tmp		<- as.character(read.dna(file, format='sequential'))
+									list( SEQ=apply(tmp,1,function(x) paste(x, collapse='')), LABEL=rownames(tmp) )				
+								}, by='FILE']
+	df.seq		<- merge(df.seq, infile.df, by='FILE')
+	#
+	#	reconstruct genes from codon positions
+	#
+	df.seq[, STAT:=paste(GENE,CODON_POS,sep='.')]		
+	df.seq		<- dcast.data.table(df.seq, IDCLU + LABEL ~ STAT, value.var="SEQ")
+	#	check that seq of correct size
+	stopifnot( df.seq[, all( nchar(GAG.CP1)==nchar(GAG.CP2) & nchar(GAG.CP1)==nchar(GAG.CP3) )] )
+	stopifnot( df.seq[, all( nchar(POL.CP1)==nchar(POL.CP2) & nchar(POL.CP1)==nchar(POL.CP3) )] )
+	stopifnot( df.seq[, all( nchar(ENV.CP1)==nchar(ENV.CP2) & nchar(ENV.CP1)==nchar(ENV.CP3) )] )
+	#
+	df.seq		<- df.seq[, {
+								tmp		<- do.call('rbind',sapply(list(ENV.CP1,ENV.CP2,ENV.CP3), strsplit, ''))
+								env		<- paste(as.vector(tmp), collapse='')
+								tmp		<- do.call('rbind',sapply(list(GAG.CP1,GAG.CP2,GAG.CP3), strsplit, ''))
+								gag		<- paste(as.vector(tmp), collapse='')
+								tmp		<- do.call('rbind',sapply(list(POL.CP1,POL.CP2,POL.CP3), strsplit, ''))
+								pol		<- paste(as.vector(tmp), collapse='')
+								list(GAG=gag, POL=pol, ENV=env, IDCLU=IDCLU)
+							}, by=c('LABEL')]
+	#	check that we have indeed seq for all sampled individuals
+	df.seq		<- subset( df.seq, !grepl('NOEXIST',LABEL) )	
+	tmp			<- df.seq[, sapply( strsplit(LABEL, treelabel.idx.sep, fixed=TRUE), '[[', treelabel.idx.idpop )]
+	df.seq[, IDPOP:=as.integer(substr(tmp,7,nchar(tmp)))]	
+	stopifnot( setequal( subset( df.inds, !is.na(TIME_SEQ) )[, IDPOP], df.seq[,IDPOP]) )
+	#	merge simulated data
+	simu.df		<- merge(subset(df.seq, select=c(IDPOP, GAG, POL, ENV)), subset( df.inds, !is.na(TIME_SEQ) ), by='IDPOP', all.x=TRUE)
+	#
+	#	save simulated data -- internal
+	#
+	outfile.prefix	<- substr(infile.epi,1,nchar(infile.epi)-6)
+	file			<- paste(outdir, '/', outfile.prefix, 'SIMULATED_INTERNAL.R', sep='')
+	cat(paste('\nwrite to file', file))
+	save(df.epi, df.trms, df.inds, df.sample, df.seq, file=file)
+	#
+	#	save simulated data -- to be shared
+	#	
+	tmp				<- subset( df.inds, !is.na(TIME_SEQ), select=c(IDPOP, GENDER, CIRCM, DOB, DOD, TIME_SEQ ) )
+	file			<- paste(outdir, '/', outfile.prefix, 'SIMULATED_metadata.csv', sep='')
+	cat(paste('\nwrite to file', file))
+	write.csv(tmp, file)		
+	tmp				<- tolower(do.call('rbind',strsplit(df.seq[, GAG],'')))
+	rownames(tmp)	<- df.seq[, LABEL]
+	tmp				<- as.DNAbin(tmp)
+	file			<- paste(outdir, '/', outfile.prefix, 'SIMULATED_gag.fa', sep='')
+	write.dna(tmp, file, format = "fasta")	
+	tmp				<- tolower(do.call('rbind',strsplit(df.seq[, POL],'')))
+	rownames(tmp)	<- df.seq[, LABEL]
+	tmp				<- as.DNAbin(tmp)
+	file			<- paste(outdir, '/', outfile.prefix, 'SIMULATED_pol.fa', sep='')
+	write.dna(tmp, file, format = "fasta")	
+	tmp				<- tolower(do.call('rbind',strsplit(df.seq[, ENV],'')))
+	rownames(tmp)	<- df.seq[, LABEL]
+	tmp				<- as.DNAbin(tmp)
+	file			<- paste(outdir, '/', outfile.prefix, 'SIMULATED_env.fa', sep='')
+	write.dna(tmp, file, format = "fasta")	
+	#	zip simulated files
+	tmp				<- c( paste(outdir, '/', outfile.prefix, 'SIMULATED_metadata.csv', sep=''), paste(outdir, '/', outfile.prefix, 'SIMULATED_env.fa', sep=''), paste(outdir, '/', outfile.prefix, 'SIMULATED_pol.fa', sep=''), paste(outdir, '/', outfile.prefix, 'SIMULATED_gag.fa', sep='') )
+	zip( paste(outdir, '/', outfile.prefix, 'SIMULATED.zip', sep=''), tmp, flags = "-FSr9XTj")
+	file.remove(tmp)
 }
 ##--------------------------------------------------------------------------------------------------------
 ##	devel code to call VirusTreeSimulator
@@ -1212,15 +1378,21 @@ project.PANGEA.SeqGen.createInputFile<- function()
 project.PANGEA.VirusTreeSimulator.v1<- function()	
 {
 	require(data.table)
-	indir		<- '/Users/Oliver/git/HPTN071sim/sim_trchain'
+	indir		<- '/Users/Oliver/git/HPTN071sim/tmp/HPTN071parser'
 	outdir		<- '/Users/Oliver/duke/2014_Gates/methods_comparison_trchphylosim/140819'
 	infile.ind	<- '140716_RUN001_IND.csv'
 	infile.trm	<- '140716_RUN001_TRM.csv'
 	outfile		<- '140716_RUN001_VirusTreeSim_'
-		
-	#
-	cmd						<- cmd.VirusTreeSimulator(indir, infile.trm, infile.ind, outdir, outfile, prog.args='-demoModel Logistic -N0 0.1 -growthRate 1.5 -t50 -4')
 			
+	#	N0			effective pop size at time 0
+	#	growthRate 	the effective population size growth rate
+	#	t50 		the time point, relative to the time of infection in backwards time, at which the population is equal to half its final asymptotic value
+	cmd			<- cmd.VirusTreeSimulator(indir, infile.trm, infile.ind, outdir, outfile, prog.args='-demoModel Logistic -N0 0.1 -growthRate 1.5 -t50 -4')
+	cmd			<- cmd.VirusTreeSimulator(indir, infile.trm, infile.ind, outdir, outfile, prog.args='-demoModel Logistic -N0 100000 -growthRate 0.0001 -t50 -0.04')
+			
+	outdir		<- '/Users/Oliver/duke/2014_Gates/methods_comparison_trchphylosim/140827'
+	cmd			<- cmd.VirusTreeSimulator(indir, infile.trm, infile.ind, outdir, outfile, prog.args='-demoModel Constant -N0 15000')
+	cat(cmd)
 }
 
 
