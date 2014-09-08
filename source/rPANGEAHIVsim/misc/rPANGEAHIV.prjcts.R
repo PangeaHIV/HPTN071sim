@@ -142,11 +142,11 @@ project.PANGEA.RootSeqSim.3SEQ.SSAfg.rm.recombinants<- function()
 ##--------------------------------------------------------------------------------------------------------
 ##	run BEAST XML file
 ##--------------------------------------------------------------------------------------------------------
-project.PANGEA.RootSeqSim.BEAST.SSAfg.run<- function()
+project.PANGEA.RootSeqSim.BEAST.SSAfg.runXML<- function()
 {
 	#DATA		<<- "/work/or105/Gates_2014"
 	DATA		<<- '/Users/Oliver/duke/2014_Gates'	
-	indir		<- paste(DATA,'methods_comparison_rootseqsim/140811',sep='/')
+	indir		<- paste(DATA,'methods_comparison_rootseqsim/140907',sep='/')
 	#search for XML files in indir
 	infiles		<- list.files(indir, pattern=paste(".xml$",sep=''))
 	insignat	<- ''	
@@ -167,9 +167,63 @@ project.PANGEA.RootSeqSim.BEAST.SSAfg.run<- function()
 	}
 }
 ##--------------------------------------------------------------------------------------------------------
-##	create BEAST XML file
+##	run BEAST XML file
 ##--------------------------------------------------------------------------------------------------------
-project.PANGEA.RootSeqSim.BEAST.SSAfg.createXML<- function()
+project.PANGEA.RootSeqSim.BEAST.SSApg.runXML<- function()
+{
+	#DATA		<<- "/work/or105/Gates_2014"
+	DATA		<<- '/Users/Oliver/duke/2014_Gates'	
+	indir		<- paste(DATA,'methods_comparison_rootseqsim/140902',sep='/')
+	#search for XML files in indir
+	infiles		<- list.files(indir, pattern=paste(".xml$",sep=''))
+	insignat	<- ''	
+	hpc.ncpu	<- 8
+	
+	for(infile in infiles)
+	{
+		infile		<- substr(infile, 1, nchar(infile)-4) 		
+		cmd			<- hivc.cmd.beast.runxml(indir, infile, insignat, prog.beast=PR.BEAST, prog.beast.opt=" -beagle -working", hpc.tmpdir.prefix="beast", hpc.ncpu=hpc.ncpu)
+		tmp			<- paste(infile,'.timetrees',sep='')	
+		cmd			<- paste(cmd, hivc.cmd.beast.read.nexus(indir, tmp, indir, tree.id=NA, method.node.stat='any.node'), sep='\n')
+		cmd			<- paste(cmd, hivc.cmd.beast.run.treeannotator(indir, infile, insignat, prog.beastmcc=PR.BEASTMCC, beastmcc.burnin=500, beastmcc.heights="median"), sep='\n')
+		cat(cmd)	
+		cmd			<- hivc.cmd.hpcwrapper(cmd, hpc.q="pqeph", hpc.nproc=hpc.ncpu, hpc.walltime=791, hpc.mem="3700mb")		
+		outdir		<- indir
+		outfile		<- paste("bpg.",paste(strsplit(date(),split=' ')[[1]],collapse='_',sep=''),sep='')					
+		hivc.cmd.hpccaller(outdir, outfile, cmd)		
+	}
+}
+##--------------------------------------------------------------------------------------------------------
+##	run BEAST XML file
+##--------------------------------------------------------------------------------------------------------
+project.PANGEA.RootSeqSim.BEAST.SSApg.runXML<- function()
+{
+	#DATA		<<- "/work/or105/Gates_2014"
+	DATA		<<- '/Users/Oliver/duke/2014_Gates'	
+	indir		<- paste(DATA,'methods_comparison_rootseqsim/140830',sep='/')
+	#search for XML files in indir
+	infiles		<- list.files(indir, pattern=paste(".xml$",sep=''))
+	insignat	<- ''	
+	hpc.ncpu	<- 8
+	
+	for(infile in infiles)
+	{
+		infile		<- substr(infile, 1, nchar(infile)-4) 		
+		cmd			<- hivc.cmd.beast.runxml(indir, infile, insignat, prog.beast=PR.BEAST, prog.beast.opt=" -beagle -working", hpc.tmpdir.prefix="beast", hpc.ncpu=hpc.ncpu)
+		tmp			<- paste(infile,'.timetrees',sep='')	
+		cmd			<- paste(cmd, hivc.cmd.beast.read.nexus(indir, tmp, indir, tree.id=NA, method.node.stat='any.node'), sep='\n')
+		cmd			<- paste(cmd, hivc.cmd.beast.run.treeannotator(indir, infile, insignat, prog.beastmcc=PR.BEASTMCC, beastmcc.burnin=500, beastmcc.heights="median"), sep='\n')
+		cat(cmd)	
+		cmd			<- hivc.cmd.hpcwrapper(cmd, hpc.q="pqeph", hpc.nproc=hpc.ncpu, hpc.walltime=91, hpc.mem="3700mb")		
+		outdir		<- indir
+		outfile		<- paste("b2m.",paste(strsplit(date(),split=' ')[[1]],collapse='_',sep=''),sep='')					
+		hivc.cmd.hpccaller(outdir, outfile, cmd)		
+	}
+}
+##--------------------------------------------------------------------------------------------------------
+##	create BEAST XML file for each gene
+##--------------------------------------------------------------------------------------------------------
+project.PANGEA.RootSeqSim.BEAST.SSApg.createXML<- function()
 {
 	require(hivclust)
 	require(XML)
@@ -177,15 +231,21 @@ project.PANGEA.RootSeqSim.BEAST.SSAfg.createXML<- function()
 	require(r3SEQ)
 	#DATA			<<- "/work/or105/Gates_2014"
 	DATA			<<- '/Users/Oliver/duke/2014_Gates'
-	
+	s.seed			<- 42
 	if(1)	
 	{		
 		#
 		#	to define sequences for each BEAST run
 		#	compute NJ tree and define clusters
-		#
-		infile.beast	<- '/Users/Oliver/git/HPTN071sim/data_rootseq/BEAST_template_v08.xml'
-		indir			<- paste(DATA,'methods_comparison_rootseqsim/140813',sep='/')	
+		#	
+		#	v09: estimate frequencies
+		#	v10: empirical frequencies -- chain gets 'stuck' in better lkl for particular freq for A/T
+		#		 center evol rate on previous estimates (Wawer, Delatorre) Normal( 1955, with 95%CI 1935-1975-> sigma=12 )
+		#		 evol rate prior U(0.0001-0.006)
+		infile.beast.gag<- '/Users/Oliver/git/HPTN071sim/data_rootseq/BEAST_template_v10gag.xml'
+		infile.beast.pol<- '/Users/Oliver/git/HPTN071sim/data_rootseq/BEAST_template_v10pol.xml'
+		infile.beast.env<- '/Users/Oliver/git/HPTN071sim/data_rootseq/BEAST_template_v10env.xml'
+		indir			<- paste(DATA,'methods_comparison_rootseqsim/140907',sep='/')	
 		infile			<- 'PANGEA_SSAfgBwhRc-_140811_n390.R'
 		file			<- paste(indir, '/', infile, sep='')
 		load(file)		
@@ -197,6 +257,8 @@ project.PANGEA.RootSeqSim.BEAST.SSAfg.createXML<- function()
 		cat(paste('\nExclude sequences with no calendar date, ', paste(tmp, collapse=' ')))
 		tmp						<- setdiff(rownames(seq.gag), tmp)		
 		seq.gag					<- seq.gag[tmp,]
+		#	exclude last 2 nucleotides in gag to avoid incomple AA
+		seq.gag					<- seq.gag[,1:1440]
 		seq.pol					<- seq.pol[tmp,]
 		seq.env					<- seq.env[tmp,]
 		seq						<- seq[tmp,]
@@ -210,6 +272,209 @@ project.PANGEA.RootSeqSim.BEAST.SSAfg.createXML<- function()
 		#
 		#	get 3 sequence pools of equal size
 		#
+		set.seed(s.seed)
+		pool.n			<- 3
+		tmp				<- hivc.clu.brdist.stats(seq.ph, eval.dist.btw="leaf", stat.fun=hivc.clu.min.transmission.cascade)
+		thresh.brl		<- 0.055
+		clustering		<- hivc.clu.clusterbythresh(seq.ph, thresh.brl=thresh.brl, dist.brl=tmp, retval="all")
+		#	allocate clustering tips into 3 distinct clusters
+		seq.clumem		<- data.table( PH_NODE_ID=seq_len(Ntip(seq.ph)), CLU_ID=clustering$clu.mem[ seq_len(Ntip(seq.ph)) ] )
+		setkey(seq.clumem, CLU_ID)		
+		tmp				<- which(!is.na(seq.clumem[, CLU_ID]))
+		tmp				<- seq.clumem[tmp,][, list(CLU_N=-length(PH_NODE_ID)), by='CLU_ID']
+		setkey(tmp, CLU_N)
+		set(tmp, NULL, 'POOL_ID', tmp[, cumsum(-CLU_N)]) 		
+		set(tmp, NULL, 'POOL_ID', tmp[, ceiling( POOL_ID / max(POOL_ID) * pool.n ) ] )
+		seq.clumem		<- merge(seq.clumem, subset(tmp, select=c(CLU_ID, POOL_ID)), by='CLU_ID', all.x=TRUE)
+		#	allocate non-clustering tips into 3 distinct clusters
+		tmp				<- subset(seq.clumem,!is.na(POOL_ID))[, list(NOCLU_N= ceiling( nrow(seq.clumem) / pool.n ) - length(PH_NODE_ID)), by='POOL_ID']		
+		set(tmp, 1L, 'NOCLU_N', tmp[1,NOCLU_N] - ( tmp[, sum(NOCLU_N)] - ( Ntip(seq.ph) - nrow(subset(seq.clumem,!is.na(POOL_ID))) )) )		
+		set(seq.clumem, seq.clumem[, which(is.na(POOL_ID))], 'POOL_ID',  rep(tmp[,POOL_ID], tmp[,NOCLU_N]) )
+		seq.clumem[, table(POOL_ID)]	
+		#
+		#	for each sequence pool, set up BEAST run
+		#
+		verbose				<- 1
+		bxml.template.gag	<- xmlTreeParse(infile.beast.gag, useInternalNodes=TRUE, addFinalizer = TRUE)
+		bxml.template.pol	<- xmlTreeParse(infile.beast.pol, useInternalNodes=TRUE, addFinalizer = TRUE)
+		bxml.template.env	<- xmlTreeParse(infile.beast.env, useInternalNodes=TRUE, addFinalizer = TRUE)
+		for(pool.id in seq_len(pool.n))
+		{			
+			pool.seqnames	<- seq.ph$tip.label[ subset(seq.clumem, POOL_ID==pool.id)[, PH_NODE_ID] ]
+			#
+			#
+			#	
+			cat(paste('\ncreate GAG BEAST XML file for seqs=',paste(pool.seqnames, collapse=' ')))
+			pool.infile		<- paste(  substr(infile,1,nchar(infile)-2),'_geneGAG_pool',pool.id, sep='' )
+			#	write XML file with new sequences
+			bxml			<- newXMLDoc(addFinalizer=T)
+			bxml.beast		<- newXMLNode("beast", doc=bxml, addFinalizer=T)
+			tmp				<- newXMLCommentNode(text=paste("Generated by HIVCLUST from template",infile.beast.gag), parent=bxml.beast, doc=bxml, addFinalizer=T)
+			#	add new set of GAG sequences into GAG alignment
+			tmp				<- seq.gag[pool.seqnames,]
+			bxml			<- hivc.beast.add.seq(bxml, tmp, df=NULL, beast.label.datepos= 5, beast.label.sep= '|', beast.date.direction= "forwards", beast.date.units= "years", beast.alignment.id="GAG.alignment", beast.alignment.dataType= "nucleotide", verbose=1)
+			#	copy from template	
+			bt.beast		<- getNodeSet(bxml.template.gag, "//beast")[[1]]
+			dummy			<- sapply(seq.int( 1, xmlSize(bt.beast) ), function(i)
+					{
+						if( class(bt.beast[[i]])[1]=="XMLInternalCommentNode" )
+							dummy<- newXMLCommentNode(text=xmlValue(bt.beast[[i]]), parent=bxml.beast, doc=bxml, addFinalizer=T)
+						else
+							dummy<- addChildren( bxml.beast, xmlClone( bt.beast[[i]], addFinalizer=T, doc=bxml ) )
+					})
+			#	change gmrf dimensions	
+			tmp			<- getNodeSet(bxml, "//*[@id='skyride.logPopSize']")
+			if(length(tmp)!=1)	stop("unexpected number of *[@id='skyride.logPopSize'")
+			tmp			<- tmp[[1]]
+			xmlAttrs(tmp)["dimension"]	<-	length(pool.seqnames)-1  
+			tmp			<- getNodeSet(bxml, "//*[@id='skyride.groupSize']")
+			if(length(tmp)!=1)	stop("unexpected number of *[@id='skyride.groupSize'")
+			tmp			<- tmp[[1]]
+			xmlAttrs(tmp)["dimension"]	<-	length(pool.seqnames)-1			
+			#	change outfile name 
+			bxml.onodes	<- getNodeSet(bxml, "//*[@fileName]")
+			tmp			<- sapply(bxml.onodes, function(x) xmlGetAttr(x,"fileName"))
+			tmp			<- gsub("(time).","time",tmp,fixed=1)
+			tmp			<- gsub("(subst).","subst",tmp,fixed=1)	
+			tmp			<- sapply(strsplit(tmp,'.',fixed=1), function(x)	paste(pool.infile, '.', tail(x,1), sep=''))
+			dummy		<- sapply(seq_along(bxml.onodes), function(i){		xmlAttrs(bxml.onodes[[i]])["fileName"]<- tmp[i]		})
+			#	write to file
+			file		<- paste(indir,'/',pool.infile,".xml", sep='')
+			if(verbose)	cat(paste("\nwrite xml file to",file))
+			saveXML(bxml, file=file)
+			#
+			#	POL
+			#
+			cat(paste('\ncreate POL BEAST XML file for seqs=',paste(pool.seqnames, collapse=' ')))
+			pool.infile		<- paste(  substr(infile,1,nchar(infile)-2),'_genePOL_pool',pool.id, sep='' )
+			#	write XML file with new sequences
+			bxml			<- newXMLDoc(addFinalizer=T)
+			bxml.beast		<- newXMLNode("beast", doc=bxml, addFinalizer=T)
+			tmp				<- newXMLCommentNode(text=paste("Generated by HIVCLUST from template",infile.beast.pol), parent=bxml.beast, doc=bxml, addFinalizer=T)
+			#	add new set of GAG sequences into GAG alignment
+			tmp				<- seq.pol[pool.seqnames,]
+			bxml			<- hivc.beast.add.seq(bxml, tmp, df=NULL, beast.label.datepos= 5, beast.label.sep= '|', beast.date.direction= "forwards", beast.date.units= "years", beast.alignment.id="POL.alignment", beast.alignment.dataType= "nucleotide", verbose=1)
+			#	copy from template	
+			bt.beast		<- getNodeSet(bxml.template.pol, "//beast")[[1]]
+			dummy			<- sapply(seq.int( 1, xmlSize(bt.beast) ), function(i)
+					{
+						if( class(bt.beast[[i]])[1]=="XMLInternalCommentNode" )
+							dummy<- newXMLCommentNode(text=xmlValue(bt.beast[[i]]), parent=bxml.beast, doc=bxml, addFinalizer=T)
+						else
+							dummy<- addChildren( bxml.beast, xmlClone( bt.beast[[i]], addFinalizer=T, doc=bxml ) )
+					})
+			#	change gmrf dimensions	
+			tmp			<- getNodeSet(bxml, "//*[@id='skyride.logPopSize']")
+			if(length(tmp)!=1)	stop("unexpected number of *[@id='skyride.logPopSize'")
+			tmp			<- tmp[[1]]
+			xmlAttrs(tmp)["dimension"]	<-	length(pool.seqnames)-1  
+			tmp			<- getNodeSet(bxml, "//*[@id='skyride.groupSize']")
+			if(length(tmp)!=1)	stop("unexpected number of *[@id='skyride.groupSize'")
+			tmp			<- tmp[[1]]
+			xmlAttrs(tmp)["dimension"]	<-	length(pool.seqnames)-1			
+			#	change outfile name 
+			bxml.onodes	<- getNodeSet(bxml, "//*[@fileName]")
+			tmp			<- sapply(bxml.onodes, function(x) xmlGetAttr(x,"fileName"))
+			tmp			<- gsub("(time).","time",tmp,fixed=1)
+			tmp			<- gsub("(subst).","subst",tmp,fixed=1)	
+			tmp			<- sapply(strsplit(tmp,'.',fixed=1), function(x)	paste(pool.infile, '.', tail(x,1), sep=''))
+			dummy		<- sapply(seq_along(bxml.onodes), function(i){		xmlAttrs(bxml.onodes[[i]])["fileName"]<- tmp[i]		})
+			#	write to file
+			file		<- paste(indir,'/',pool.infile,".xml", sep='')
+			if(verbose)	cat(paste("\nwrite xml file to",file))
+			saveXML(bxml, file=file)
+			#
+			#	ENV
+			#
+			cat(paste('\ncreate ENV BEAST XML file for seqs=',paste(pool.seqnames, collapse=' ')))
+			pool.infile		<- paste(  substr(infile,1,nchar(infile)-2),'_geneENV_pool',pool.id, sep='' )
+			#	write XML file with new sequences
+			bxml			<- newXMLDoc(addFinalizer=T)
+			bxml.beast		<- newXMLNode("beast", doc=bxml, addFinalizer=T)
+			tmp				<- newXMLCommentNode(text=paste("Generated by HIVCLUST from template",infile.beast.env), parent=bxml.beast, doc=bxml, addFinalizer=T)
+			#	add new set of GAG sequences into GAG alignment
+			tmp				<- seq.env[pool.seqnames,]
+			bxml			<- hivc.beast.add.seq(bxml, tmp, df=NULL, beast.label.datepos= 5, beast.label.sep= '|', beast.date.direction= "forwards", beast.date.units= "years", beast.alignment.id="ENV.alignment", beast.alignment.dataType= "nucleotide", verbose=1)
+			#	copy from template	
+			bt.beast		<- getNodeSet(bxml.template.env, "//beast")[[1]]
+			dummy			<- sapply(seq.int( 1, xmlSize(bt.beast) ), function(i)
+					{
+						if( class(bt.beast[[i]])[1]=="XMLInternalCommentNode" )
+							dummy<- newXMLCommentNode(text=xmlValue(bt.beast[[i]]), parent=bxml.beast, doc=bxml, addFinalizer=T)
+						else
+							dummy<- addChildren( bxml.beast, xmlClone( bt.beast[[i]], addFinalizer=T, doc=bxml ) )
+					})
+			#	change gmrf dimensions	
+			tmp			<- getNodeSet(bxml, "//*[@id='skyride.logPopSize']")
+			if(length(tmp)!=1)	stop("unexpected number of *[@id='skyride.logPopSize'")
+			tmp			<- tmp[[1]]
+			xmlAttrs(tmp)["dimension"]	<-	length(pool.seqnames)-1  
+			tmp			<- getNodeSet(bxml, "//*[@id='skyride.groupSize']")
+			if(length(tmp)!=1)	stop("unexpected number of *[@id='skyride.groupSize'")
+			tmp			<- tmp[[1]]
+			xmlAttrs(tmp)["dimension"]	<-	length(pool.seqnames)-1			
+			#	change outfile name 
+			bxml.onodes	<- getNodeSet(bxml, "//*[@fileName]")
+			tmp			<- sapply(bxml.onodes, function(x) xmlGetAttr(x,"fileName"))
+			tmp			<- gsub("(time).","time",tmp,fixed=1)
+			tmp			<- gsub("(subst).","subst",tmp,fixed=1)	
+			tmp			<- sapply(strsplit(tmp,'.',fixed=1), function(x)	paste(pool.infile, '.', tail(x,1), sep=''))
+			dummy		<- sapply(seq_along(bxml.onodes), function(i){		xmlAttrs(bxml.onodes[[i]])["fileName"]<- tmp[i]		})
+			#	write to file
+			file		<- paste(indir,'/',pool.infile,".xml", sep='')
+			if(verbose)	cat(paste("\nwrite xml file to",file))
+			saveXML(bxml, file=file)			
+		}		
+	}
+	#
+}
+##--------------------------------------------------------------------------------------------------------
+##	create BEAST XML file
+##--------------------------------------------------------------------------------------------------------
+project.PANGEA.RootSeqSim.BEAST.SSAfg.createXML<- function()
+{
+	require(hivclust)
+	require(XML)
+	require(ape)
+	require(r3SEQ)
+	#DATA			<<- "/work/or105/Gates_2014"
+	DATA			<<- '/Users/Oliver/duke/2014_Gates'
+	s.seed			<- 42
+	if(1)	
+	{		
+		#
+		#	to define sequences for each BEAST run
+		#	compute NJ tree and define clusters
+		#
+		infile.beast	<- '/Users/Oliver/git/HPTN071sim/data_rootseq/BEAST_template_v09.xml'
+		indir			<- paste(DATA,'methods_comparison_rootseqsim/140830',sep='/')	
+		infile			<- 'PANGEA_SSAfgBwhRc-_140811_n390.R'
+		file			<- paste(indir, '/', infile, sep='')
+		load(file)		
+		#	remove sequences without calendar time 		
+		label.sep				<- '|'
+		label.idx.ctime			<- 5		
+		tmp						<- sapply( strsplit( rownames(seq.gag), label.sep, fixed=1 ), '[[', label.idx.ctime )
+		tmp						<- rownames(seq.gag)[ which(is.na(as.numeric(tmp))) ]
+		cat(paste('\nExclude sequences with no calendar date, ', paste(tmp, collapse=' ')))
+		tmp						<- setdiff(rownames(seq.gag), tmp)		
+		seq.gag					<- seq.gag[tmp,]
+		#	exclude last 2 nucleotides in gag to avoid incomple AA
+		seq.gag					<- seq.gag[,1:1440]
+		seq.pol					<- seq.pol[tmp,]
+		seq.env					<- seq.env[tmp,]
+		seq						<- seq[tmp,]
+		#	get NJ tree and plot
+		tmp				<- dist.dna( seq )
+		seq.ph			<- nj(tmp)				
+		file			<- paste( indir, '/', substr(infile,1,nchar(infile)-2), '_njtree.pdf', sep='' )	
+		pdf(file=file, w=10, h=80)
+		plot(seq.ph, show.tip=TRUE)
+		dev.off()			
+		#
+		#	get 3 sequence pools of equal size
+		#
+		set.seed(s.seed)
 		pool.n			<- 3
 		tmp				<- hivc.clu.brdist.stats(seq.ph, eval.dist.btw="leaf", stat.fun=hivc.clu.min.transmission.cascade)
 		thresh.brl		<- 0.055
@@ -237,6 +502,21 @@ project.PANGEA.RootSeqSim.BEAST.SSAfg.createXML<- function()
 		{
 			pool.infile		<- paste(  substr(infile,1,nchar(infile)-2),'_pool',pool.id, sep='' )
 			pool.seqnames	<- seq.ph$tip.label[ subset(seq.clumem, POOL_ID==pool.id)[, PH_NODE_ID] ]
+			#
+			if(0)
+			{
+				cat(paste('\ncreate FASTA file for seqs=',paste(pool.seqnames, collapse=' ')))
+				file			<- paste(indir,'/',pool.infile,"_GAG.fa", sep='')
+				write.dna(seq.gag[pool.seqnames,], format='fasta', file=file)
+				file			<- paste(indir,'/',pool.infile,"_POL.fa", sep='')
+				write.dna(seq.pol[pool.seqnames,], format='fasta', file=file)
+				file			<- paste(indir,'/',pool.infile,"_ENV.fa", sep='')
+				write.dna(seq.env[pool.seqnames,], format='fasta', file=file)
+				tmp				<- do.call('cbind',list( seq.gag[pool.seqnames,],seq.pol[pool.seqnames,],seq.env[pool.seqnames,] ))
+				file			<- paste(indir,'/',pool.infile,".fa", sep='')
+				write.dna(tmp, format='fasta', file=file)				
+			}
+			#
 			cat(paste('\ncreate BEAST XML file for seqs=',paste(pool.seqnames, collapse=' ')))
 			#	write XML file with new sequences
 			bxml			<- newXMLDoc(addFinalizer=T)
@@ -326,6 +606,9 @@ project.PANGEA.RootSeqSim.BEAST.SSAfg.getGTR<- function()
 	setnames(log.df, colnames(log.df), gsub('\\.','',colnames(log.df),fixed=TRUE))
 	setnames(log.df, paste('frequencies',1:4,sep=''), c('a','c','g','t') )
 	log.df	<- subset(log.df, state>tree.id.burnin)
+	#	check mean of relative rates
+	#tmp	<- log.df[, list(mmu=mean(mu), n=length(mu)), by=c('FILE','GENE', 'state')]
+	
 	file	<- paste( substr(infiles[1],1,nchar(infiles[1])-9),'log.R',sep='' )
 	file	<- paste( outdir, '/', file, sep='')
 	cat(paste('\nsave to file', file))
@@ -1232,34 +1515,59 @@ project.PANGEA.RootSeqSim.DATA.checkRecombinants<- function()
 	}		
 }
 ##--------------------------------------------------------------------------------------------------------
+##	simulate sequence sampling and break up transmission chains by imports
+##--------------------------------------------------------------------------------------------------------
+project.PANGEA.SampleSeq.simulate<- function()
+{
+	indir			<- system.file(package="rPANGEAHIVsim", "misc")	
+	tmpdir.HPTN071	<- '/Users/Oliver/git/HPTN071sim/tmp140908'
+	infile.ind		<- '140716_RUN001_IND.csv'
+	infile.trm		<- '140716_RUN001_TRM.csv'	
+	outfile.ind		<- '140716_RUN001_IND.csv'
+	outfile.trm		<- '140716_RUN001_TRM.csv'
+		
+	dir.create(tmpdir.HPTN071, showWarnings=FALSE)
+	#get input into 'argv'. this is needed because the input parser is usually called from the command line, and 'argv' mimics the way input is provided when the parser is called from the command line
+	cmd				<- cmd.HPTN071.input.parser(indir, infile.trm, infile.ind, tmpdir.HPTN071,  infile.trm, infile.ind)				 
+	argv			<<- unlist(strsplit(cmd,' '))
+	prog.HPTN071.input.parser.v1()
+	
+}
+##--------------------------------------------------------------------------------------------------------
 ##	pipeline to generate sequence data sets from HPTN071 output
 ##--------------------------------------------------------------------------------------------------------
 pipeline.HPTN071<- function()
 {
 	stop()
-	indir			<- '/Users/Oliver/git/HPTN071sim/data_HPTN071epimodel_output'
+	#	example input files
+	indir			<- system.file(package="rPANGEAHIVsim", "misc")
+	indir			<- ifelse(indir=='','/Users/Oliver/git/HPTN071sim/raw_trchain',indir)
 	infile.ind		<- '140716_RUN001_IND.csv'
-	infile.trm		<- '140716_RUN001_TRM.csv'
-	
-	tmpdir			<- '/Users/Oliver/git/HPTN071sim/tmp140827'
-	cmd				<- paste('mkdir -p ', tmpdir,'\n',sep='')
-	
+	infile.trm		<- '140716_RUN001_TRM.csv'	
+	#	re-name the following:
+	tmpdir			<- '/Users/Oliver/git/HPTN071sim/tmp140908'
+	#
+	#	pipeline start
+	#	
+	##	sample sequences and draw imports 
+	cmd				<- paste('mkdir -p ', tmpdir,'\n',sep='')	
 	tmpdir.HPTN071	<- paste(tmpdir,'/HPTN071parser',sep='')
 	cmd				<- paste(cmd, 'mkdir -p ', tmpdir.HPTN071,'\n',sep='')
-	cmd				<- paste(cmd, cmd.HPTN071.input.parser(indir, infile.trm, infile.ind, tmpdir.HPTN071,  infile.trm, infile.ind), sep='\n')
-	
+	cmd				<- paste(cmd, cmd.HPTN071.input.parser.v2(indir, infile.trm, infile.ind, tmpdir.HPTN071,  infile.trm, infile.ind), sep='\n')
+	##	run virus tree simulator
 	tmpdir.VTS		<- paste(tmpdir,'/VirusTreeSimulator',sep='')
 	cmd				<- paste(cmd, 'mkdir -p ', tmpdir.VTS,'\n',sep='')
 	outfile			<- substr(infile.ind, 1, nchar(infile.ind)-7)
 	prog.args		<- '-demoModel Logistic -N0 100000 -growthRate 0.0001 -t50 -0.04'
 	cmd				<- paste(cmd, cmd.VirusTreeSimulator(tmpdir.HPTN071, infile.trm, infile.ind, tmpdir.VTS, outfile, prog.args=prog.args), sep='\n')	
-	
+	##	create seq gen input files 
 	tmpdir.SG		<- paste(tmpdir,'/SeqGen',sep='')
 	cmd				<- paste(cmd, 'mkdir -p ', tmpdir.SG,'\n',sep='')
 	infile.epi		<- paste( substr(infile.ind, 1, nchar(infile.ind)-7),'SAVE.R', sep='' )
 	infile.vts		<- substr(infile.ind, 1, nchar(infile.ind)-7)
 	cmd				<- paste(cmd, cmd.SeqGen.createInputFiles(indir, infile.epi, tmpdir.VTS, infile.vts, tmpdir.SG), sep='\n')
 	
+	stop()
 	#	currently requires output from last step so this is a separate batch file
 	cmd				<- ''
 	infile.epi		<- paste( substr(infile.ind, 1, nchar(infile.ind)-7),'SAVE.R', sep='' )

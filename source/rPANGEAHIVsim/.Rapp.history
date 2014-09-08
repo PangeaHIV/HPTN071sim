@@ -1,482 +1,2258 @@
-query.yes							<- hivx.seq.find(seq.PROT.RT, 3549, c("-","c","c"))
-query.yes
-seq.PROT.RT[query.yes,3549:3560]
-query.yes							<- hivx.seq.find(seq.PROT.RT, 3549, c("-","c","c","g","g"))
-query.yes
-seq.PROT.RT[query.yes,3549:3551]<- matrix( c("c","-","c"), nrow=length(query.yes), ncol=3, byrow=1 )
-write.dna(as.DNAbin(seq.PROT.RT), file=file, format="fasta", colsep='', colw=ncol(seq.PROT.RT), blocksep=0)
-file
-seq.PROT.RT							<- read.dna(file, format="fasta", as.character=1)
-dim(seq.PROT.RT)
-seq.PROT.RT							<- read.dna(file, format="fasta", as.character=1)
-dim(seq.PROT.RT)
-file
-seq.PROT.RT							<- read.dna(file, format="fasta", as.character=1)
-dim(seq.PROT.RT)
-seq.PROT.RT							<- read.dna(file, format="fasta", as.character=1)
-dim(seq.PROT.RT)
-seq.PROT.RT							<- seq.PROT.RT[,2253:ncol(seq.PROT.RT)]
-dim(seq.PROT.RT)
-3877-2253
-seq.PROT.RT[1:5,1620:1630]
-ncol(seq.PROT.RT)<- 1624
-dim(seq.PROT.RT)[2]<- 1624
-dim(seq.PROT.RT)
-seq.PROT.RT							<- seq.PROT.RT[,1:1624]
-file
-file<- "/Users/Oliver/duke/2013_HIV_NL/ATHENA_2013/data/tmp/ATHENA_2013_03_FirstAliSequences_HXB2PROTRT_Wed_May__1_17:08:15_2013.fasta.clustalo3"
-write.dna(as.DNAbin(seq.PROT.RT), file=file, format="fasta", colsep='', colw=ncol(seq.PROT.RT), blocksep=0)
-apply(matrix(c(1,2,3,4),2,2),1,sum)
-tmp<- apply(seq.PROT.RT,1,function(x)		which(rev(x)!="-" )[1]  )
+?melt
+melt.data.table()
+melt.data.table
+?melt.data.table
+setwd("/Users/Oliver/git/hivclust/pkg"); source("misc/hivclu.startme.R")
+indir		<- '/Users/Oliver/duke/2013_HIV_NL/ATHENA_2013/data/tmp/ATHENA_2013_03_-DR-RC-SH+LANL_Sequences_examlout_Wed_Dec_18_11:37:00_2013_distPairs'#
+	infiles		<- list.files(indir)#
+	infiles		<- infiles[ grepl('*distPairs.R$',infiles)  ]	#
+	if(!length(infiles))	stop('cannot find files matching criteria')#
+	if(length(infiles))		cat(paste('\nfound files, n=', length(infiles)))#
+	brl.tpairs	<- lapply(seq_along(infiles), function(i)#
+			{#
+				infile	<- infiles[i]#
+				file	<- paste(indir, '/', infile, sep='')#
+				load(file)	#expect df.tpairs.brl#
+				tmp		<- regmatches(infile, regexpr('finaltree\\.[0-9]{3}', infile))#
+				df.tpairs.brl[, BS:= as.numeric(substr(tmp, 11, nchar(tmp)))]#
+				df.tpairs.brl#
+			})#
+	brl.tpairs	<- do.call('rbind', brl.tpairs)	#
+	setkey(brl.tpairs, FASTASampleCode, t.FASTASampleCode)
+brl.tpairs
+tmp			<- unique(brl.tpairs)
 tmp
-?sort
-seq.PROT.RT							<- seq.PROT.RT[sort(seq.PROT.RT.sort.by, index.return=1)$ix,]
-seq.PROT.RT.sort.by<- mtp
-seq.PROT.RT.sort.by<- tmp
-seq.PROT.RT							<- seq.PROT.RT[sort(seq.PROT.RT.sort.by, index.return=1)$ix,]
-write.dna(as.DNAbin(seq.PROT.RT), file=file, format="fasta", colsep='', colw=ncol(seq.PROT.RT), blocksep=0)
-file
-seq.PROT.RT							<- read.dna(file, format="fasta", as.character=1)
-seq.PROT.TR[1,1294:1299]
-seq.PROT.RT[1,1294:1299]
-dim(seq.PROT.RT)
-file
-seq.PROT.RT							<- read.dna(file, format="fasta", as.character=1)
-dim(seq.PROT.RT)
-seq.PROT.RT							<- read.dna(file, format="fasta", as.character=1)
-dim(seq.PROT.RT)
-seq.PROT.RT[1,1294:1299]
-seq.PROT.RT[,1294:1299]				<- matrix( c("-","-","-","-","-","-"), nrow=length(query.yes), ncol=6, byrow=1 )
-seq.PROT.RT[,1294:1299]				<- matrix( c("-","-","-","-","-","-"), nrow=ncol(seq.PROT.RT), ncol=6, byrow=1 )
-seq.PROT.RT[,1294:1299]				<- matrix( c("-","-","-","-","-","-"), nrow=nrow(seq.PROT.RT), ncol=6, byrow=1 )
-file<- "/Users/Oliver/duke/2013_HIV_NL/ATHENA_2013/data/tmp/ATHENA_2013_03_FirstAliSequences_HXB2PROTRT_Wed_May__1_17:08:15_2013.fasta.clustalo4"
-write.dna(as.DNAbin(seq.PROT.RT), file=file, format="fasta", colsep='', colw=ncol(seq.PROT.RT), blocksep=0)
-which( rownames(seq.PROT.RT)=="HXB2" )
-signat.in	<- "Wed_May__1_17/08/15_2013"#
-		signat.out	<- paste(strsplit(date(),split=' ')[[1]],collapse='_',sep='')#
-		file<- paste(outdir,"/ATHENA_2013_03_FirstAliSequences_HXB2PROTRT_",gsub('/',':',signat.in),".fasta.clustalo4",sep='')
-file
-seq.PROT.RT	<- read.dna(file, format="fasta")
-dim(seq.PROT.RT)
-seq.PROT.RT	<- seq.PROT.RT[ rownames(seq.PROT.RT)!="HXB2", ]
-signat.out	<- paste(strsplit(date(),split=' ')[[1]],collapse='_',sep='')
-signat.out
-file		<- paste(outdir,"/ATHENA_2013_03_FirstCurSequences_PROTRT_",gsub('/',':',signat.out),".R",sep='')
-verbose<- 1
-if(verbose) cat(paste("\nwrite to",file))#
-		save(seq.PROT.RT, file=file)#
-		file		<- paste(outdir,"/ATHENA_2013_03_FirstCurSequences_PROTRT_",gsub('/',':',signat.out),".phylip",sep='')#
-		if(verbose) cat(paste("\nwrite to ",file))
-seq.write.dna.phylip<- function(seq.DNAbin.mat, file)#
-{		#
-	tmp<- cbind( rownames(seq.DNAbin.mat), apply( as.character( seq.DNAbin.mat ), 1, function(x) paste(x,sep='',collapse='')  ) )#
-	tmp<- paste(t(tmp),collapse='\n',sep='')	#
-	tmp<- paste( paste(c(nrow(seq.DNAbin.mat),ncol(seq.DNAbin.mat)),sep='',collapse=' '),'\n',tmp,'\n',collapse='',sep='' )#
-	cat(tmp, file=file)#
-}
-seq.write.dna.phylip(seq.PROT.RT, file=file)
-70-33
-2013+37
-37700+45000
-outdir
-signat.in	<- "Sat_May_11_14:23:46_2013"#
-		signat.out	<- "Sat_May_11_14:23:46_2013"#
-#
-		file		<- paste(outdir,"/ATHENA_2013_03_FirstCurSequences_PROTRT_",gsub('/',':',signat.in),".R",sep='')#
-		if(verbose) cat(paste("\nload ",file))			#
-		load(file)
-seq.PROT.RT
-seq.PROT.RT[1,]
-x<- as.character(seq.PROT.RT[1,])
-x
-codon3.idx<- seq.int(3,ncol(seq.PROT.RT),3)
-seq.PROT.RT3<- seq.PROT.RT[, codon3.idx]
-seq.PROT.RT3
-x<- as.character(seq.PROT.RT3[1,])
-xa<- as.character(seq.PROT.RT[1,])
-all(xa[codon3.idx]==x)
-verbose<- 1
-file		<- paste(outdir,"/ATHENA_2013_03_FirstCurSequences_PROTRTCD3_",gsub('/',':',signat.out),".R",sep='')#
-		if(verbose) cat(paste("\nwrite to ",file))#
-		save(seq.PROT.RT3, file=file)
-file		<- paste(outdir,"/ATHENA_2013_03_FirstCurSequences_PROTRTCD3_",gsub('/',':',signat.out),".phylip",sep='')#
-		if(verbose) cat(paste("\nwrite to ",file))#
-		seq.write.dna.phylip(seq.PROT.RT3, file=file)
-seq.PROT.RT3[1,]
-library(roxygen2)#
-DIR_PKG<-"/Users/tonton/Documents/GitProjects/nABC/git_abc.n/pkg"#
-DIR_PKG<-"/Users/Oliver/git/abc.n/pkg"#
-roxygenize(package=paste(DIR_PKG))
-library(ape)
-boot.phylo
-sample(1:4,2,replace=1)
-sample(1:4,4,replace=1)
-bs.blocks.n<- 3
-bs.blocks.s	<- sample(seq_len(bs.blocks.n),bs.blocks.n,replace=1)-1
-bs.blocks.s
-bs.blocks.s	<- sample(seq_len(bs.blocks.n),bs.blocks.n,replace=1)-1
-bs.blocks.s
-bs.blocks.s	<- sample(seq_len(bs.blocks.n),bs.blocks.n,replace=1)-1
-bs.blocks.s
-bs.blocks.s	<- sample(seq_len(bs.blocks.n),bs.blocks.n,replace=1)-1
-bs.blocks.s
-as.numeric( sapply(bs.blocks.s,function(x)		3*x+c(1,2,3)		) )
-?break
-2.5*2 + 4.1*3 + 3.9*3.6 +4*3.7 + 4*3.9 + 2.8*3.5 +2.8*2.5
-2.5*2 + 4.1*3 + 3.9*3.6 +4*3.7 + 4*3.9 + 2.8*3.5 +2.8*2.5 + 3.8*2
-550 / 425
-575 / 500
-500 *1.3
-525 / 425
-500 * 1.235
-525 / 450
-500 * 1.17
-105/3
-choose(0,0)
-pop<- 55011
-perc.hiv<- 0.18
-perc.adult<- 0.5
-inc<- 0.0056
-pop.s<- pop * (1-perc.hiv)
-pop.s * 3 * inc
-perc.hivcov<- 0.28
-pop.s<- pop * (1-perc.hiv*perc.hivcov)
-perc.hivcov<- 0.28
-pop.s * 3 * inc
-1714 * 0.5
-pop<- 55011; perc.hiv<- 0.18; perc.adult<- 0.5; inc<- 0.0056; perc.hivcov<- 0.28
-pop.s<- pop * perc.adult * (1-perc.hiv)
-pop.s * 3 * inc
-pop.s<- pop * (1-perc.hiv*perc.hivcov)
-pop.s * 3 * inc
-pop.s<- pop * perc.adult * (1-perc.hiv*perc.hivcov)
-pop.s * 3 * inc
-pop<- 55011; perc.hiv<- 0.18; perc.adult<- 0.5; inc<- 0.0075; perc.hivcov<- 0.28
-pop.s<- pop * perc.adult * (1-perc.hiv)
-pop.s * 3 * inc
-pop<- 55011; perc.hiv<- 0.18; perc.adult<- 0.5; inc<- 0.01; perc.hivcov<- 0.28
-pop.s<- pop * perc.adult * (1-perc.hiv)
-pop.s * 3 * inc
-1714*0.5 / (3*inc)
-pop.s<- pop * perc.adult * (1-perc.hiv*perc.hivcov)
-pop.s * 3 * inc
-1714 / 2
-pop.s * 3 * inc
-83.7*83.7
-83.7*83.7/100/100
-45/12
-require(roxygen2)
-CODE.HOME	<<- "/Users/Oliver/git/recombination-anaylyzer/pkg"
-roxygenize(CODE.HOME)
-CODE.HOME	<<- "/Users/Oliver/git/recombination-analyzer/pkg"
-roxygenize(CODE.HOME)
-CODE.HOME	<<- "/Users/Oliver/git/recombination.analyzer/pkg"
-roxygenize(CODE.HOME)
-require(recombination.analyzer)
-data.table()
-library(recombination.analyzer)
-data.table()
-require(recombination.analyzer)
-system.file(package='recombination.analyzer', "data", "mtDNA.phylip")
-?read.dna
-file<- system.file(package='recombination.analyzer', "data", "mtDNA.phylip")
-read.dna(file)
-read.dna(system.file(package='recombination.analyzer', "data", "neisseria.phylip"))
-system.file(package='recombination.analyzer', "data", "neisseria.phylip")
-read.dna("~/git/recombination.analyzer/pkg/data/neisseria.phylip")
-?read.dna
-read.dna("~/git/recombination.analyzer/pkg/data/neisseria.phylip", format="sequential")
-read.dna(system.file(package='recombination.analyzer', "data", "mtDNA.phylip"), format="sequential")
-?save
-seq		<- system.file(package='recombination.analyzer', "data", "mtDNA.phylip")#
-		seq		<- read.dna(seq, format='sequential')#
-		file	<- system.file(package='recombination.analyzer', "data", "mtDNA.rds")#
-		cat(paste('\nsave seq to file=',file))
-seq
-seq		<- system.file(package='recombination.analyzer', "data", "mtDNA.phylip")
-seq
-seq		<- read.dna(seq, format='sequential')
-?system.file
-file		<- system.file(package='recombination.analyzer', "data")
-file
-file	<- paste(system.file(package='recombination.analyzer', "data"), "/mtDNA.rds",sep='')#
-		cat(paste('\nsave seq to file=',file))#
-		saveRDS(seq, file=file)
-?data
-data(package='recombination.analyzer')
-file	<- system.file(package='recombination.analyzer', "data", "mtDNA.phylip")#
-		seq		<- read.dna(file, format='sequential')#
-		file	<- paste(system.file(package='recombination.analyzer', "data"), "/mtDNA.rda",sep='')#
-		cat(paste('\nsave seq to file=',file))#
-		save(seq, file=file)
-data(package='recombination.analyzer')
-CODE.HOME	<<- "/Users/Oliver/git/recombination.analyzer/pkg"
-file	<- paste(CODE.HOME,'/data/mtDNA.phylip',sep='')#
-		seq		<- read.dna(file, format='sequential')#
-		file	<- paste(CODE.HOME,'/data/mtDNA.rda',sep='')#
-		cat(paste('\nsave seq to file=',file))#
-		save(seq, file=file)
-require(ape)#
-	files	<- c( 	paste(CODE.HOME,'/data/mtDNA.phylip',sep=''),	#
-					paste(CODE.HOME,'/data/den2.phylip',sep=''),#
-					paste(CODE.HOME,'/data/neisseria.phylip',sep=''),#
-					paste(CODE.HOME,'/data/nz_h1n1.phylip',sep=''),#
-					paste(CODE.HOME,'/data/nzh3n2.phylip',sep='')		)#
-	dummy	<- lapply(files, function(file)#
-			{#
-				seq		<- read.dna(file, format='sequential')#
-				file	<- paste(CODE.HOME,'/data/mtDNA.rda',sep='')#
-				cat(paste('\nsave seq to file=',file))#
-				save(seq, file=file)				#
-			})
-files	<- c( 	'mtDNA','den2','neisseria','nz_h1n1','nzh3n2'	)#
-	dummy	<- lapply(files, function(x)#
-			{#
-				cat(paste('\nprocess',x))#
-				file	<- paste(CODE.HOME,'/data/',x,'.phylip',sep='')				#
-				seq		<- read.dna(file, format='sequential')#
-				file	<- paste(CODE.HOME,'/data/',x,'.rda',sep='')#
-				cat(paste('\nsave seq to file=',file))#
-				save(seq, file=file)				#
-			})
-read.dna( "/Users/Oliver/git/recombination.analyzer/pkg/data/nz_h1n1.phylip" )
-files	<- c('nz_h1n1','nzh3n2')#
-	dummy	<- lapply(files, function(x)#
-			{#
-				cat(paste('\nprocess',x))#
-				file	<- paste(CODE.HOME,'/data/',x,'.phylip',sep='')				#
-				seq		<- read.dna(file, format='interleaved')#
-				file	<- paste(CODE.HOME,'/data/',x,'.rda',sep='')#
-				cat(paste('\nsave seq to file=',file))#
-				save(seq, file=file)				#
-			})
-files	<- c('nz_h1n1','nz_h3n2')#
-	dummy	<- lapply(files, function(x)#
-			{#
-				cat(paste('\nprocess',x))#
-				file	<- paste(CODE.HOME,'/data/',x,'.phylip',sep='')				#
-				seq		<- read.dna(file, format='interleaved')#
-				file	<- paste(CODE.HOME,'/data/',x,'.rda',sep='')#
-				cat(paste('\nsave seq to file=',file))#
-				save(seq, file=file)				#
-			})
-require(recombination.analyzer)
-data(package='recombination.analyzer')
-data(neisseria)
-seqn<- data(neisseria)
-seqn
-neisseria
-seq
-require(recombination.analyzer)#
-	data(neisseria)#
-	print( seq )#
-	indir		<- paste(CODE.HOME,'demo')#
-	infile		<- 'neisseria.R'#
-	insignat	<- ''
-setwd("/Users/Oliver/git/recombination-analyzer/pkg")
-setwd("/Users/Oliver/git/recombination.analyzer/pkg")
-source("misc/3seq.startme.R")
-require(recombination.analyzer)#
-	data(neisseria)#
-	print( seq )#
-	indir		<- paste(CODE.HOME,'demo')#
-	infile		<- 'neisseria.R'#
-	insignat	<- ''
-grepl(infile, '.R')
-grepl(infile, '.R', fixed=1)
-grepl('.R',infile)
-grep('.R',infile)
-?regexpr
-substr(infile, 1, nchar(infile)-2)
-verbose<- 1
-if(!grepl('.R',infile))	stop("expect R infile that ends in .R")		#
-	file			<- paste(indir,'/',infile,".R",sep='')#
-	tmp				<- load(file)#
-	if(verbose)	cat(paste('\nloaded file=', tmp))
-load sequences to determine number of parallel jobs #
-	if(!grepl('.R',infile))	stop("expect R infile that ends in .R")		#
-	file			<- paste(indir,'/',infile,sep='')#
-	tmp				<- load(file)#
-	if(verbose)	cat(paste('\nloaded file=', tmp))
-indir		<- paste(CODE.HOME,'demo', sep='/')#
-	infile		<- 'neisseria.R'#
-	insignat	<- ''
-load sequences to determine number of parallel jobs #
-	if(!grepl('.R',infile))	stop("expect R infile that ends in .R")		#
-	file			<- paste(indir,'/',infile,sep='')#
-	tmp				<- load(file)#
-	if(verbose)	cat(paste('\nloaded file=', tmp))
-save(seq, file=paste(indir, infile, sep='/'))
-load sequences to determine number of parallel jobs #
-	if(!grepl('.R',infile))	stop("expect R infile that ends in .R")		#
-	file			<- paste(indir,'/',infile,sep='')#
-	tmp				<- load(file)#
-	if(verbose)	cat(paste('\nloaded file=', tmp))
-seq
-seq2<- seq
-seq<- NULL
-seq2
-tmp<- 'seq2'
-eval(parse(text=paste("seq<- ",tmp,sep='')))
-seq
-class(seq)
-seq
-str(seq)
-is.matrix(seq)
-infile			<- substr(infile, 1, nchar(infile)-2)	#
-	file			<- paste(indir,'/',infile,".phylip",sep='')#
-	if(verbose)	cat(paste('\nwrite file=', tmp))#
-	seq.write.dna.phylip(seq, file)
-seq.write.dna.phylip<- function(seq.DNAbin.mat, file)#
-{		#
-	tmp<- cbind( rownames(seq.DNAbin.mat), apply( as.character( seq.DNAbin.mat ), 1, function(x) paste(x,sep='',collapse='')  ) )#
-	tmp<- paste(t(tmp),collapse='\n',sep='')	#
-	tmp<- paste( paste(c(nrow(seq.DNAbin.mat),ncol(seq.DNAbin.mat)),sep='',collapse=' '),'\n',tmp,'\n',collapse='',sep='' )#
-	cat(tmp, file=file)#
-}
-infile			<- substr(infile, 1, nchar(infile)-2)	#
-	file			<- paste(indir,'/',infile,".phylip",sep='')#
-	if(verbose)	cat(paste('\nwrite file=', tmp))#
-	seq.write.dna.phylip(seq, file)
-file			<- paste(indir,'/',infile,".phylip",sep='')#
-	if(verbose)	cat(paste('\nwrite file=', file))#
-	seq.write.dna.phylip(seq, file)
-batch.n
-batch.n<- 1
-batch.seq		<- round(seq.int(0,nrow(seq),len=batch.n),d=0)
-batch.seq
-rbind(batch.seq[-length(batch.seq)], batch.seq[-1]-1)
-nrow(seq)
-tail(batch.seq,1)
-batch.seq	<- c(batch.seq, nrow(seq))
-batch.seq
-batch.seq		<- rbind(batch.seq[-length(batch.seq)], batch.seq[-1]-1)
-batch.seq
-lapply(seq_len(ncol(batch.seq)),function(j)#
-			{					#
-				cmd			<- cmd.recombination.run.3seq(infile=file, outfile=paste(indir,'/',infile,'_',batch.seq[1,j],'-',batch.seq[2,j],".3seq",sep=''), recomb.3seq.siglevel=0.1, nproc=1, recomb.3seq.testvsall.beginatseq=batch.seq[1,j], recomb.3seq.testvsall.endatseq=batch.seq[2,j], verbose=1)				#
-				cmd			<- cmd.hpcwrapper(cmd, hpc.walltime=hpc.walltime, hpc.q=hpc.q, hpc.mem=hpc.mem,  hpc.nproc=hpc.nproc)#
-				cat(cmd)#
-				outdir		<- indir#
-				outfile		<- paste("r3seq",paste(strsplit(date(),split=' ')[[1]],collapse='_',sep=''),sep='.')									#
-				#cmd.hpccaller(outdir, outfile, cmd)			#
-			})
-lapply(seq_len(ncol(batch.seq)),function(j)#
-			{					#
-				cmd			<- cmd.recombination.run.3seq(infile=file, outfile=paste(indir,'/',infile,'_',batch.seq[1,j],'-',batch.seq[2,j],".3seq",sep=''), recomb.3seq.siglevel=0.1, nproc=1, recomb.3seq.testvsall.beginatseq=batch.seq[1,j], recomb.3seq.testvsall.endatseq=batch.seq[2,j], verbose=1)				#
-				cmd			<- cmd.hpcwrapper(cmd, hpc.walltime=hpc.walltime, hpc.q=hpc.q, hpc.mem=hpc.mem,  hpc.nproc=hpc.nproc)#
-				cat(cmd)#
-				outdir		<- indir#
-				outfile		<- paste("r3seq",paste(strsplit(date(),split=' ')[[1]],collapse='_',sep=''),sep='.')									#
-				cmd.hpccaller(outdir, outfile, cmd)			#
-			})
+tmp			<- tmp[sample(nrow(tmp),1e3),]
+tmp
+tmp			<- merge(tmp, brl.tpairs, by=c('FASTASampleCode','t.FASTASampleCode'))
+tmp
+tmp[, interaction:= tmp[, paste(FASTASampleCode, t.FASTASampleCode, sep='::')]]#
+	setkey(tmp, interaction)
+tmp
+tmp			<- unique(brl.tpairs)#
+	tmp			<- tmp[sample(nrow(tmp),5e2),]#
+	tmp			<- merge(tmp, brl.tpairs, by=c('FASTASampleCode','t.FASTASampleCode'))#
+	tmp[, interaction:= tmp[, paste(FASTASampleCode, t.FASTASampleCode, sep='::')]]#
+	setkey(tmp, interaction)
+tmp
+ggplot(tmp, aes(x=interaction, y=brl)) + geom_point()
+require(ggplot2)
+require(grid)#
+require(reshape2)
+ggplot(tmp, aes(x=interaction, y=brl)) + geom_point()
+tmp
+tmp			<- unique(brl.tpairs)#
+	tmp			<- tmp[sample(nrow(tmp),5e2),]
+tmp
+tmp			<- merge(subset(tmp, select=c(FASTASampleCode, t.FASTASampleCode)), brl.tpairs, by=c('FASTASampleCode','t.FASTASampleCode'))
+tmp
+tmp[, interaction:= tmp[, paste(FASTASampleCode, t.FASTASampleCode, sep='::')]]#
+	setkey(tmp, interaction)
+ggplot(tmp, aes(x=interaction, y=brl)) + geom_point()
+ggplot(tmp, aes(x=interaction, y=brl)) + geom_point() + #
+			labs(y='estimated patristic distance', x='sequence pairs,\nfirst sequence from recipient MSM and second sequence from potential transmitter') +#
+			theme(axis.text.x=element_blank(), axis.ticks=element_blank())
+ggplot(tmp, aes(x=interaction, y=brl)) + geom_point() + scale_x_continuous(expand = c(-1, -0.01)) + #
+			labs(y='estimated patristic distance', x='sequence pairs,\nfirst sequence from recipient MSM and second sequence from potential transmitter') +#
+			theme(axis.text.x=element_blank(), axis.ticks=element_blank())
+ggplot(tmp, aes(x=interaction, y=brl)) + geom_point(size=0.4) + scale_x_discrete(expand = c(-1, -0.01)) + #
+			labs(y='estimated patristic distance', x='sequence pairs,\nfirst sequence from recipient MSM and second sequence from potential transmitter') +#
+			theme(axis.text.x=element_blank(), axis.ticks=element_blank())
+tmp			<- unique(brl.tpairs)#
+	tmp			<- tmp[sample(nrow(tmp),1e2),]#
+	tmp			<- merge(subset(tmp, select=c(FASTASampleCode, t.FASTASampleCode)), brl.tpairs, by=c('FASTASampleCode','t.FASTASampleCode'))#
+	tmp[, interaction:= tmp[, paste(FASTASampleCode, t.FASTASampleCode, sep='::')]]#
+	setkey(tmp, interaction)
+ggplot(tmp, aes(x=interaction, y=brl)) + geom_point(size=0.4) + scale_x_discrete(expand = c(-1, -0.01)) + #
+			labs(y='estimated patristic distance', x='sequence pairs,\nfirst sequence from recipient MSM and second sequence from potential transmitter') +#
+			theme(axis.text.x=element_blank(), axis.ticks=element_blank())
+ggplot(tmp, aes(x=interaction, y=brl)) + geom_point(size=0.7) + scale_x_discrete(expand = c(-1, -0.01)) + #
+			labs(y='estimated patristic distance', x='sequence pairs,\nfirst sequence from recipient MSM and second sequence from potential transmitter') +#
+			theme(axis.text.x=element_blank(), axis.ticks=element_blank())
+ggplot(tmp, aes(x=interaction, y=brl)) + geom_point(size=0.7) + scale_x_discrete(expand = c(0, 0)) + #
+			labs(y='estimated patristic distance', x='sequence pairs,\nfirst sequence from recipient MSM and second sequence from potential transmitter') +#
+			theme(axis.text.x=element_blank(), axis.ticks=element_blank())
+ggplot(tmp, aes(x=interaction, y=brl)) + geom_point(size=0.7) + scale_y_continuous(expand = c(0, 0)) + #
+			labs(y='estimated patristic distance', x='sequence pairs,\nfirst sequence from recipient MSM and second sequence from potential transmitter') +#
+			theme(axis.text.x=element_blank(), axis.ticks=element_blank())
+ggplot(tmp, aes(x=interaction, y=brl)) + geom_point(size=0.7) + scale_y_continuous(expand = c(-0.01, -0.01)) + #
+			labs(y='estimated patristic distance', x='sequence pairs,\nfirst sequence from recipient MSM and second sequence from potential transmitter') +#
+			theme(axis.text.x=element_blank(), axis.ticks=element_blank())
+ggplot(tmp, aes(x=interaction, y=brl)) + geom_point(size=0.7) + scale_y_continuous(expand = c(-0.02, -0.02)) + #
+			labs(y='estimated patristic distance', x='sequence pairs,\nfirst sequence from recipient MSM and second sequence from potential transmitter') +#
+			theme(axis.text.x=element_blank(), axis.ticks=element_blank())
+?scale_y_continuous
+?waiver
+ggplot(tmp, aes(x=interaction, y=brl)) + geom_point(size=0.7) + scale_y_continuous(expand = c(-0.02, 1)) + #
+			labs(y='estimated patristic distance', x='sequence pairs,\nfirst sequence from recipient MSM and second sequence from potential transmitter') +#
+			theme(axis.text.x=element_blank(), axis.ticks=element_blank())
+ggplot(tmp, aes(x=interaction, y=brl)) + geom_point(size=0.7) + scale_y_continuous(expand = c(0.01, 0.01)) + #
+			labs(y='estimated patristic distance', x='sequence pairs,\nfirst sequence from recipient MSM and second sequence from potential transmitter') +#
+			theme(axis.text.x=element_blank(), axis.ticks=element_blank())
+ggplot(tmp, aes(x=interaction, y=brl)) + geom_point(size=0.7) + scale_y_continuous(expand = c(0.01, 0.001)) + #
+			labs(y='estimated patristic distance', x='sequence pairs,\nfirst sequence from recipient MSM and second sequence from potential transmitter') +#
+			theme(axis.text.x=element_blank(), axis.ticks=element_blank())
+tmp
+tmp[, variable:='bootstrap replicate']
+tmp
+tmp[, list(FASTASampleCode=FASTASampleCode, t.FASTASampleCode=t.FASTASampleCode, brl=median(brl), BS=NA_real_), by='interaction']
+?rbind
+rbind(tmp, tmp[, list(FASTASampleCode=FASTASampleCode, t.FASTASampleCode=t.FASTASampleCode, brl=median(brl), BS=NA_real_, variable='bootstrap median'), by='interaction'])
+tmp			<- rbind(tmp, tmp[, list(FASTASampleCode=FASTASampleCode, t.FASTASampleCode=t.FASTASampleCode, brl=median(brl), BS=NA_real_, variable='bootstrap median'), by='interaction'], use.names=TRUE)
+tmp
+tmp			<- unique(brl.tpairs)#
+	tmp			<- tmp[sample(nrow(tmp),1e2),]#
+	tmp			<- merge(subset(tmp, select=c(FASTASampleCode, t.FASTASampleCode)), brl.tpairs, by=c('FASTASampleCode','t.FASTASampleCode'))#
+	tmp[, interaction:= tmp[, paste(FASTASampleCode, t.FASTASampleCode, sep='::')]]#
+	setkey(tmp, interaction)#
+	tmp[, variable:='bootstrap replicate']#
+	tmp			<- rbind(tmp, tmp[, list(FASTASampleCode=FASTASampleCode[1], t.FASTASampleCode=t.FASTASampleCode[1], brl=median(brl), BS=NA_real_, variable='bootstrap median'), by='interaction'], use.names=TRUE)
+tmp
+tmp			<- unique(brl.tpairs)#
+	tmp			<- tmp[sample(nrow(tmp),1e2),]#
+	tmp			<- merge(subset(tmp, select=c(FASTASampleCode, t.FASTASampleCode)), brl.tpairs, by=c('FASTASampleCode','t.FASTASampleCode'))#
+	tmp[, interaction:= tmp[, paste(FASTASampleCode, t.FASTASampleCode, sep='::')]]#
+	setkey(tmp, interaction)#
+	tmp[, variable:='bootstrap\nreplicate']#
+	tmp			<- rbind(tmp, tmp[, list(FASTASampleCode=FASTASampleCode[1], t.FASTASampleCode=t.FASTASampleCode[1], brl=median(brl), BS=NA_real_, variable='bootstrap median'), by='interaction'], use.names=TRUE)#
+	set(tmp, tmp[, which(BS==0)], 'variable', 'data')#
+	set(tmp, tmp[, which(BS==409)], 'variable', 'maximum\nlikelihood\tree')
+tmp
+ggplot(tmp, aes(x=interaction, y=brl, colour=variable)) + geom_point(size=0.7) + scale_y_continuous(expand = c(0.01, 0.001)) + #
+			labs(y='estimated patristic distance', x='sequence pairs,\nfirst sequence from recipient MSM and second sequence from potential transmitter') +#
+			theme(axis.text.x=element_blank(), axis.ticks=element_blank())
+tmp			<- unique(brl.tpairs)#
+	tmp			<- tmp[sample(nrow(tmp),1e2),]#
+	tmp			<- merge(subset(tmp, select=c(FASTASampleCode, t.FASTASampleCode)), brl.tpairs, by=c('FASTASampleCode','t.FASTASampleCode'))#
+	tmp[, interaction:= tmp[, paste(FASTASampleCode, t.FASTASampleCode, sep='::')]]#
+	setkey(tmp, interaction)#
+	tmp[, variable:='bootstrap\nreplicate']#
+	tmp			<- rbind(tmp, tmp[, list(FASTASampleCode=FASTASampleCode[1], t.FASTASampleCode=t.FASTASampleCode[1], brl=median(brl), BS=NA_real_, variable='bootstrap\nmedian'), by='interaction'], use.names=TRUE)#
+	set(tmp, tmp[, which(BS==0)], 'variable', 'data')#
+	set(tmp, tmp[, which(BS==409)], 'variable', 'maximum\nlikelihood\tree')
+tmp
+subset(tmp, BS==409)
+subset(tmp, BS==288)
+set(tmp, tmp[, which(BS==288)], 'variable', 'maximum\nlikelihood\tree')
+ggplot(tmp, aes(x=interaction, y=brl, colour=variable)) + geom_point(size=0.7) + scale_y_continuous(expand = c(0.01, 0.001)) + #
+			labs(y='estimated patristic distance', x='sequence pairs,\nfirst sequence from recipient MSM and second sequence from potential transmitter') +#
+			theme(axis.text.x=element_blank(), axis.ticks=element_blank())
+set(tmp, tmp[, which(BS==288)], 'variable', 'maximum\nlikelihood\ntree')
+tmp
+tmp			<- unique(brl.tpairs)#
+	tmp			<- tmp[sample(nrow(tmp),1e2),]#
+	tmp			<- merge(subset(tmp, select=c(FASTASampleCode, t.FASTASampleCode)), brl.tpairs, by=c('FASTASampleCode','t.FASTASampleCode'))#
+	tmp[, interaction:= tmp[, paste(FASTASampleCode, t.FASTASampleCode, sep='::')]]#
+	setkey(tmp, interaction)#
+	tmp[, variable:='from bootstrap\nreplicate\nof data']#
+	tmp			<- rbind(tmp, tmp[, list(FASTASampleCode=FASTASampleCode[1], t.FASTASampleCode=t.FASTASampleCode[1], brl=median(brl), BS=NA_real_, variable='median\npatristic distance'), by='interaction'], use.names=TRUE)#
+	set(tmp, tmp[, which(BS==0)], 'variable', 'from data')#
+	#set(tmp, tmp[, which(BS==409)], 'variable', 'maximum\nlikelihood\tree')#
+	set(tmp, tmp[, which(BS==288)], 'variable', 'with largest\nmaximum likelihood\nacross bootstrap replicates')		#second best tree#
+	set(tmp, NULL, tmp[, factor(variable, levels=c('from data','from bootstrap\nreplicate\nof data','with largest\nmaximum likelihood\nacross bootstrap replicates','median\npatristic distance'))])
+set(tmp, NULL, 'variable', tmp[, factor(variable, levels=c('from data','from bootstrap\nreplicate\nof data','with largest\nmaximum likelihood\nacross bootstrap replicates','median\npatristic distance'))])
+tmp
+ggplot(tmp, aes(x=interaction, y=brl, colour=variable)) + geom_point(size=0.7) + scale_y_continuous(expand = c(0.01, 0.001)) + #
+			labs(colour='tree', y='estimated patristic distance', x='sequence pairs,\nfirst sequence from recipient MSM and second sequence from potential transmitter') +#
+			theme(axis.text.x=element_blank(), axis.ticks=element_blank())
+ggplot(tmp, aes(x=interaction, y=brl, colour=variable)) + geom_point(size=0.7) + scale_y_continuous(expand = c(0.01, 0.001)) +#
+			scale_colour_manual(values=c('red','black','green','blue')) +#
+			labs(colour='tree', y='estimated patristic distance', x='sequence pairs,\nfirst sequence from recipient MSM and second sequence from potential transmitter') +#
+			theme(axis.text.x=element_blank(), axis.ticks=element_blank(),legend.key.size=unit(11,'mm'))
+tmp
+ggplot(tmp, aes(x=interaction, y=brl, colour=variable)) + geom_point(size=1) + scale_y_continuous(expand = c(0.01, 0.001)) +#
+			scale_colour_manual(values=c('red','black','green','blue')) +#
+			labs(colour='tree', y='estimated patristic distance', x='sequence pairs,\nfirst sequence from recipient MSM and second sequence from potential transmitter') +#
+			theme(axis.text.x=element_blank(), axis.ticks=element_blank(),legend.key.size=unit(11,'mm'))
+ggplot(tmp, aes(x=interaction, y=brl, colour=variable)) + geom_point(size=1) + geom_point(data=subset(tmp, variable=='from data'), size=2) + scale_y_continuous(expand = c(0.01, 0.001)) +#
+			scale_colour_manual(values=c('red','black','green','blue')) +#
+			labs(colour='tree', y='estimated patristic distance', x='sequence pairs,\nfirst sequence from recipient MSM and second sequence from potential transmitter') +#
+			theme(axis.text.x=element_blank(), axis.ticks=element_blank(),legend.key.size=unit(11,'mm'))
+ggplot(tmp, aes(x=interaction, y=brl, colour=variable)) + geom_point(size=1) + #
+			geom_point(data=subset(tmp, variable=='from data'), size=2) + geom_point(data=subset(tmp, variable=='with largest\nmaximum likelihood\nacross bootstrap replicates'), size=2) +#
+			geom_point(data=subset(tmp, variable=='median\npatristic distance'), size=2) +#
+			scale_y_continuous(expand = c(0.01, 0.001)) +#
+			scale_colour_manual(values=c('red','black','green','blue')) +#
+			labs(colour='tree', y='estimated patristic distance', x='sequence pairs,\nfirst sequence from recipient MSM and second sequence from potential transmitter') +#
+			theme(axis.text.x=element_blank(), axis.ticks=element_blank(),legend.key.size=unit(11,'mm'))
+ggplot(tmp, aes(x=interaction, y=brl, colour=variable)) + geom_point(size=1) + #
+			geom_point(data=subset(tmp, variable=='from data'), size=2) + geom_point(data=subset(tmp, variable=='with largest\nmaximum likelihood\nacross bootstrap replicates'), size=2) +#
+			geom_point(data=subset(tmp, variable=='median\npatristic distance'), size=2) +#
+			scale_y_continuous(expand = c(0.01, 0.001)) +#
+			scale_colour_manual(values=c("#66C2A5",'black', "#FC8D62", "#8DA0CB")) +#
+			labs(colour='tree', y='estimated patristic distance', x='sequence pairs,\nfirst sequence from recipient MSM and second sequence from potential transmitter') +#
+			theme(axis.text.x=element_blank(), axis.ticks=element_blank(),legend.key.size=unit(11,'mm'))
+ggplot(tmp, aes(x=interaction, y=brl, colour=variable)) + geom_point(size=1) + #
+			geom_point(data=subset(tmp, variable=='from data'), size=2) + geom_point(data=subset(tmp, variable=='with largest\nmaximum likelihood\nacross bootstrap replicates'), size=2) +#
+			geom_point(data=subset(tmp, variable=='median\npatristic distance'), size=2) +#
+			scale_y_continuous(expand = c(0.01, 0.001)) +#
+			scale_colour_manual(values=c("#7FC97F",'black', "#BEAED4", "#FDC086")) +#
+			labs(colour='tree', y='estimated patristic distance', x='sequence pairs,\nfirst sequence from recipient MSM and second sequence from potential transmitter') +#
+			theme(axis.text.x=element_blank(), axis.ticks=element_blank(),legend.key.size=unit(11,'mm'))
+ggsave(file=file, h=8, w=16)
+file	<- '/Users/Oliver/duke/2013_HIV_NL/ATHENA_2013/data/tmp/ATHENA_2013_03_-DR-RC-SH+LANL_Sequences_examlout_Wed_Dec_18_11:37:00_2013_distPairs.pdf'#
+	ggsave(file=file, h=8, w=16)
+tmp			<- unique(brl.tpairs)#
+	tmp			<- tmp[sample(nrow(tmp),1e3),]#
+	tmp			<- merge(subset(tmp, select=c(FASTASampleCode, t.FASTASampleCode)), brl.tpairs, by=c('FASTASampleCode','t.FASTASampleCode'))#
+	tmp[, interaction:= tmp[, paste(FASTASampleCode, t.FASTASampleCode, sep='::')]]#
+	setkey(tmp, interaction)#
+	tmp[, variable:='from bootstrap\nreplicate\nof data']#
+	tmp			<- rbind(tmp, tmp[, list(FASTASampleCode=FASTASampleCode[1], t.FASTASampleCode=t.FASTASampleCode[1], brl=median(brl), BS=NA_real_, variable='median\npatristic distance'), by='interaction'], use.names=TRUE)#
+	set(tmp, tmp[, which(BS==0)], 'variable', 'from data')#
+	#set(tmp, tmp[, which(BS==409)], 'variable', 'maximum\nlikelihood\tree')#
+	set(tmp, tmp[, which(BS==288)], 'variable', 'with largest\nmaximum likelihood\nacross bootstrap replicates')		#second best tree#
+	set(tmp, NULL, 'variable', tmp[, factor(variable, levels=c('from data','from bootstrap\nreplicate\nof data','with largest\nmaximum likelihood\nacross bootstrap replicates','median\npatristic distance'))])#
+	ggplot(tmp, aes(x=interaction, y=brl, colour=variable)) + geom_point(size=1) + #
+			geom_point(data=subset(tmp, variable=='from data'), size=2) + geom_point(data=subset(tmp, variable=='with largest\nmaximum likelihood\nacross bootstrap replicates'), size=2) +#
+			geom_point(data=subset(tmp, variable=='median\npatristic distance'), size=2) +#
+			scale_y_continuous(expand = c(0.01, 0.001)) +#
+			scale_colour_manual(values=c("#7FC97F",'black', "#BEAED4", "#FDC086")) +#
+			labs(colour='tree', y='estimated patristic distance', x='sequence pairs,\nfirst sequence from recipient MSM and second sequence from potential transmitter') +#
+			theme(axis.text.x=element_blank(), axis.ticks=element_blank(),legend.key.size=unit(11,'mm'))#
+	file	<- '/Users/Oliver/duke/2013_HIV_NL/ATHENA_2013/data/tmp/ATHENA_2013_03_-DR-RC-SH+LANL_Sequences_examlout_Wed_Dec_18_11:37:00_2013_distPairs.pdf'#
+	ggsave(file=file, h=8, w=16)
+tmp			<- unique(brl.tpairs)#
+	tmp			<- tmp[sample(nrow(tmp),1e2),]#
+	tmp			<- merge(subset(tmp, select=c(FASTASampleCode, t.FASTASampleCode)), brl.tpairs, by=c('FASTASampleCode','t.FASTASampleCode'))#
+	tmp[, interaction:= tmp[, paste(FASTASampleCode, t.FASTASampleCode, sep='::')]]#
+	setkey(tmp, interaction)#
+	tmp[, variable:='from bootstrap\nreplicate\nof data']#
+	tmp			<- rbind(tmp, tmp[, list(FASTASampleCode=FASTASampleCode[1], t.FASTASampleCode=t.FASTASampleCode[1], brl=median(brl), BS=NA_real_, variable='median\npatristic distance'), by='interaction'], use.names=TRUE)#
+	set(tmp, tmp[, which(BS==0)], 'variable', 'from data')#
+	#set(tmp, tmp[, which(BS==409)], 'variable', 'maximum\nlikelihood\tree')#
+	set(tmp, tmp[, which(BS==288)], 'variable', 'with largest\nmaximum likelihood\nacross bootstrap replicates')		#second best tree#
+	set(tmp, NULL, 'variable', tmp[, factor(variable, levels=c('from data','from bootstrap\nreplicate\nof data','with largest\nmaximum likelihood\nacross bootstrap replicates','median\npatristic distance'))])#
+	ggplot(tmp, aes(x=interaction, y=brl, colour=variable)) + geom_point(size=1) + #
+			geom_point(data=subset(tmp, variable=='from data'), size=2) + geom_point(data=subset(tmp, variable=='with largest\nmaximum likelihood\nacross bootstrap replicates'), size=2) +#
+			geom_point(data=subset(tmp, variable=='median\npatristic distance'), size=2) +#
+			scale_y_continuous(expand = c(0.01, 0.001)) +#
+			scale_colour_manual(values=c("#7FC97F",'black', "#BEAED4", "#FDC086")) +#
+			labs(colour='tree', y='estimated patristic distance', x='sequence pairs,\nfirst sequence from recipient MSM and second sequence from potential transmitter') +#
+			theme_bw() +#
+			theme(axis.text.x=element_blank(), axis.ticks=element_blank(),legend.key.size=unit(11,'mm'))#
+	file	<- '/Users/Oliver/duke/2013_HIV_NL/ATHENA_2013/data/tmp/ATHENA_2013_03_-DR-RC-SH+LANL_Sequences_examlout_Wed_Dec_18_11:37:00_2013_distPairs.pdf'#
+	ggsave(file=file, h=8, w=16)
+tmp			<- unique(brl.tpairs)#
+	tmp			<- tmp[sample(nrow(tmp),5e2),]#
+	tmp			<- merge(subset(tmp, select=c(FASTASampleCode, t.FASTASampleCode)), brl.tpairs, by=c('FASTASampleCode','t.FASTASampleCode'))#
+	tmp[, interaction:= tmp[, paste(FASTASampleCode, t.FASTASampleCode, sep='::')]]#
+	setkey(tmp, interaction)#
+	tmp[, variable:='from bootstrap\nreplicate\nof data']#
+	tmp			<- rbind(tmp, tmp[, list(FASTASampleCode=FASTASampleCode[1], t.FASTASampleCode=t.FASTASampleCode[1], brl=median(brl), BS=NA_real_, variable='median\npatristic distance'), by='interaction'], use.names=TRUE)#
+	set(tmp, tmp[, which(BS==0)], 'variable', 'from data')#
+	#set(tmp, tmp[, which(BS==409)], 'variable', 'maximum\nlikelihood\tree')#
+	set(tmp, tmp[, which(BS==288)], 'variable', 'with largest\nmaximum likelihood\nacross bootstrap replicates')		#second best tree#
+	set(tmp, NULL, 'variable', tmp[, factor(variable, levels=c('from data','from bootstrap\nreplicate\nof data','with largest\nmaximum likelihood\nacross bootstrap replicates','median\npatristic distance'))])#
+	ggplot(tmp, aes(x=interaction, y=brl, colour=variable)) + geom_point(size=1) + #
+			geom_point(data=subset(tmp, variable=='from data'), size=2) + geom_point(data=subset(tmp, variable=='with largest\nmaximum likelihood\nacross bootstrap replicates'), size=2) +#
+			geom_point(data=subset(tmp, variable=='median\npatristic distance'), size=2) +#
+			scale_y_continuous(expand = c(0.01, 0.001)) +#
+			scale_colour_manual(values=c("#7FC97F",'black', "#BEAED4", "#FDC086")) +#
+			labs(colour='tree', y='estimated patristic distance', x='sequence pairs,\nfirst sequence from recipient MSM and second sequence from potential transmitter') +#
+			theme_bw() +#
+			theme(axis.text.x=element_blank(), axis.ticks=element_blank(),legend.key.size=unit(11,'mm'))#
+	file	<- '/Users/Oliver/duke/2013_HIV_NL/ATHENA_2013/data/tmp/ATHENA_2013_03_-DR-RC-SH+LANL_Sequences_examlout_Wed_Dec_18_11:37:00_2013_distPairs.pdf'#
+	ggsave(file=file, h=8, w=16)
+ggplot(tmp, aes(x=interaction, y=brl, colour=variable)) + geom_point(size=1) + #
+			geom_point(data=subset(tmp, variable=='from data'), size=2) + geom_point(data=subset(tmp, variable=='with largest\nmaximum likelihood\nacross bootstrap replicates'), size=2) +#
+			geom_point(data=subset(tmp, variable=='median\npatristic distance'), size=2) +#
+			scale_y_continuous(expand = c(0.01, 0.001)) +#
+			scale_colour_manual(values=c("#7FC97F",'black', "#BEAED4", "#FDC086")) +#
+			labs(colour='maximum\nlikelihood\ntree', y='estimated patristic distance', x='sequence pairs,\nfirst sequence from recipient MSM and second sequence from potential transmitter') +#
+			theme_bw() +#
+			theme(axis.text.x=element_blank(), axis.ticks=element_blank(),legend.key.size=unit(11,'mm'))#
+	file	<- '/Users/Oliver/duke/2013_HIV_NL/ATHENA_2013/data/tmp/ATHENA_2013_03_-DR-RC-SH+LANL_Sequences_examlout_Wed_Dec_18_11:37:00_2013_distPairs.pdf'#
+	ggsave(file=file, h=8, w=16)
+brl.tpairs
+file	<- '/Users/Oliver/duke/2013_HIV_NL/ATHENA_2013/data/tmp/ATHENA_2013_03_-DR-RC-SH+LANL_Sequences_examlout_Wed_Dec_18_11:37:00_2013_distPairs.pdf'
+file	<- '/Users/Oliver/duke/2013_HIV_NL/ATHENA_2013/data/tmp/ATHENA_2013_03_-DR-RC-SH+LANL_Sequences_examlout_Wed_Dec_18_11:37:00_2013_distPairs.R'
+save(brl.tpairs, file=file)
+require(reshape2)#
+	require(data.table)#
+	require(ape)#
+	#stop()#
+	indir					<- paste(DATA,"fisheretal_data",sep='/')		#
+	indircov				<- paste(DATA,"fisheretal_data",sep='/')#
+	outdir					<- paste(DATA,"fisheretal",sep='/')#
+	infile.cov.study		<- "ATHENA_2013_03_AllSeqPatientCovariates"#
+	infile.viro.study		<- paste(indircov,"ATHENA_2013_03_Viro.R",sep='/')#
+	infile.immu.study		<- paste(indircov,"ATHENA_2013_03_Immu.R",sep='/')#
+	infile.treatment.study	<- paste(indircov,"ATHENA_2013_03_Regimens.R",sep='/')#
+	infile.cov.all			<- "ATHENA_2013_03_AllSeqPatientCovariates_AllMSM"#
+	infile.viro.all			<- paste(indircov,"ATHENA_2013_03_Viro_AllMSM.R",sep='/')#
+	infile.immu.all			<- paste(indircov,"ATHENA_2013_03_Immu_AllMSM.R",sep='/')#
+	infile.treatment.all	<- paste(indircov,"ATHENA_2013_03_Regimens_AllMSM.R",sep='/')		#
+	t.period				<- 1/8#
+	t.recent.startctime		<- hivc.db.Date2numeric(as.Date("1996-07-15"))#
+	t.recent.startctime		<- floor(t.recent.startctime) + floor( (t.recent.startctime%%1)*100 %/% (t.period*100) ) * t.period#
+	t.endctime				<- hivc.db.Date2numeric(as.Date("2013-03-01"))	#
+	t.endctime				<- floor(t.endctime) + floor( (t.endctime%%1)*100 %/% (t.period*100) ) * t.period#
+	resume					<- 1#
+	verbose					<- 1#
+	if(0)#
+	{#
+		method					<- '3c'#
+		method.recentctime		<- '2013-03-01'#
+		method.nodectime		<- 'any'#
+		method.risk				<- 'm21st.cas'#
+		method.PDT				<- 'SEQ'#
+		infile					<- "ATHENA_2013_03_-DR-RC-SH+LANL_Sequences"#
+		infiletree				<- paste(infile,"examlbs500",sep="_")#
+		insignat				<- "Wed_Dec_18_11:37:00_2013"					#
+		clu.infilexml.opt		<- "mph4clutx4tip"#
+		clu.infilexml.template	<- "um192rhU2080"	#
+		outfile					<- paste(infile,'_Ac=MY_D=35_gmrf',sep='')#
+	}#
+	if(0)#
+	{#
+		method					<- '3d'#
+		method.recentctime		<- '2011-01-01'#
+		method.nodectime		<- 'any'#
+		method.risk				<- 'm21st.cas'#
+		method.PDT				<- 'SEQ'#
+		infile					<- "ATHENA_2013_03_-DR-RC-SH+LANL_Sequences"#
+		infiletree				<- paste(infile,"examlbs500",sep="_")#
+		insignat				<- "Wed_Dec_18_11:37:00_2013"					#
+		clu.infilexml.opt		<- "mph4clutx4tip"#
+		clu.infilexml.template	<- "um192rhU2080"	#
+		outfile					<- paste(infile,'_Ac=MY_D=35_gmrf',sep='')#
+	}	#
+	if(0)#
+	{		#
+		method					<- '3d'#
+		method.recentctime		<- '2013-03-01'#
+		method.nodectime		<- 'any'#
+		method.risk				<- 'm2B1st.cas'#
+		method.PDT				<- 'SEQ'#
+		infile					<- "ATHENA_2013_03_-DR-RC-SH+LANL_Sequences"#
+		infiletree				<- paste(infile,"examlbs500",sep="_")#
+		insignat				<- "Wed_Dec_18_11:37:00_2013"							#
+		clu.infilexml.opt		<- "clrh80"#
+		clu.infilexml.template	<- "sasky_sdr06fr"	#
+		outfile					<- paste(infile,'_Ac=MY_D=35_sasky',sep='')#
+	}	#
+	if(0)#
+	{		#
+		method					<- '3e'#
+		method.recentctime		<- '2011-01-01'#
+		method.nodectime		<- 'any'#
+		method.risk				<- 'm2B1st.cas'#
+		method.PDT				<- 'SEQ'#
+		infile					<- "ATHENA_2013_03_-DR-RC-SH+LANL_Sequences"#
+		infiletree				<- paste(infile,"examlbs500",sep="_")#
+		insignat				<- "Wed_Dec_18_11:37:00_2013"							#
+		clu.infilexml.opt		<- "clrh80"#
+		clu.infilexml.template	<- "sasky_sdr06fr"	#
+		outfile					<- paste(infile,'_Ac=MY_D=35_sasky',sep='')#
+	}#
+	if(0)#
+	{		#
+		method					<- '3f'#
+		method.recentctime		<- '2011-01-01'#
+		method.nodectime		<- 'any'#
+		method.risk				<- 'm2B1st.cas'#
+		method.PDT				<- 'SEQ'#
+		infile					<- "ATHENA_2013_03_-DR-RC-SH+LANL_Sequences"#
+		infiletree				<- paste(infile,"examlbs500",sep="_")#
+		insignat				<- "Wed_Dec_18_11:37:00_2013"							#
+		clu.infilexml.opt		<- "clrh80"#
+		clu.infilexml.template	<- "sasky_sdr06fr"	#
+		outfile					<- paste(infile,'_Ac=MY_D=35_sasky',sep='')#
+	}#
+	if(0)#
+	{		#
+		method					<- '3g'#
+		method.recentctime		<- '2011-01-01'#
+		method.nodectime		<- 'any'#
+		method.risk				<- 'm2B1st.cas'#
+		method.PDT				<- 'SEQ'#
+		infile					<- "ATHENA_2013_03_-DR-RC-SH+LANL_Sequences"#
+		infiletree				<- paste(infile,"examlbs500",sep="_")#
+		insignat				<- "Wed_Dec_18_11:37:00_2013"							#
+		clu.infilexml.opt		<- "clrh80"#
+		clu.infilexml.template	<- "sasky_sdr06fr"	#
+		outfile					<- paste(infile,'_Ac=MY_D=35_sasky',sep='')#
+	}	#
+	if(1)#
+	{		#
+		method					<- '3k'#
+		method.recentctime		<- '2011-01-01'#
+		method.nodectime		<- 'any'#
+		method.risk				<- 'm2Bwmx.tp4'#
+		method.Acute			<- 'higher'	#'central'#'empirical'#
+		method.minQLowerU		<- 0.01#
+		method.brl.bwhost		<- 2#
+		method.lRNA.supp		<- 51#
+		method.thresh.pcoal		<- 0.3#
+		method.minLowerUWithNegT<- 1#
+		method.PDT				<- 'SEQ'	# 'PDT'		#
+		infile					<- "ATHENA_2013_03_-DR-RC-SH+LANL_Sequences"#
+		infiletree				<- paste(infile,"examlbs500",sep="_")#
+		insignat				<- "Wed_Dec_18_11:37:00_2013"							#
+		clu.infilexml.opt		<- "clrh80"#
+		clu.infilexml.template	<- "sasky_sdr06fr"	#
+		outfile					<- paste(infile,'_Ac=MY_D=35_sasky',sep='')#
+	}#
+	if(0)#
+	{		#
+		method					<- '3j'#
+		method.recentctime		<- '2011-01-01'#
+		method.nodectime		<- 'any'#
+		method.risk				<- 'm2Bt.cas'# 'm2Bt.cas'# 'm2Bt.tp3'# 'm2B1st.cas'# 'm5.tA' ##
+		method.PDT				<- 'SEQ'	# 'PDT'		#
+		infile					<- "ATHENA_2013_03_-DR-RC-SH+LANL_Sequences"#
+		infiletree				<- paste(infile,"examlbs500",sep="_")#
+		insignat				<- "Wed_Dec_18_11:37:00_2013"							#
+		clu.infilexml.opt		<- "clrh80"#
+		clu.infilexml.template	<- "sasky_sdr06fr"	#
+		outfile					<- paste(infile,'_Ac=MY_D=35_sasky',sep='')#
+	}
+clu.infile			<- infile#
+	clu.indir			<- indir#
+	clu.insignat		<- insignat	#
+	t.recent.endctime	<- hivc.db.Date2numeric(as.Date(method.recentctime))	#
+	t.recent.endctime	<- floor(t.recent.endctime) + floor( (t.recent.endctime%%1)*100 %/% (t.period*100) ) * t.period	#
+	outfile				<- paste( outfile, ifelse(t.recent.endctime==t.endctime,'',paste('_',t.recent.endctime,sep='')), sep='')#
+	if(verbose)#
+	{#
+		print(indir)#
+		print(infile)#
+		print(insignat)#
+		print(indircov)#
+		print(infile.cov.study)#
+		print(infiletree)#
+		print(clu.infilexml.opt)#
+		print(clu.infilexml.template)#
+		print(outdir)#
+		print(outfile)#
+		print(method)#
+		print(method.risk)#
+		print(method.nodectime)#
+		print(method.PDT)#
+		print(method.Acute)#
+		print(method.minQLowerU)#
+		print(method.brl.bwhost)#
+		print(method.lRNA.supp)#
+		print(method.thresh.pcoal)#
+		print(method.minLowerUWithNegT)#
+	}	#
+	if(method.nodectime=='any')#
+		method				<- paste(method,'a',sep='')#
+	if(method.nodectime=='map')#
+		method				<- paste(method,'m',sep='')	#
+	if(method.brl.bwhost>1)#
+		method				<- paste(method, method.brl.bwhost, sep='')#
+	if(method.Acute=='empirical')#
+	{#
+		dur.Acute			<- c(Yes= 365/2, Maybe=320)	#
+	}	#
+	if(method.Acute=='central')#
+	{#
+		dur.Acute			<- c(Yes= 2.9*30, Maybe=2.9*30)#
+		method				<- paste(method,'C',sep='')#
+	}#
+	if(method.Acute=='lower')#
+	{#
+		dur.Acute			<- c(Yes= 1.23*30, Maybe=1.23*30)#
+		method				<- paste(method,'L',sep='')#
+	}#
+	if(method.Acute=='higher')#
+	{#
+		dur.Acute			<- c(Yes= 5.28*30, Maybe=5.28*30)#
+		method				<- paste(method,'H',sep='')#
+	}		#
+	if(method.minQLowerU!=0.01)#
+		method				<- paste(method, method.minQLowerU*10,sep='')	#
+	if(method.minQLowerU==0)#
+		method				<- paste(method,'m',sep='')#
+	if(method.thresh.pcoal!=0.5)#
+		method				<- paste(method,'C',method.thresh.pcoal*10,sep='')	#
+	if(method.lRNA.supp<1e3)#
+		method				<- paste(method,'V',method.lRNA.supp,sep='')#
+	if(!method.minLowerUWithNegT)#
+		method				<- paste(method,'N',method.minLowerUWithNegT,sep='')#
+	adjust.AcuteByNegT		<- 1#
+	any.pos.grace.yr		<- Inf	#
+	method.lRNA.supp		<- log10(method.lRNA.supp)
+X.tables			<- NULL#
+	if(1)#
+	{#
+		save.file		<- NA#
+		if(grepl('m21st',method.risk))		save.file	<- 'm21st'#
+		if(grepl('m2B1st',method.risk))		save.file	<- 'm2B1st'#
+		if(grepl('m2t',method.risk))		save.file	<- 'm2t'#
+		if(grepl('m2Bt',method.risk))		save.file	<- 'm2Bt'#
+		if(grepl('m2wmx',method.risk))		save.file	<- 'm2wmx'#
+		if(grepl('m2Bwmx',method.risk))		save.file	<- 'm2Bwmx'#
+		if(grepl('m2Cwmx',method.risk))		save.file	<- 'm2Cwmx'#
+		if(grepl('m3.n3mx',method.risk) & !grepl('No',method.risk))								save.file	<- 'm3.n3mx'#
+		if(grepl('m3.ind',method.risk) & !grepl('No',method.risk))								save.file	<- 'm3.ind'#
+		if(grepl('m3.ind',method.risk) & grepl('No',method.risk))								save.file	<- 'm3.indNo'#
+		if(grepl('m3.indmx',method.risk) & !grepl('No',method.risk))							save.file	<- 'm3.indmx'#
+		if(grepl('m3.indmx',method.risk) & grepl('No',method.risk))								save.file	<- 'm3.indmxNo'#
+		if(grepl('m3.nnrtpiNo',method.risk))													save.file	<- 'm3.nnrtpiNo'#
+		if(grepl('m4.Bwmx',method.risk))	save.file	<- 'm4.Bwmx'#
+		if(grepl('m5.tA',method.risk))		save.file	<- 'm5.tA'#
+		if(grepl('m5.tAb',method.risk))		save.file	<- 'm5.tAb'#
+		if(grepl('m5.tAc',method.risk))		save.file	<- 'm5.tAc'#
+		if(grepl('m5.tiA',method.risk))		save.file	<- 'm5.tiA'#
+		if(grepl('m5.tiAb',method.risk))	save.file	<- 'm5.tiAb'#
+		if(grepl('m5.tiAc',method.risk))	save.file	<- 'm5.tiAc'#
+		if(is.na(save.file))	stop('unknown method.risk')				#
+		tmp				<- regmatches(method.risk, regexpr('tp[0-9]', method.risk))		#
+		save.file		<- paste(save.file, ifelse(length(tmp), paste('.',tmp,sep=''), ''), sep='')#
+		save.file		<- paste(outdir,'/',outfile, '_', gsub('/',':',insignat), '_', 'Yscore',method,'_tables',method.PDT,'_',save.file,'.R',sep='')#
+		X.tables		<- project.athena.Fisheretal.estimate.risk.table(YX=NULL, X.den=NULL, X.msm=NULL, X.clu=NULL, resume=TRUE, save.file=save.file, method=method.risk)#
+		if(!is.null(X.tables))#
+		{#
+			cat('\nloaded X.tables')#
+			##	sense check that risk factors have been correctly computed#
+			nt.table	<- copy(X.tables$nt.table.pt)#
+			nt.table	<- dcast.data.table(nt.table, t.Patient + risk + factor ~ stat, value.var="nt")		#
+			tmp			<- nt.table[, which(X.seq>X.msm)]#
+			if(length(tmp))	cat(paste('\nWARNING: X.seq>X.msm for entries n=',length(tmp)))#
+			#stopifnot(length(tmp)==0)			#
+			tmp			<- nt.table[, which(X.clu>X.seq)]#
+			if(length(tmp))	cat(paste('\nWARNING: X.clu>X.seq for entries n=',length(tmp)))#
+			#stopifnot(length(tmp)==0)		#
+			tmp			<- nt.table[, which(YX>X.clu)]#
+			if(length(tmp))	cat(paste('\nWARNING: YX>X.clu for entries n=',length(tmp)))#
+			#stopifnot(length(tmp)==0)	#there s one recipient that is just on the boundary for m2Bwmx.tp1 - let pass		#
+			nt.table	<- NULL#
+		}#
+	}#
+	##
+	#	get rough idea about (backward) time to infection from time to diagnosis, taking midpoint of SC interval as 'training data'#
+	##
+	plot.file		<- paste(outdir,'/',outfile, '_', gsub('/',':',insignat), '_', 't2inf',method.PDT,method,sep='')#
+	tmp				<- project.athena.Fisheretal.t2inf(	indircov, infile.cov.study,#
+														method.Acute=method.Acute, method.minQLowerU=method.minQLowerU,#
+														adjust.AcuteByNegT=0.75, adjust.dt.CD4=1, adjust.AnyPos_y=2003, adjust.NegT=2, dur.AcuteYes=dur.Acute['Yes'], dur.AcuteMaybe=dur.Acute['Maybe'], t.recent.endctime=t.recent.endctime, #
+														plot.file=plot.file)#
+	predict.t2inf	<- tmp$predict.t2inf#
+	t2inf.args		<- tmp$t2inf.args#
+	##
+	#	get data relating to study population (subtype B sequ)#
+	##
+	tmp				<- project.athena.Fisheretal.select.denominator(indir, infile, insignat, indircov, infile.cov.study, infile.viro.study, infile.immu.study, infile.treatment.study, infiletree=infiletree, adjust.AcuteByNegT=adjust.AcuteByNegT, adjust.NegT4Acute=NA, adjust.NegTByDetectability=0.25, adjust.minSCwindow=0.25, adjust.AcuteSelect=c('Yes','Maybe'), t.recent.endctime=t.recent.endctime, t.recent.startctime=t.recent.startctime)	#
+	df.all			<- tmp$df.all	#
+	df.denom.CLU	<- tmp$df.select#
+	df.denom.SEQ	<- tmp$df.select.SEQ#
+	ri.CLU			<- unique(subset(df.denom.CLU, select=Patient))#
+	ri.SEQ			<- unique(subset(df.denom.SEQ, select=Patient))#
+	df.viro			<- tmp$df.viro#
+	df.immu			<- tmp$df.immu#
+	df.treatment	<- tmp$df.treatment	#
+	clumsm.subtrees	<- tmp$clumsm.subtrees#
+	clumsm.info		<- tmp$clumsm.info#
+	clumsm.ph		<- tmp$clumsm.ph#
+	setkey(clumsm.info, cluster)
+method
+require(reshape2)#
+	require(data.table)#
+	require(ape)#
+	#stop()#
+	indir					<- paste(DATA,"fisheretal_data",sep='/')		#
+	indircov				<- paste(DATA,"fisheretal_data",sep='/')#
+	outdir					<- paste(DATA,"fisheretal",sep='/')#
+	infile.cov.study		<- "ATHENA_2013_03_AllSeqPatientCovariates"#
+	infile.viro.study		<- paste(indircov,"ATHENA_2013_03_Viro.R",sep='/')#
+	infile.immu.study		<- paste(indircov,"ATHENA_2013_03_Immu.R",sep='/')#
+	infile.treatment.study	<- paste(indircov,"ATHENA_2013_03_Regimens.R",sep='/')#
+	infile.cov.all			<- "ATHENA_2013_03_AllSeqPatientCovariates_AllMSM"#
+	infile.viro.all			<- paste(indircov,"ATHENA_2013_03_Viro_AllMSM.R",sep='/')#
+	infile.immu.all			<- paste(indircov,"ATHENA_2013_03_Immu_AllMSM.R",sep='/')#
+	infile.treatment.all	<- paste(indircov,"ATHENA_2013_03_Regimens_AllMSM.R",sep='/')		#
+	t.period				<- 1/8#
+	t.recent.startctime		<- hivc.db.Date2numeric(as.Date("1996-07-15"))#
+	t.recent.startctime		<- floor(t.recent.startctime) + floor( (t.recent.startctime%%1)*100 %/% (t.period*100) ) * t.period#
+	t.endctime				<- hivc.db.Date2numeric(as.Date("2013-03-01"))	#
+	t.endctime				<- floor(t.endctime) + floor( (t.endctime%%1)*100 %/% (t.period*100) ) * t.period#
+	resume					<- 1#
+	verbose					<- 1#
+	if(0)#
+	{#
+		method					<- '3c'#
+		method.recentctime		<- '2013-03-01'#
+		method.nodectime		<- 'any'#
+		method.risk				<- 'm21st.cas'#
+		method.PDT				<- 'SEQ'#
+		infile					<- "ATHENA_2013_03_-DR-RC-SH+LANL_Sequences"#
+		infiletree				<- paste(infile,"examlbs500",sep="_")#
+		insignat				<- "Wed_Dec_18_11:37:00_2013"					#
+		clu.infilexml.opt		<- "mph4clutx4tip"#
+		clu.infilexml.template	<- "um192rhU2080"	#
+		outfile					<- paste(infile,'_Ac=MY_D=35_gmrf',sep='')#
+	}#
+	if(0)#
+	{#
+		method					<- '3d'#
+		method.recentctime		<- '2011-01-01'#
+		method.nodectime		<- 'any'#
+		method.risk				<- 'm21st.cas'#
+		method.PDT				<- 'SEQ'#
+		infile					<- "ATHENA_2013_03_-DR-RC-SH+LANL_Sequences"#
+		infiletree				<- paste(infile,"examlbs500",sep="_")#
+		insignat				<- "Wed_Dec_18_11:37:00_2013"					#
+		clu.infilexml.opt		<- "mph4clutx4tip"#
+		clu.infilexml.template	<- "um192rhU2080"	#
+		outfile					<- paste(infile,'_Ac=MY_D=35_gmrf',sep='')#
+	}	#
+	if(0)#
+	{		#
+		method					<- '3d'#
+		method.recentctime		<- '2013-03-01'#
+		method.nodectime		<- 'any'#
+		method.risk				<- 'm2B1st.cas'#
+		method.PDT				<- 'SEQ'#
+		infile					<- "ATHENA_2013_03_-DR-RC-SH+LANL_Sequences"#
+		infiletree				<- paste(infile,"examlbs500",sep="_")#
+		insignat				<- "Wed_Dec_18_11:37:00_2013"							#
+		clu.infilexml.opt		<- "clrh80"#
+		clu.infilexml.template	<- "sasky_sdr06fr"	#
+		outfile					<- paste(infile,'_Ac=MY_D=35_sasky',sep='')#
+	}	#
+	if(0)#
+	{		#
+		method					<- '3e'#
+		method.recentctime		<- '2011-01-01'#
+		method.nodectime		<- 'any'#
+		method.risk				<- 'm2B1st.cas'#
+		method.PDT				<- 'SEQ'#
+		infile					<- "ATHENA_2013_03_-DR-RC-SH+LANL_Sequences"#
+		infiletree				<- paste(infile,"examlbs500",sep="_")#
+		insignat				<- "Wed_Dec_18_11:37:00_2013"							#
+		clu.infilexml.opt		<- "clrh80"#
+		clu.infilexml.template	<- "sasky_sdr06fr"	#
+		outfile					<- paste(infile,'_Ac=MY_D=35_sasky',sep='')#
+	}#
+	if(0)#
+	{		#
+		method					<- '3f'#
+		method.recentctime		<- '2011-01-01'#
+		method.nodectime		<- 'any'#
+		method.risk				<- 'm2B1st.cas'#
+		method.PDT				<- 'SEQ'#
+		infile					<- "ATHENA_2013_03_-DR-RC-SH+LANL_Sequences"#
+		infiletree				<- paste(infile,"examlbs500",sep="_")#
+		insignat				<- "Wed_Dec_18_11:37:00_2013"							#
+		clu.infilexml.opt		<- "clrh80"#
+		clu.infilexml.template	<- "sasky_sdr06fr"	#
+		outfile					<- paste(infile,'_Ac=MY_D=35_sasky',sep='')#
+	}#
+	if(0)#
+	{		#
+		method					<- '3g'#
+		method.recentctime		<- '2011-01-01'#
+		method.nodectime		<- 'any'#
+		method.risk				<- 'm2B1st.cas'#
+		method.PDT				<- 'SEQ'#
+		infile					<- "ATHENA_2013_03_-DR-RC-SH+LANL_Sequences"#
+		infiletree				<- paste(infile,"examlbs500",sep="_")#
+		insignat				<- "Wed_Dec_18_11:37:00_2013"							#
+		clu.infilexml.opt		<- "clrh80"#
+		clu.infilexml.template	<- "sasky_sdr06fr"	#
+		outfile					<- paste(infile,'_Ac=MY_D=35_sasky',sep='')#
+	}	#
+	if(1)#
+	{		#
+		method					<- '3k'#
+		method.recentctime		<- '2011-01-01'#
+		method.nodectime		<- 'any'#
+		method.risk				<- 'm2Bwmx.tp4'#
+		method.Acute			<- 'higher'	#'central'#'empirical'#
+		method.minQLowerU		<- 0.03#
+		method.brl.bwhost		<- 2#
+		method.lRNA.supp		<- 51#
+		method.thresh.pcoal		<- 0.3#
+		method.minLowerUWithNegT<- 1#
+		method.PDT				<- 'SEQ'	# 'PDT'		#
+		infile					<- "ATHENA_2013_03_-DR-RC-SH+LANL_Sequences"#
+		infiletree				<- paste(infile,"examlbs500",sep="_")#
+		insignat				<- "Wed_Dec_18_11:37:00_2013"							#
+		clu.infilexml.opt		<- "clrh80"#
+		clu.infilexml.template	<- "sasky_sdr06fr"	#
+		outfile					<- paste(infile,'_Ac=MY_D=35_sasky',sep='')#
+	}#
+	if(0)#
+	{		#
+		method					<- '3j'#
+		method.recentctime		<- '2011-01-01'#
+		method.nodectime		<- 'any'#
+		method.risk				<- 'm2Bt.cas'# 'm2Bt.cas'# 'm2Bt.tp3'# 'm2B1st.cas'# 'm5.tA' ##
+		method.PDT				<- 'SEQ'	# 'PDT'		#
+		infile					<- "ATHENA_2013_03_-DR-RC-SH+LANL_Sequences"#
+		infiletree				<- paste(infile,"examlbs500",sep="_")#
+		insignat				<- "Wed_Dec_18_11:37:00_2013"							#
+		clu.infilexml.opt		<- "clrh80"#
+		clu.infilexml.template	<- "sasky_sdr06fr"	#
+		outfile					<- paste(infile,'_Ac=MY_D=35_sasky',sep='')#
+	}
+clu.infile			<- infile#
+	clu.indir			<- indir#
+	clu.insignat		<- insignat	#
+	t.recent.endctime	<- hivc.db.Date2numeric(as.Date(method.recentctime))	#
+	t.recent.endctime	<- floor(t.recent.endctime) + floor( (t.recent.endctime%%1)*100 %/% (t.period*100) ) * t.period	#
+	outfile				<- paste( outfile, ifelse(t.recent.endctime==t.endctime,'',paste('_',t.recent.endctime,sep='')), sep='')#
+	if(verbose)#
+	{#
+		print(indir)#
+		print(infile)#
+		print(insignat)#
+		print(indircov)#
+		print(infile.cov.study)#
+		print(infiletree)#
+		print(clu.infilexml.opt)#
+		print(clu.infilexml.template)#
+		print(outdir)#
+		print(outfile)#
+		print(method)#
+		print(method.risk)#
+		print(method.nodectime)#
+		print(method.PDT)#
+		print(method.Acute)#
+		print(method.minQLowerU)#
+		print(method.brl.bwhost)#
+		print(method.lRNA.supp)#
+		print(method.thresh.pcoal)#
+		print(method.minLowerUWithNegT)#
+	}	#
+	if(method.nodectime=='any')#
+		method				<- paste(method,'a',sep='')#
+	if(method.nodectime=='map')#
+		method				<- paste(method,'m',sep='')	#
+	if(method.brl.bwhost>1)#
+		method				<- paste(method, method.brl.bwhost, sep='')#
+	if(method.Acute=='empirical')#
+	{#
+		dur.Acute			<- c(Yes= 365/2, Maybe=320)	#
+	}	#
+	if(method.Acute=='central')#
+	{#
+		dur.Acute			<- c(Yes= 2.9*30, Maybe=2.9*30)#
+		method				<- paste(method,'C',sep='')#
+	}#
+	if(method.Acute=='lower')#
+	{#
+		dur.Acute			<- c(Yes= 1.23*30, Maybe=1.23*30)#
+		method				<- paste(method,'L',sep='')#
+	}#
+	if(method.Acute=='higher')#
+	{#
+		dur.Acute			<- c(Yes= 5.28*30, Maybe=5.28*30)#
+		method				<- paste(method,'H',sep='')#
+	}		#
+	if(method.minQLowerU!=0.01)#
+		method				<- paste(method, method.minQLowerU*10,sep='')	#
+	if(method.minQLowerU==0)#
+		method				<- paste(method,'m',sep='')#
+	if(method.thresh.pcoal!=0.5)#
+		method				<- paste(method,'C',method.thresh.pcoal*10,sep='')	#
+	if(method.lRNA.supp<1e3)#
+		method				<- paste(method,'V',method.lRNA.supp,sep='')#
+	if(!method.minLowerUWithNegT)#
+		method				<- paste(method,'N',method.minLowerUWithNegT,sep='')#
+	adjust.AcuteByNegT		<- 1#
+	any.pos.grace.yr		<- Inf	#
+	method.lRNA.supp		<- log10(method.lRNA.supp)
+X.tables			<- NULL#
+	if(1)#
+	{#
+		save.file		<- NA#
+		if(grepl('m21st',method.risk))		save.file	<- 'm21st'#
+		if(grepl('m2B1st',method.risk))		save.file	<- 'm2B1st'#
+		if(grepl('m2t',method.risk))		save.file	<- 'm2t'#
+		if(grepl('m2Bt',method.risk))		save.file	<- 'm2Bt'#
+		if(grepl('m2wmx',method.risk))		save.file	<- 'm2wmx'#
+		if(grepl('m2Bwmx',method.risk))		save.file	<- 'm2Bwmx'#
+		if(grepl('m2Cwmx',method.risk))		save.file	<- 'm2Cwmx'#
+		if(grepl('m3.n3mx',method.risk) & !grepl('No',method.risk))								save.file	<- 'm3.n3mx'#
+		if(grepl('m3.ind',method.risk) & !grepl('No',method.risk))								save.file	<- 'm3.ind'#
+		if(grepl('m3.ind',method.risk) & grepl('No',method.risk))								save.file	<- 'm3.indNo'#
+		if(grepl('m3.indmx',method.risk) & !grepl('No',method.risk))							save.file	<- 'm3.indmx'#
+		if(grepl('m3.indmx',method.risk) & grepl('No',method.risk))								save.file	<- 'm3.indmxNo'#
+		if(grepl('m3.nnrtpiNo',method.risk))													save.file	<- 'm3.nnrtpiNo'#
+		if(grepl('m4.Bwmx',method.risk))	save.file	<- 'm4.Bwmx'#
+		if(grepl('m5.tA',method.risk))		save.file	<- 'm5.tA'#
+		if(grepl('m5.tAb',method.risk))		save.file	<- 'm5.tAb'#
+		if(grepl('m5.tAc',method.risk))		save.file	<- 'm5.tAc'#
+		if(grepl('m5.tiA',method.risk))		save.file	<- 'm5.tiA'#
+		if(grepl('m5.tiAb',method.risk))	save.file	<- 'm5.tiAb'#
+		if(grepl('m5.tiAc',method.risk))	save.file	<- 'm5.tiAc'#
+		if(is.na(save.file))	stop('unknown method.risk')				#
+		tmp				<- regmatches(method.risk, regexpr('tp[0-9]', method.risk))		#
+		save.file		<- paste(save.file, ifelse(length(tmp), paste('.',tmp,sep=''), ''), sep='')#
+		save.file		<- paste(outdir,'/',outfile, '_', gsub('/',':',insignat), '_', 'Yscore',method,'_tables',method.PDT,'_',save.file,'.R',sep='')#
+		X.tables		<- project.athena.Fisheretal.estimate.risk.table(YX=NULL, X.den=NULL, X.msm=NULL, X.clu=NULL, resume=TRUE, save.file=save.file, method=method.risk)#
+		if(!is.null(X.tables))#
+		{#
+			cat('\nloaded X.tables')#
+			##	sense check that risk factors have been correctly computed#
+			nt.table	<- copy(X.tables$nt.table.pt)#
+			nt.table	<- dcast.data.table(nt.table, t.Patient + risk + factor ~ stat, value.var="nt")		#
+			tmp			<- nt.table[, which(X.seq>X.msm)]#
+			if(length(tmp))	cat(paste('\nWARNING: X.seq>X.msm for entries n=',length(tmp)))#
+			#stopifnot(length(tmp)==0)			#
+			tmp			<- nt.table[, which(X.clu>X.seq)]#
+			if(length(tmp))	cat(paste('\nWARNING: X.clu>X.seq for entries n=',length(tmp)))#
+			#stopifnot(length(tmp)==0)		#
+			tmp			<- nt.table[, which(YX>X.clu)]#
+			if(length(tmp))	cat(paste('\nWARNING: YX>X.clu for entries n=',length(tmp)))#
+			#stopifnot(length(tmp)==0)	#there s one recipient that is just on the boundary for m2Bwmx.tp1 - let pass		#
+			nt.table	<- NULL#
+		}#
+	}
+plot.file		<- paste(outdir,'/',outfile, '_', gsub('/',':',insignat), '_', 't2inf',method.PDT,method,sep='')#
+	tmp				<- project.athena.Fisheretal.t2inf(	indircov, infile.cov.study,#
+														method.Acute=method.Acute, method.minQLowerU=method.minQLowerU,#
+														adjust.AcuteByNegT=0.75, adjust.dt.CD4=1, adjust.AnyPos_y=2003, adjust.NegT=2, dur.AcuteYes=dur.Acute['Yes'], dur.AcuteMaybe=dur.Acute['Maybe'], t.recent.endctime=t.recent.endctime, #
+														plot.file=plot.file)#
+	predict.t2inf	<- tmp$predict.t2inf#
+	t2inf.args		<- tmp$t2inf.args#
+	##
+	#	get data relating to study population (subtype B sequ)#
+	##
+	tmp				<- project.athena.Fisheretal.select.denominator(indir, infile, insignat, indircov, infile.cov.study, infile.viro.study, infile.immu.study, infile.treatment.study, infiletree=infiletree, adjust.AcuteByNegT=adjust.AcuteByNegT, adjust.NegT4Acute=NA, adjust.NegTByDetectability=0.25, adjust.minSCwindow=0.25, adjust.AcuteSelect=c('Yes','Maybe'), t.recent.endctime=t.recent.endctime, t.recent.startctime=t.recent.startctime)	#
+	df.all			<- tmp$df.all	#
+	df.denom.CLU	<- tmp$df.select#
+	df.denom.SEQ	<- tmp$df.select.SEQ#
+	ri.CLU			<- unique(subset(df.denom.CLU, select=Patient))#
+	ri.SEQ			<- unique(subset(df.denom.SEQ, select=Patient))#
+	df.viro			<- tmp$df.viro#
+	df.immu			<- tmp$df.immu#
+	df.treatment	<- tmp$df.treatment	#
+	clumsm.subtrees	<- tmp$clumsm.subtrees#
+	clumsm.info		<- tmp$clumsm.info#
+	clumsm.ph		<- tmp$clumsm.ph#
+	setkey(clumsm.info, cluster)#
+	##
+	#	get data relating to full population (MSM including those without seq)#
+	#	this merges the patients with HIV 1 B sequences and the MSM patients without a sequence #
+	tmp					<- project.athena.Fisheretal.select.denominator(	indir, infile, insignat, indircov, infile.cov.all, infile.viro.all, infile.immu.all, infile.treatment.all, #
+																			infiletree=NULL, adjust.AcuteByNegT=adjust.AcuteByNegT, adjust.NegT4Acute=NA, adjust.NegTByDetectability=0.25, adjust.minSCwindow=0.25, adjust.AcuteSelect=c('Yes','Maybe'), #
+																			t.recent.endctime=t.recent.endctime, t.recent.startctime=t.recent.startctime,#
+																			df.viro.part=df.viro, df.immu.part=df.immu, df.treatment.part=df.treatment, df.all.part=df.all)	#
+	df.all.allmsm		<- tmp$df.all#
+	df.viro.allmsm		<- tmp$df.viro#
+	df.immu.allmsm		<- tmp$df.immu#
+	df.treatment.allmsm	<- tmp$df.treatment#
+	tmp					<- tmp$df.select.SEQ#
+	setkey(tmp, Patient)#
+	ri.ALLMSM			<- unique(tmp)	#
+	##
+	if(0)#
+	{#
+		files		<- list.files(clu.indir)#
+		if(!length(files))	stop('no input files matching criteria')#
+		files		<- files[ sapply(files, function(x) grepl(clu.infile, x, fixed=1) & grepl(gsub('/',':',clu.insignat), x, fixed=1) & grepl(clu.infilexml.opt, x, fixed=1) & grepl(clu.infilexml.template,x, fixed=1) & grepl('_cluposterior_[0-9]+',x) & grepl('R$',x) ) ]		#
+		if(!length(files))	stop('no input files matching criteria')#
+		tmp			<- regmatches( files, regexpr('_cluposterior_[0-9]+',files)) #
+		cluster		<- as.numeric( regmatches(tmp, regexpr('[0-9]+',tmp))	)#
+		file.info	<- data.table(file=files, cluster=cluster)#
+		setkey(file.info, cluster)#
+		clu.missing	<- sort( setdiff( clumsm.info[,unique(cluster)], file.info[,cluster] ) )#
+		clu.missing	<- unique( subset( clumsm.info, cluster%in%clu.missing, c(cluster, clu.npat, clu.ntip) ) )#
+		setkey(clu.missing, cluster)		#
+	}#
+	##
+	#	select potential transmitters within same cluster#
+	##
+	df.tpairs		<- project.athena.Fisheretal.select.transmitters.by.B4WindowAnyPos(clumsm.info, df.denom.CLU, any.pos.grace.yr= any.pos.grace.yr, select.if.transmitter.seq.unique=FALSE)	#
+	#df.tpairs		<- project.athena.Fisheretal.select.transmitters.by.B4WindowAnyPos.MinBrlMLETree(df.denom, clumsm.subtrees, any.pos.grace.yr= 2)#
+	#	#
+	#	plot MLE tree#
+	##
+	if(0)#
+	{#
+		tmp								<- merge( data.table( cluster=as.numeric( names(clumsm.subtrees) ), clu.i=seq_along(clumsm.subtrees) ), df.tpairs, by='cluster' )#
+		df.tpairs.subtrees 				<- lapply( tmp[, unique(clu.i)], function(i)	clumsm.subtrees[[i]] )#
+		df.tpairs.mleph					<- hivc.clu.polyphyletic.clusters(cluphy.subtrees=df.tpairs.subtrees)$cluphy#
+		df.tpairs.info	<- merge( data.table(FASTASampleCode= df.tpairs.mleph$tip.label), subset(clumsm.info, select=c(FASTASampleCode, Patient, cluster, AnyPos_T1)), by='FASTASampleCode' )#
+		df.tpairs.info[, tiplabel:='']#
+		tmp				<- which( df.tpairs.info[, FASTASampleCode]%in%df.tpairs[, FASTASampleCode] )#
+		set(df.tpairs.info, tmp, 'tiplabel', paste('I',df.tpairs.info[tmp,tiplabel],sep='') )#
+		tmp				<- which( df.tpairs.info[, FASTASampleCode]%in%df.tpairs[, t.FASTASampleCode] )#
+		set(df.tpairs.info, tmp, 'tiplabel', paste('T',df.tpairs.info[tmp,tiplabel],sep='') )	#
+		set(df.tpairs.info, NULL, 'tiplabel', paste(df.tpairs.info[,tiplabel],'_',df.tpairs.info[,Patient],'_clu=',df.tpairs.info[,cluster],'_d=',df.tpairs.info[,AnyPos_T1],sep='') )#
+		setkey(df.tpairs.info, FASTASampleCode)#
+		df.tpairs.mleph$tip.label		<- df.tpairs.info[df.tpairs.mleph$tip.label, ][, tiplabel]#
+		file							<- paste(outdir,'/',outfile, '_', gsub('/',':',insignat), '_', 'MLEtree.pdf',sep='')#
+		pdf(file=file, w=8, h=200)#
+		plot.phylo(df.tpairs.mleph, show.node.label=1, cex=0.4, no.margin=1, label.offset=0.005, edge.width=0.5)#
+		dev.off()#
+	}			#
+	#	plot number of potential transmitters#
+	if(0)#
+	{#
+		tmp				<- merge( subset(df.tpairs, select=Patient), subset(df.denom.CLU, select=c(Patient, AnyPos_T1)), by='Patient' )#
+		file			<- paste(outdir,'/',outfile, '_', gsub('/',':',insignat), '_', 'nrecentlyinfected', '.pdf',sep='')#
+		pdf(file=file, w=5, h=5)#
+		par(mar=c(3,5,0.5,0.5))#
+		barplot( table( tmp[, round(AnyPos_T1)] ), ylab="# recently infected\n with unique potential transmitter" )#
+		dev.off()	#
+	}	#
+	##
+	#	get time stamped data (if clusters missing, confine df.tpairs to available clusters)#
+	##
+	tmp						<- project.athena.Fisheretal.get.dated.phylo.for.selection(df.tpairs, clu.indir, clu.infile, clu.insignat, clu.infilexml.opt, clu.infilexml.template, method.nodectime=method.nodectime)#
+	cluphy.map.nodectime	<- tmp$clu$cluphy.map.nodectime#
+	cluphy.subtrees			<- tmp$clu$cluphy.subtrees#
+	cluphy.info				<- tmp$clu$cluphy.info#
+	cluphy					<- tmp$clu$cluphy	#
+	if(0)#
+	{#
+		#	anonymize#
+		setkey(clumsm.info, cluster, AnyPos_T1)#
+		tmp						<- unique(subset(clumsm.info, select=Patient))#
+		set(tmp, NULL, 'PatientA', paste('P',seq_len(nrow(tmp)),sep=''))#
+		clumsm.info				<- merge(clumsm.info, tmp, by='Patient')#
+		outfile					<- paste(indir,'/',infile, '_', clu.infilexml.template, '_', clu.infilexml.opt, '_', gsub('/',':',insignat), '_', 'pt_anypos_3.5_anynodectime', '.pdf',sep='')	#
+		project.athena.Fisheretal.plot.selected.transmitters(clumsm.info, df.immu, df.viro, df.treatment, df.tpairs, cluphy, cluphy.info, cluphy.subtrees, cluphy.map.nodectime, outfile, pdf.height=900)		#
+	}#
+	##
+	#	get timelines for the candidate transmitters in ATHENA.clu to the recently infected RI.PT; remove zero scores#
+	##
+	resume			<- 1	#
+	save.file		<- paste(outdir,'/',outfile, '_', gsub('/',':',insignat), '_', 'RICT',method.PDT,'_',method,'_tATHENAclu','.R',sep='')
+lRNA.supp=method.lRNA.supp; method.minLowerUWithNegT=method.minLowerUWithNegT
+ri			<- unique(subset(df.tpairs, select=Patient))#
+		X.incare				<- project.athena.Fisheretal.X.incare(df.tpairs, df.all, df.viro, df.immu, df.treatment, lRNA.supp=lRNA.supp, t.period=t.period, t.endctime=t.endctime)#
+		X.incare				<- project.athena.Fisheretal.X.nocontact(X.incare, df.viro, df.immu, df.tpairs, df.all, contact.grace=0.5, t.period=t.period, t.endctime= t.endctime)		#
+		X.incare				<- project.athena.Fisheretal.X.CDCC(X.incare, df.tpairs, df.all, t.period=t.period, t.endctime=t.endctime)#
+		X.incare				<- project.athena.Fisheretal.X.followup(X.incare, df.all, df.immu, t.period=t.period, t.endctime=t.endctime)#
+		X.b4care				<- project.athena.Fisheretal.X.b4care(df.tpairs, df.all, predict.t2inf, t2inf.args, t.period=t.period, method.minLowerUWithNegT=method.minLowerUWithNegT)#
+		tmp						<- merge(X.incare, X.b4care, by=c('t.Patient','t'))#
+		cat(paste('\nnumber entries (Patient,t) that overlap in and before care [should be zero], n=',nrow(tmp)))		#
+		X.pt					<- merge(X.incare, X.b4care, by=c('t.Patient','t'), all.x=1, all.y=1)#
+		set(X.pt, X.pt[,which(is.na(stage))], 'stage', 'U')							#
+		X.pt[, AnyT_T1:=NULL]#
+		X.pt[, AnyPos_T1:=NULL]#
+		X.pt[, AnyPos_a:=NULL]#
+		X.pt[, isAcute:=NULL]#
+		tmp						<- unique(subset( df.all, select=c(Patient, DateBorn, AnyPos_T1, AnyT_T1, isAcute) ))#
+		set(tmp, NULL, 'DateBorn', tmp[, AnyPos_T1-DateBorn])#
+		setnames( tmp, 'DateBorn', 'AnyPos_a')#
+		setnames( tmp, colnames(tmp), paste('t.',colnames(tmp),sep=''))#
+		X.pt					<- merge(X.pt, tmp, by='t.Patient', allow.cartesian=TRUE)		#
+		tmp						<- project.athena.Fisheretal.X.ART.pulsed(df.tpairs, df.all, df.treatment, t.pulse.ART=0.75, t.pulse.sc=NA, t.pulse.ART.I=1, t.pulse.ART.I.d=1)#
+		X.pt					<- merge( X.pt, tmp, by='t.Patient', all.x=1 )#
+		tmp						<- project.athena.Fisheretal.X.time.diag2suppressed(df.tpairs, df.all, df.viro, lRNA.suppressed= log10(1e3), t2.vl.supp.p=c(0.1, 0.25))#
+		X.pt					<- merge( X.pt, tmp, by='t.Patient', all.x=1 )#
+		tmp						<- project.athena.Fisheretal.X.time.diag2firstVLandCD4(df.tpairs, df.all, df.viro, df.immu, t2.care.t1.q=c(0.25,0.5))	#
+		X.pt					<- merge( X.pt, tmp, by='t.Patient', all.x=1 )
+tmp	<- X.b4care[,  {#
+						z<- sapply(c(0.03, 0.04, 0.05, 0.1, 0.2), function(x) max(which(U.score>=x)) )								#
+						list(U=t[z], Q=c(0.03, 0.04, 0.05, 0.1, 0.2) , AnyPos_T1=AnyPos_T1[1], AnyPos_a=AnyPos_a[1], isAcute=isAcute[1])	#
+					}, by='t.Patient']#
+			tmp[, t2D:= tmp[, AnyPos_T1-U]]#
+			set(tmp,NULL,'Q',tmp[,factor(Q)]) #
+			tmp	<- subset(tmp, U>1996.5 & U<2011)#
+			ggplot(tmp, aes(x=U, y=t2D, colour=Q)) + geom_point(data=subset(tmp, Q==0.03), position=position_jitter(w = 0.1, h=0), alpha=0.65) + geom_smooth() +#
+					scale_y_continuous(breaks=seq(0,20,1)) + scale_x_continuous(breaks=seq(1996,2020,1)) + labs(y='time to diagnosis\n(years)', x='time of HIV infection', colour='quantile\nparameter')
+tmp	<- X.b4care[,  {#
+						z<- sapply(c(0.03, 0.05, 0.1, 0.2), function(x) max(which(U.score>=x)) )								#
+						list(U=t[z], Q=c(0.03, 0.05, 0.1, 0.2) , AnyPos_T1=AnyPos_T1[1], AnyPos_a=AnyPos_a[1], isAcute=isAcute[1])	#
+					}, by='t.Patient']#
+			tmp[, t2D:= tmp[, AnyPos_T1-U]]#
+			set(tmp,NULL,'Q',tmp[,factor(Q)]) #
+			tmp	<- subset(tmp, U>1996.5 & U<2011)#
+			ggplot(tmp, aes(x=U, y=t2D, colour=Q)) + geom_point(data=subset(tmp, Q==0.1), position=position_jitter(w = 0.1, h=0), alpha=0.65) + geom_smooth() +#
+					scale_y_continuous(breaks=seq(0,20,1)) + scale_x_continuous(breaks=seq(1996,2020,1)) + labs(y='time to diagnosis\n(years)', x='time of HIV infection', colour='quantile\nparameter')
+ggplot(tmp, aes(x=U, y=t2D, colour=Q)) + geom_point(data=subset(tmp, Q==0.1), position=position_jitter(w = 0.1, h=0), alpha=0.65) + geom_smooth() +#
+					scale_y_continuous(breaks=seq(0,20,1)) + scale_x_continuous(breaks=seq(1996,2020,1)) + labs(y='time to diagnosis\n(years)', x='time of HIV infection', colour='quantile\nparameter') +#
+					scale_colour_brewer(palette='Set1')
+ggplot(tmp, aes(x=U, y=t2D, colour=Q)) + geom_point(data=subset(tmp, Q==0.1), position=position_jitter(w = 0.1, h=0), alpha=0.65) + geom_smooth() +#
+					scale_y_continuous(breaks=seq(0,20,1)) + scale_x_continuous(breaks=seq(1996,2020,1)) + labs(y='time to diagnosis\n(years)', x='time of HIV infection', colour='quantile\nparameter') +#
+					scale_colour_brewer(palette='Set2')
+ggplot(tmp, aes(x=U, y=t2D, colour=Q)) + geom_point(data=subset(tmp, Q==0.1), position=position_jitter(w = 0.1, h=0), alpha=0.65) + geom_smooth() +#
+					scale_y_continuous(breaks=seq(0,20,1)) + scale_x_continuous(breaks=seq(1996,2020,1)) + labs(y='time to diagnosis\n(years)', x='time of HIV infection', colour='quantile\nparameter') +#
+					scale_colour_brewer(palette='Set2') + theme_bw()
+file	<- '/Users/Oliver/duke/2014_HIVMSMbyProp/fig/ATHENA_2013_03_-DR-RC-SH+LANL_Sequences_Wed_Dec_18_11:37:00_2013_2011_Time2Diag.pdf'#
+			ggsave(file=file, w=8, h=8)
+ggsave(file=file, w=8, h=6)
+seq.gag
+DATA
+setwd("/Users/Oliver/git/HPTN071sim/source/rPANGEAHIVsim"); source("misc/rPANGEAHIV.startme.R")
+require(hivclust)#
+	require(XML)#
+	require(ape)#
+	require(r3SEQ)#
+	#DATA			<<- "/work/or105/Gates_2014"#
+	DATA			<<- '/Users/Oliver/duke/2014_Gates'#
+	s.seed			<- 42
+infile.beast.gag<- '/Users/Oliver/git/HPTN071sim/data_rootseq/BEAST_template_v09gag.xml'#
+		infile.beast.pol<- '/Users/Oliver/git/HPTN071sim/data_rootseq/BEAST_template_v09pol.xml'#
+		infile.beast.env<- '/Users/Oliver/git/HPTN071sim/data_rootseq/BEAST_template_v09env.xml'#
+		indir			<- paste(DATA,'methods_comparison_rootseqsim/140830',sep='/')	#
+		infile			<- 'PANGEA_SSAfgBwhRc-_140811_n390.R'#
+		file			<- paste(indir, '/', infile, sep='')#
+		load(file)		#
+		#	remove sequences without calendar time 		#
+		label.sep				<- '|'#
+		label.idx.ctime			<- 5		#
+		tmp						<- sapply( strsplit( rownames(seq.gag), label.sep, fixed=1 ), '[[', label.idx.ctime )#
+		tmp						<- rownames(seq.gag)[ which(is.na(as.numeric(tmp))) ]#
+		cat(paste('\nExclude sequences with no calendar date, ', paste(tmp, collapse=' ')))#
+		tmp						<- setdiff(rownames(seq.gag), tmp)		#
+		seq.gag					<- seq.gag[tmp,]#
+		#	exclude last 2 nucleotides in gag to avoid incomple AA#
+		seq.gag					<- seq.gag[,1:1440]#
+		seq.pol					<- seq.pol[tmp,]#
+		seq.env					<- seq.env[tmp,]#
+		seq						<- seq[tmp,]#
+		#	get NJ tree and plot#
+		tmp				<- dist.dna( seq )#
+		seq.ph			<- nj(tmp)				#
+		file			<- paste( indir, '/', substr(infile,1,nchar(infile)-2), '_njtree.pdf', sep='' )	#
+		pdf(file=file, w=10, h=80)#
+		plot(seq.ph, show.tip=TRUE)#
+		dev.off()			#
+		##
+		#	get 3 sequence pools of equal size#
+		##
+		set.seed(s.seed)#
+		pool.n			<- 3#
+		tmp				<- hivc.clu.brdist.stats(seq.ph, eval.dist.btw="leaf", stat.fun=hivc.clu.min.transmission.cascade)#
+		thresh.brl		<- 0.055#
+		clustering		<- hivc.clu.clusterbythresh(seq.ph, thresh.brl=thresh.brl, dist.brl=tmp, retval="all")#
+		#	allocate clustering tips into 3 distinct clusters#
+		seq.clumem		<- data.table( PH_NODE_ID=seq_len(Ntip(seq.ph)), CLU_ID=clustering$clu.mem[ seq_len(Ntip(seq.ph)) ] )#
+		setkey(seq.clumem, CLU_ID)		#
+		tmp				<- which(!is.na(seq.clumem[, CLU_ID]))#
+		tmp				<- seq.clumem[tmp,][, list(CLU_N=-length(PH_NODE_ID)), by='CLU_ID']#
+		setkey(tmp, CLU_N)#
+		set(tmp, NULL, 'POOL_ID', tmp[, cumsum(-CLU_N)]) 		#
+		set(tmp, NULL, 'POOL_ID', tmp[, ceiling( POOL_ID / max(POOL_ID) * pool.n ) ] )#
+		seq.clumem		<- merge(seq.clumem, subset(tmp, select=c(CLU_ID, POOL_ID)), by='CLU_ID', all.x=TRUE)#
+		#	allocate non-clustering tips into 3 distinct clusters#
+		tmp				<- subset(seq.clumem,!is.na(POOL_ID))[, list(NOCLU_N= ceiling( nrow(seq.clumem) / pool.n ) - length(PH_NODE_ID)), by='POOL_ID']		#
+		set(tmp, 1L, 'NOCLU_N', tmp[1,NOCLU_N] - ( tmp[, sum(NOCLU_N)] - ( Ntip(seq.ph) - nrow(subset(seq.clumem,!is.na(POOL_ID))) )) )		#
+		set(seq.clumem, seq.clumem[, which(is.na(POOL_ID))], 'POOL_ID',  rep(tmp[,POOL_ID], tmp[,NOCLU_N]) )#
+		seq.clumem[, table(POOL_ID)]
+bxml.template.gag	<- xmlTreeParse(infile.beast.gag, useInternalNodes=TRUE, addFinalizer = TRUE)
+bxml.template.gag	<- xmlTreeParse(infile.beast.gag, useInternalNodes=TRUE, addFinalizer = TRUE)
+pool.id<- 1
+pool.infile		<- paste(  substr(infile,1,nchar(infile)-2),'_geneGAG_pool',pool.id, sep='' )#
+			pool.seqnames	<- seq.ph$tip.label[ subset(seq.clumem, POOL_ID==pool.id)[, PH_NODE_ID] ]#
+			##
+			cat(paste('\ncreate GAG BEAST XML file for seqs=',paste(pool.seqnames, collapse=' ')))#
+			#	write XML file with new sequences#
+			bxml			<- newXMLDoc(addFinalizer=T)#
+			bxml.beast		<- newXMLNode("beast", doc=bxml, addFinalizer=T)#
+			newXMLCommentNode(text=paste("Generated by HIVCLUST from template",infile.beast), parent=bxml.beast, doc=bxml, addFinalizer=T)#
+			#	add new set of GAG sequences into alignment ID 2#
+			tmp				<- seq.gag[pool.seqnames,]#
+			bxml			<- hivc.beast.add.seq(bxml, tmp, df=NULL, beast.label.datepos= 5, beast.label.sep= '|', beast.date.direction= "forwards", beast.date.units= "years", beast.alignment.id="GAG.alignment", beast.alignment.dataType= "nucleotide", verbose=1)
+bxml			<- newXMLDoc(addFinalizer=T)#
+			bxml.beast		<- newXMLNode("beast", doc=bxml, addFinalizer=T)#
+			newXMLCommentNode(text=paste("Generated by HIVCLUST from template",infile.beast.gag), parent=bxml.beast, doc=bxml, addFinalizer=T)#
+			#	add new set of GAG sequences into GAG alignment#
+			tmp				<- seq.gag[pool.seqnames,]#
+			bxml			<- hivc.beast.add.seq(bxml, tmp, df=NULL, beast.label.datepos= 5, beast.label.sep= '|', beast.date.direction= "forwards", beast.date.units= "years", beast.alignment.id="GAG.alignment", beast.alignment.dataType= "nucleotide", verbose=1)
+bt.beast		<- getNodeSet(bxml.template, "//beast")[[1]]#
+			dummy			<- sapply(seq.int( 1, xmlSize(bt.beast) ), function(i)#
+					{#
+						if( class(bt.beast[[i]])[1]=="XMLInternalCommentNode" )#
+							dummy<- newXMLCommentNode(text=xmlValue(bt.beast[[i]]), parent=bxml.beast, doc=bxml, addFinalizer=T)#
+						else#
+							dummy<- addChildren( bxml.beast, xmlClone( bt.beast[[i]], addFinalizer=T, doc=bxml ) )#
+					})#
+			#	change gmrf dimensions	#
+			tmp			<- getNodeSet(bxml, "//*[@id='skyride.logPopSize']")#
+			if(length(tmp)!=1)	stop("unexpected number of *[@id='skyride.logPopSize'")#
+			tmp			<- tmp[[1]]#
+			xmlAttrs(tmp)["dimension"]	<-	length(pool.seqnames)-1  #
+			tmp			<- getNodeSet(bxml, "//*[@id='skyride.groupSize']")#
+			if(length(tmp)!=1)	stop("unexpected number of *[@id='skyride.groupSize'")#
+			tmp			<- tmp[[1]]#
+			xmlAttrs(tmp)["dimension"]	<-	length(pool.seqnames)-1			#
+			#	change outfile name #
+			bxml.onodes	<- getNodeSet(bxml, "//*[@fileName]")#
+			tmp			<- sapply(bxml.onodes, function(x) xmlGetAttr(x,"fileName"))#
+			tmp			<- gsub("(time).","time",tmp,fixed=1)#
+			tmp			<- gsub("(subst).","subst",tmp,fixed=1)	#
+			tmp			<- sapply(strsplit(tmp,'.',fixed=1), function(x)	paste(pool.infile, '.', tail(x,1), sep=''))
+bxml			<- newXMLDoc(addFinalizer=T)#
+			bxml.beast		<- newXMLNode("beast", doc=bxml, addFinalizer=T)#
+			tmp				<- newXMLCommentNode(text=paste("Generated by HIVCLUST from template",infile.beast.gag), parent=bxml.beast, doc=bxml, addFinalizer=T)#
+			#	add new set of GAG sequences into GAG alignment#
+			tmp				<- seq.gag[pool.seqnames,]#
+			bxml			<- hivc.beast.add.seq(bxml, tmp, df=NULL, beast.label.datepos= 5, beast.label.sep= '|', beast.date.direction= "forwards", beast.date.units= "years", beast.alignment.id="GAG.alignment", beast.alignment.dataType= "nucleotide", verbose=1)#
+			#	copy from template	#
+			bt.beast		<- getNodeSet(bxml.template.gag, "//beast")[[1]]#
+			dummy			<- sapply(seq.int( 1, xmlSize(bt.beast) ), function(i)#
+					{#
+						if( class(bt.beast[[i]])[1]=="XMLInternalCommentNode" )#
+							dummy<- newXMLCommentNode(text=xmlValue(bt.beast[[i]]), parent=bxml.beast, doc=bxml, addFinalizer=T)#
+						else#
+							dummy<- addChildren( bxml.beast, xmlClone( bt.beast[[i]], addFinalizer=T, doc=bxml ) )#
+					})#
+			#	change gmrf dimensions	#
+			tmp			<- getNodeSet(bxml, "//*[@id='skyride.logPopSize']")#
+			if(length(tmp)!=1)	stop("unexpected number of *[@id='skyride.logPopSize'")#
+			tmp			<- tmp[[1]]#
+			xmlAttrs(tmp)["dimension"]	<-	length(pool.seqnames)-1  #
+			tmp			<- getNodeSet(bxml, "//*[@id='skyride.groupSize']")#
+			if(length(tmp)!=1)	stop("unexpected number of *[@id='skyride.groupSize'")#
+			tmp			<- tmp[[1]]#
+			xmlAttrs(tmp)["dimension"]	<-	length(pool.seqnames)-1			#
+			#	change outfile name #
+			bxml.onodes	<- getNodeSet(bxml, "//*[@fileName]")#
+			tmp			<- sapply(bxml.onodes, function(x) xmlGetAttr(x,"fileName"))#
+			tmp			<- gsub("(time).","time",tmp,fixed=1)#
+			tmp			<- gsub("(subst).","subst",tmp,fixed=1)	#
+			tmp			<- sapply(strsplit(tmp,'.',fixed=1), function(x)	paste(pool.infile, '.', tail(x,1), sep=''))
+tmp
+dummy		<- sapply(seq_along(bxml.onodes), function(i){		xmlAttrs(bxml.onodes[[i]])["fileName"]<- tmp[i]		})#
+			#	write to file#
+			file		<- paste(indir,'/',pool.infile,".xml", sep='')#
+			if(verbose)	cat(paste("\nwrite xml file to",file))#
+			saveXML(bxml, file=file)
+DATA		<<- '/Users/Oliver/duke/2014_Gates'	#
+	indir		<- paste(DATA,'methods_comparison_rootseqsim/140830',sep='/')#
+	#search for XML files in indir#
+	infiles		<- list.files(indir, pattern=paste(".xml$",sep=''))#
+	insignat	<- ''	#
+	hpc.ncpu	<- 8
+infile<- infiles[1]
 infile
-infile<- 'neisseria'
-lapply(seq_len(ncol(batch.seq)),function(j)#
-			{					#
-				cmd			<- cmd.recombination.run.3seq(infile=file, outfile=paste(indir,'/',infile,'_',batch.seq[1,j],'-',batch.seq[2,j],".3seq",sep=''), recomb.3seq.siglevel=0.1, nproc=1, recomb.3seq.testvsall.beginatseq=batch.seq[1,j], recomb.3seq.testvsall.endatseq=batch.seq[2,j], verbose=1)				#
-				cmd			<- cmd.hpcwrapper(cmd, hpc.walltime=hpc.walltime, hpc.q=hpc.q, hpc.mem=hpc.mem,  hpc.nproc=hpc.nproc)#
-				cat(cmd)#
-				outdir		<- indir#
-				outfile		<- paste("r3seq",paste(strsplit(date(),split=' ')[[1]],collapse='_',sep=''),sep='.')									#
-				cmd.hpccaller(outdir, outfile, cmd)			#
-			})
-pipeline.recom.run.3seq<- function(indir, infile, batch.n=100, hpc.walltime=35, hpc.q=NA, hpc.mem="3850mb", hpc.nproc=1, verbose=1)#
-{#
-	#load sequences into 'seq' object #
-	if(!grepl('.R',infile))							stop("expect R infile that ends in .R")		#
-	file			<- paste(indir,'/',infile,sep='')#
-	tmp				<- load(file)#
-	if(verbose)	cat(paste('\nloaded file=', tmp))#
-	if(tmp!='seq')#
-		eval(parse(text=paste("seq<- ",tmp,sep='')))#
-	if(!"DNAbin"%in%class(seq) || !is.matrix(seq))	stop("expect R infile that contains a DNAbin matrix")#
-	#write phylip file#
-	infile			<- substr(infile, 1, nchar(infile)-2)	#
-	file			<- paste(indir,'/',infile,".phylip",sep='')#
-	if(verbose)	cat(paste('\nwrite file=', file))#
-	seq.write.dna.phylip(seq, file)#
-	#generate parallel calls to 3seq#
-	batch.seq		<- round(seq.int(0,nrow(seq),len=batch.n),d=0)#
-	if(tail(batch.seq,1)!=nrow(seq))#
-		batch.seq	<- c(batch.seq, nrow(seq))#
-	batch.seq		<- rbind(batch.seq[-length(batch.seq)], batch.seq[-1]-1)#
-	#batch.seq		<- batch.seq[,1:10]	#test run#
-	lapply(seq_len(ncol(batch.seq)),function(j)#
-			{					#
-				cmd			<- cmd.recombination.run.3seq(infile=file, outfile=paste(indir,'/',infile,'_',batch.seq[1,j],'-',batch.seq[2,j],".3seq",sep=''), recomb.3seq.siglevel=0.1, nproc=1, recomb.3seq.testvsall.beginatseq=batch.seq[1,j], recomb.3seq.testvsall.endatseq=batch.seq[2,j], verbose=1)				#
-				cmd			<- cmd.hpcwrapper(cmd, hpc.walltime=hpc.walltime, hpc.q=hpc.q, hpc.mem=hpc.mem,  hpc.nproc=hpc.nproc)#
-				if(verbose)	cat(cmd)#
-				outdir		<- indir#
-				outfile		<- paste("r3seq",paste(strsplit(date(),split=' ')[[1]],collapse='_',sep=''),sep='.')									#
-				cmd.hpccaller(outdir, outfile, cmd)			#
-			})	#
-}
-require(recombination.analyzer)#
-	data(neisseria)#
-	print( seq )#
-	indir		<- paste(CODE.HOME,'demo', sep='/')#
-	infile		<- 'neisseria.R'#
-	insignat	<- ''#
-	save(seq, file=paste(indir, infile, sep='/'))#
+infile		<- substr(infile, 1, nchar(infile)-4) 		#
+		cmd			<- hivc.cmd.beast.runxml(indir, infile, insignat, prog.beast=PR.BEAST, prog.beast.opt=" -beagle -working", hpc.tmpdir.prefix="beast", hpc.ncpu=hpc.ncpu)
+cat(cmd)
+infile.beast.pol<- '/Users/Oliver/git/HPTN071sim/data_rootseq/BEAST_template_v09pol.xml'#
+		infile.beast.env<- '/Users/Oliver/git/HPTN071sim/data_rootseq/BEAST_template_v09env.xml'
+bxml.template.pol	<- xmlTreeParse(infile.beast.pol, useInternalNodes=TRUE, addFinalizer = TRUE)
+pool.infile		<- paste(  substr(infile,1,nchar(infile)-2),'_genePOL_pool',pool.id, sep='' )#
+			#	write XML file with new sequences#
+			bxml			<- newXMLDoc(addFinalizer=T)#
+			bxml.beast		<- newXMLNode("beast", doc=bxml, addFinalizer=T)#
+			tmp				<- newXMLCommentNode(text=paste("Generated by HIVCLUST from template",infile.beast.pol), parent=bxml.beast, doc=bxml, addFinalizer=T)#
+			#	add new set of GAG sequences into GAG alignment#
+			tmp				<- seq.pol[pool.seqnames,]#
+			bxml			<- hivc.beast.add.seq(bxml, tmp, df=NULL, beast.label.datepos= 5, beast.label.sep= '|', beast.date.direction= "forwards", beast.date.units= "years", beast.alignment.id="POL.alignment", beast.alignment.dataType= "nucleotide", verbose=1)#
+			#	copy from template	#
+			bt.beast		<- getNodeSet(bxml.template.pol, "//beast")[[1]]#
+			dummy			<- sapply(seq.int( 1, xmlSize(bt.beast) ), function(i)#
+					{#
+						if( class(bt.beast[[i]])[1]=="XMLInternalCommentNode" )#
+							dummy<- newXMLCommentNode(text=xmlValue(bt.beast[[i]]), parent=bxml.beast, doc=bxml, addFinalizer=T)#
+						else#
+							dummy<- addChildren( bxml.beast, xmlClone( bt.beast[[i]], addFinalizer=T, doc=bxml ) )#
+					})#
+			#	change gmrf dimensions	#
+			tmp			<- getNodeSet(bxml, "//*[@id='skyride.logPopSize']")#
+			if(length(tmp)!=1)	stop("unexpected number of *[@id='skyride.logPopSize'")#
+			tmp			<- tmp[[1]]#
+			xmlAttrs(tmp)["dimension"]	<-	length(pool.seqnames)-1  #
+			tmp			<- getNodeSet(bxml, "//*[@id='skyride.groupSize']")#
+			if(length(tmp)!=1)	stop("unexpected number of *[@id='skyride.groupSize'")#
+			tmp			<- tmp[[1]]#
+			xmlAttrs(tmp)["dimension"]	<-	length(pool.seqnames)-1			#
+			#	change outfile name #
+			bxml.onodes	<- getNodeSet(bxml, "//*[@fileName]")#
+			tmp			<- sapply(bxml.onodes, function(x) xmlGetAttr(x,"fileName"))#
+			tmp			<- gsub("(time).","time",tmp,fixed=1)#
+			tmp			<- gsub("(subst).","subst",tmp,fixed=1)	#
+			tmp			<- sapply(strsplit(tmp,'.',fixed=1), function(x)	paste(pool.infile, '.', tail(x,1), sep=''))
+tmp
+infile
+infile			<- 'PANGEA_SSAfgBwhRc-_140811_n390.R'
+pool.infile		<- paste(  substr(infile,1,nchar(infile)-2),'_genePOL_pool',pool.id, sep='' )#
+			#	write XML file with new sequences#
+			bxml			<- newXMLDoc(addFinalizer=T)#
+			bxml.beast		<- newXMLNode("beast", doc=bxml, addFinalizer=T)#
+			tmp				<- newXMLCommentNode(text=paste("Generated by HIVCLUST from template",infile.beast.pol), parent=bxml.beast, doc=bxml, addFinalizer=T)#
+			#	add new set of GAG sequences into GAG alignment#
+			tmp				<- seq.pol[pool.seqnames,]#
+			bxml			<- hivc.beast.add.seq(bxml, tmp, df=NULL, beast.label.datepos= 5, beast.label.sep= '|', beast.date.direction= "forwards", beast.date.units= "years", beast.alignment.id="POL.alignment", beast.alignment.dataType= "nucleotide", verbose=1)#
+			#	copy from template	#
+			bt.beast		<- getNodeSet(bxml.template.pol, "//beast")[[1]]#
+			dummy			<- sapply(seq.int( 1, xmlSize(bt.beast) ), function(i)#
+					{#
+						if( class(bt.beast[[i]])[1]=="XMLInternalCommentNode" )#
+							dummy<- newXMLCommentNode(text=xmlValue(bt.beast[[i]]), parent=bxml.beast, doc=bxml, addFinalizer=T)#
+						else#
+							dummy<- addChildren( bxml.beast, xmlClone( bt.beast[[i]], addFinalizer=T, doc=bxml ) )#
+					})#
+			#	change gmrf dimensions	#
+			tmp			<- getNodeSet(bxml, "//*[@id='skyride.logPopSize']")#
+			if(length(tmp)!=1)	stop("unexpected number of *[@id='skyride.logPopSize'")#
+			tmp			<- tmp[[1]]#
+			xmlAttrs(tmp)["dimension"]	<-	length(pool.seqnames)-1  #
+			tmp			<- getNodeSet(bxml, "//*[@id='skyride.groupSize']")#
+			if(length(tmp)!=1)	stop("unexpected number of *[@id='skyride.groupSize'")#
+			tmp			<- tmp[[1]]#
+			xmlAttrs(tmp)["dimension"]	<-	length(pool.seqnames)-1			#
+			#	change outfile name #
+			bxml.onodes	<- getNodeSet(bxml, "//*[@fileName]")#
+			tmp			<- sapply(bxml.onodes, function(x) xmlGetAttr(x,"fileName"))#
+			tmp			<- gsub("(time).","time",tmp,fixed=1)#
+			tmp			<- gsub("(subst).","subst",tmp,fixed=1)	#
+			tmp			<- sapply(strsplit(tmp,'.',fixed=1), function(x)	paste(pool.infile, '.', tail(x,1), sep=''))
+tmp
+dummy		<- sapply(seq_along(bxml.onodes), function(i){		xmlAttrs(bxml.onodes[[i]])["fileName"]<- tmp[i]		})#
+			#	write to file#
+			file		<- paste(indir,'/',pool.infile,".xml", sep='')#
+			if(verbose)	cat(paste("\nwrite xml file to",file))#
+			saveXML(bxml, file=file)
+bxml.template.env	<- xmlTreeParse(infile.beast.env, useInternalNodes=TRUE, addFinalizer = TRUE)
+cat(paste('\ncreate ENV BEAST XML file for seqs=',paste(pool.seqnames, collapse=' ')))#
+			pool.infile		<- paste(  substr(infile,1,nchar(infile)-2),'_geneENV_pool',pool.id, sep='' )#
+			#	write XML file with new sequences#
+			bxml			<- newXMLDoc(addFinalizer=T)#
+			bxml.beast		<- newXMLNode("beast", doc=bxml, addFinalizer=T)#
+			tmp				<- newXMLCommentNode(text=paste("Generated by HIVCLUST from template",infile.beast.env), parent=bxml.beast, doc=bxml, addFinalizer=T)#
+			#	add new set of GAG sequences into GAG alignment#
+			tmp				<- seq.env[pool.seqnames,]#
+			bxml			<- hivc.beast.add.seq(bxml, tmp, df=NULL, beast.label.datepos= 5, beast.label.sep= '|', beast.date.direction= "forwards", beast.date.units= "years", beast.alignment.id="ENV.alignment", beast.alignment.dataType= "nucleotide", verbose=1)#
+			#	copy from template	#
+			bt.beast		<- getNodeSet(bxml.template.env, "//beast")[[1]]#
+			dummy			<- sapply(seq.int( 1, xmlSize(bt.beast) ), function(i)#
+					{#
+						if( class(bt.beast[[i]])[1]=="XMLInternalCommentNode" )#
+							dummy<- newXMLCommentNode(text=xmlValue(bt.beast[[i]]), parent=bxml.beast, doc=bxml, addFinalizer=T)#
+						else#
+							dummy<- addChildren( bxml.beast, xmlClone( bt.beast[[i]], addFinalizer=T, doc=bxml ) )#
+					})#
+			#	change gmrf dimensions	#
+			tmp			<- getNodeSet(bxml, "//*[@id='skyride.logPopSize']")#
+			if(length(tmp)!=1)	stop("unexpected number of *[@id='skyride.logPopSize'")#
+			tmp			<- tmp[[1]]#
+			xmlAttrs(tmp)["dimension"]	<-	length(pool.seqnames)-1  #
+			tmp			<- getNodeSet(bxml, "//*[@id='skyride.groupSize']")#
+			if(length(tmp)!=1)	stop("unexpected number of *[@id='skyride.groupSize'")#
+			tmp			<- tmp[[1]]#
+			xmlAttrs(tmp)["dimension"]	<-	length(pool.seqnames)-1			#
+			#	change outfile name #
+			bxml.onodes	<- getNodeSet(bxml, "//*[@fileName]")#
+			tmp			<- sapply(bxml.onodes, function(x) xmlGetAttr(x,"fileName"))#
+			tmp			<- gsub("(time).","time",tmp,fixed=1)#
+			tmp			<- gsub("(subst).","subst",tmp,fixed=1)	#
+			tmp			<- sapply(strsplit(tmp,'.',fixed=1), function(x)	paste(pool.infile, '.', tail(x,1), sep=''))
+tmp
+dummy		<- sapply(seq_along(bxml.onodes), function(i){		xmlAttrs(bxml.onodes[[i]])["fileName"]<- tmp[i]		})#
+			#	write to file#
+			file		<- paste(indir,'/',pool.infile,".xml", sep='')#
+			if(verbose)	cat(paste("\nwrite xml file to",file))#
+			saveXML(bxml, file=file)
+s.seed			<- 42
+infile.beast.gag<- '/Users/Oliver/git/HPTN071sim/data_rootseq/BEAST_template_v09gag.xml'#
+		infile.beast.pol<- '/Users/Oliver/git/HPTN071sim/data_rootseq/BEAST_template_v09pol.xml'#
+		infile.beast.env<- '/Users/Oliver/git/HPTN071sim/data_rootseq/BEAST_template_v09env.xml'#
+		indir			<- paste(DATA,'methods_comparison_rootseqsim/140902',sep='/')	#
+		infile			<- 'PANGEA_SSAfgBwhRc-_140811_n390.R'#
+		file			<- paste(indir, '/', infile, sep='')#
+		load(file)		#
+		#	remove sequences without calendar time 		#
+		label.sep				<- '|'#
+		label.idx.ctime			<- 5		#
+		tmp						<- sapply( strsplit( rownames(seq.gag), label.sep, fixed=1 ), '[[', label.idx.ctime )#
+		tmp						<- rownames(seq.gag)[ which(is.na(as.numeric(tmp))) ]#
+		cat(paste('\nExclude sequences with no calendar date, ', paste(tmp, collapse=' ')))#
+		tmp						<- setdiff(rownames(seq.gag), tmp)		#
+		seq.gag					<- seq.gag[tmp,]#
+		#	exclude last 2 nucleotides in gag to avoid incomple AA#
+		seq.gag					<- seq.gag[,1:1440]#
+		seq.pol					<- seq.pol[tmp,]#
+		seq.env					<- seq.env[tmp,]#
+		seq						<- seq[tmp,]#
+		#	get NJ tree and plot#
+		tmp				<- dist.dna( seq )#
+		seq.ph			<- nj(tmp)				#
+		file			<- paste( indir, '/', substr(infile,1,nchar(infile)-2), '_njtree.pdf', sep='' )	#
+		pdf(file=file, w=10, h=80)#
+		plot(seq.ph, show.tip=TRUE)#
+		dev.off()			#
+		##
+		#	get 3 sequence pools of equal size#
+		##
+		set.seed(s.seed)#
+		pool.n			<- 3#
+		tmp				<- hivc.clu.brdist.stats(seq.ph, eval.dist.btw="leaf", stat.fun=hivc.clu.min.transmission.cascade)#
+		thresh.brl		<- 0.055#
+		clustering		<- hivc.clu.clusterbythresh(seq.ph, thresh.brl=thresh.brl, dist.brl=tmp, retval="all")#
+		#	allocate clustering tips into 3 distinct clusters#
+		seq.clumem		<- data.table( PH_NODE_ID=seq_len(Ntip(seq.ph)), CLU_ID=clustering$clu.mem[ seq_len(Ntip(seq.ph)) ] )#
+		setkey(seq.clumem, CLU_ID)		#
+		tmp				<- which(!is.na(seq.clumem[, CLU_ID]))#
+		tmp				<- seq.clumem[tmp,][, list(CLU_N=-length(PH_NODE_ID)), by='CLU_ID']#
+		setkey(tmp, CLU_N)#
+		set(tmp, NULL, 'POOL_ID', tmp[, cumsum(-CLU_N)]) 		#
+		set(tmp, NULL, 'POOL_ID', tmp[, ceiling( POOL_ID / max(POOL_ID) * pool.n ) ] )#
+		seq.clumem		<- merge(seq.clumem, subset(tmp, select=c(CLU_ID, POOL_ID)), by='CLU_ID', all.x=TRUE)#
+		#	allocate non-clustering tips into 3 distinct clusters#
+		tmp				<- subset(seq.clumem,!is.na(POOL_ID))[, list(NOCLU_N= ceiling( nrow(seq.clumem) / pool.n ) - length(PH_NODE_ID)), by='POOL_ID']		#
+		set(tmp, 1L, 'NOCLU_N', tmp[1,NOCLU_N] - ( tmp[, sum(NOCLU_N)] - ( Ntip(seq.ph) - nrow(subset(seq.clumem,!is.na(POOL_ID))) )) )		#
+		set(seq.clumem, seq.clumem[, which(is.na(POOL_ID))], 'POOL_ID',  rep(tmp[,POOL_ID], tmp[,NOCLU_N]) )#
+		seq.clumem[, table(POOL_ID)]
+verbose				<- 1#
+		bxml.template.gag	<- xmlTreeParse(infile.beast.gag, useInternalNodes=TRUE, addFinalizer = TRUE)#
+		bxml.template.pol	<- xmlTreeParse(infile.beast.pol, useInternalNodes=TRUE, addFinalizer = TRUE)#
+		bxml.template.env	<- xmlTreeParse(infile.beast.env, useInternalNodes=TRUE, addFinalizer = TRUE)#
+		for(pool.id in seq_len(pool.n))#
+		{			#
+			pool.seqnames	<- seq.ph$tip.label[ subset(seq.clumem, POOL_ID==pool.id)[, PH_NODE_ID] ]#
+			##
+			##
+			#	#
+			cat(paste('\ncreate GAG BEAST XML file for seqs=',paste(pool.seqnames, collapse=' ')))#
+			pool.infile		<- paste(  substr(infile,1,nchar(infile)-2),'_geneGAG_pool',pool.id, sep='' )#
+			#	write XML file with new sequences#
+			bxml			<- newXMLDoc(addFinalizer=T)#
+			bxml.beast		<- newXMLNode("beast", doc=bxml, addFinalizer=T)#
+			tmp				<- newXMLCommentNode(text=paste("Generated by HIVCLUST from template",infile.beast.gag), parent=bxml.beast, doc=bxml, addFinalizer=T)#
+			#	add new set of GAG sequences into GAG alignment#
+			tmp				<- seq.gag[pool.seqnames,]#
+			bxml			<- hivc.beast.add.seq(bxml, tmp, df=NULL, beast.label.datepos= 5, beast.label.sep= '|', beast.date.direction= "forwards", beast.date.units= "years", beast.alignment.id="GAG.alignment", beast.alignment.dataType= "nucleotide", verbose=1)#
+			#	copy from template	#
+			bt.beast		<- getNodeSet(bxml.template.gag, "//beast")[[1]]#
+			dummy			<- sapply(seq.int( 1, xmlSize(bt.beast) ), function(i)#
+					{#
+						if( class(bt.beast[[i]])[1]=="XMLInternalCommentNode" )#
+							dummy<- newXMLCommentNode(text=xmlValue(bt.beast[[i]]), parent=bxml.beast, doc=bxml, addFinalizer=T)#
+						else#
+							dummy<- addChildren( bxml.beast, xmlClone( bt.beast[[i]], addFinalizer=T, doc=bxml ) )#
+					})#
+			#	change gmrf dimensions	#
+			tmp			<- getNodeSet(bxml, "//*[@id='skyride.logPopSize']")#
+			if(length(tmp)!=1)	stop("unexpected number of *[@id='skyride.logPopSize'")#
+			tmp			<- tmp[[1]]#
+			xmlAttrs(tmp)["dimension"]	<-	length(pool.seqnames)-1  #
+			tmp			<- getNodeSet(bxml, "//*[@id='skyride.groupSize']")#
+			if(length(tmp)!=1)	stop("unexpected number of *[@id='skyride.groupSize'")#
+			tmp			<- tmp[[1]]#
+			xmlAttrs(tmp)["dimension"]	<-	length(pool.seqnames)-1			#
+			#	change outfile name #
+			bxml.onodes	<- getNodeSet(bxml, "//*[@fileName]")#
+			tmp			<- sapply(bxml.onodes, function(x) xmlGetAttr(x,"fileName"))#
+			tmp			<- gsub("(time).","time",tmp,fixed=1)#
+			tmp			<- gsub("(subst).","subst",tmp,fixed=1)	#
+			tmp			<- sapply(strsplit(tmp,'.',fixed=1), function(x)	paste(pool.infile, '.', tail(x,1), sep=''))#
+			dummy		<- sapply(seq_along(bxml.onodes), function(i){		xmlAttrs(bxml.onodes[[i]])["fileName"]<- tmp[i]		})#
+			#	write to file#
+			file		<- paste(indir,'/',pool.infile,".xml", sep='')#
+			if(verbose)	cat(paste("\nwrite xml file to",file))#
+			saveXML(bxml, file=file)#
+			##
+			#	POL#
+			##
+			cat(paste('\ncreate POL BEAST XML file for seqs=',paste(pool.seqnames, collapse=' ')))#
+			pool.infile		<- paste(  substr(infile,1,nchar(infile)-2),'_genePOL_pool',pool.id, sep='' )#
+			#	write XML file with new sequences#
+			bxml			<- newXMLDoc(addFinalizer=T)#
+			bxml.beast		<- newXMLNode("beast", doc=bxml, addFinalizer=T)#
+			tmp				<- newXMLCommentNode(text=paste("Generated by HIVCLUST from template",infile.beast.pol), parent=bxml.beast, doc=bxml, addFinalizer=T)#
+			#	add new set of GAG sequences into GAG alignment#
+			tmp				<- seq.pol[pool.seqnames,]#
+			bxml			<- hivc.beast.add.seq(bxml, tmp, df=NULL, beast.label.datepos= 5, beast.label.sep= '|', beast.date.direction= "forwards", beast.date.units= "years", beast.alignment.id="POL.alignment", beast.alignment.dataType= "nucleotide", verbose=1)#
+			#	copy from template	#
+			bt.beast		<- getNodeSet(bxml.template.pol, "//beast")[[1]]#
+			dummy			<- sapply(seq.int( 1, xmlSize(bt.beast) ), function(i)#
+					{#
+						if( class(bt.beast[[i]])[1]=="XMLInternalCommentNode" )#
+							dummy<- newXMLCommentNode(text=xmlValue(bt.beast[[i]]), parent=bxml.beast, doc=bxml, addFinalizer=T)#
+						else#
+							dummy<- addChildren( bxml.beast, xmlClone( bt.beast[[i]], addFinalizer=T, doc=bxml ) )#
+					})#
+			#	change gmrf dimensions	#
+			tmp			<- getNodeSet(bxml, "//*[@id='skyride.logPopSize']")#
+			if(length(tmp)!=1)	stop("unexpected number of *[@id='skyride.logPopSize'")#
+			tmp			<- tmp[[1]]#
+			xmlAttrs(tmp)["dimension"]	<-	length(pool.seqnames)-1  #
+			tmp			<- getNodeSet(bxml, "//*[@id='skyride.groupSize']")#
+			if(length(tmp)!=1)	stop("unexpected number of *[@id='skyride.groupSize'")#
+			tmp			<- tmp[[1]]#
+			xmlAttrs(tmp)["dimension"]	<-	length(pool.seqnames)-1			#
+			#	change outfile name #
+			bxml.onodes	<- getNodeSet(bxml, "//*[@fileName]")#
+			tmp			<- sapply(bxml.onodes, function(x) xmlGetAttr(x,"fileName"))#
+			tmp			<- gsub("(time).","time",tmp,fixed=1)#
+			tmp			<- gsub("(subst).","subst",tmp,fixed=1)	#
+			tmp			<- sapply(strsplit(tmp,'.',fixed=1), function(x)	paste(pool.infile, '.', tail(x,1), sep=''))#
+			dummy		<- sapply(seq_along(bxml.onodes), function(i){		xmlAttrs(bxml.onodes[[i]])["fileName"]<- tmp[i]		})#
+			#	write to file#
+			file		<- paste(indir,'/',pool.infile,".xml", sep='')#
+			if(verbose)	cat(paste("\nwrite xml file to",file))#
+			saveXML(bxml, file=file)#
+			##
+			#	ENV#
+			##
+			cat(paste('\ncreate ENV BEAST XML file for seqs=',paste(pool.seqnames, collapse=' ')))#
+			pool.infile		<- paste(  substr(infile,1,nchar(infile)-2),'_geneENV_pool',pool.id, sep='' )#
+			#	write XML file with new sequences#
+			bxml			<- newXMLDoc(addFinalizer=T)#
+			bxml.beast		<- newXMLNode("beast", doc=bxml, addFinalizer=T)#
+			tmp				<- newXMLCommentNode(text=paste("Generated by HIVCLUST from template",infile.beast.env), parent=bxml.beast, doc=bxml, addFinalizer=T)#
+			#	add new set of GAG sequences into GAG alignment#
+			tmp				<- seq.env[pool.seqnames,]#
+			bxml			<- hivc.beast.add.seq(bxml, tmp, df=NULL, beast.label.datepos= 5, beast.label.sep= '|', beast.date.direction= "forwards", beast.date.units= "years", beast.alignment.id="ENV.alignment", beast.alignment.dataType= "nucleotide", verbose=1)#
+			#	copy from template	#
+			bt.beast		<- getNodeSet(bxml.template.env, "//beast")[[1]]#
+			dummy			<- sapply(seq.int( 1, xmlSize(bt.beast) ), function(i)#
+					{#
+						if( class(bt.beast[[i]])[1]=="XMLInternalCommentNode" )#
+							dummy<- newXMLCommentNode(text=xmlValue(bt.beast[[i]]), parent=bxml.beast, doc=bxml, addFinalizer=T)#
+						else#
+							dummy<- addChildren( bxml.beast, xmlClone( bt.beast[[i]], addFinalizer=T, doc=bxml ) )#
+					})#
+			#	change gmrf dimensions	#
+			tmp			<- getNodeSet(bxml, "//*[@id='skyride.logPopSize']")#
+			if(length(tmp)!=1)	stop("unexpected number of *[@id='skyride.logPopSize'")#
+			tmp			<- tmp[[1]]#
+			xmlAttrs(tmp)["dimension"]	<-	length(pool.seqnames)-1  #
+			tmp			<- getNodeSet(bxml, "//*[@id='skyride.groupSize']")#
+			if(length(tmp)!=1)	stop("unexpected number of *[@id='skyride.groupSize'")#
+			tmp			<- tmp[[1]]#
+			xmlAttrs(tmp)["dimension"]	<-	length(pool.seqnames)-1			#
+			#	change outfile name #
+			bxml.onodes	<- getNodeSet(bxml, "//*[@fileName]")#
+			tmp			<- sapply(bxml.onodes, function(x) xmlGetAttr(x,"fileName"))#
+			tmp			<- gsub("(time).","time",tmp,fixed=1)#
+			tmp			<- gsub("(subst).","subst",tmp,fixed=1)	#
+			tmp			<- sapply(strsplit(tmp,'.',fixed=1), function(x)	paste(pool.infile, '.', tail(x,1), sep=''))#
+			dummy		<- sapply(seq_along(bxml.onodes), function(i){		xmlAttrs(bxml.onodes[[i]])["fileName"]<- tmp[i]		})#
+			#	write to file#
+			file		<- paste(indir,'/',pool.infile,".xml", sep='')#
+			if(verbose)	cat(paste("\nwrite xml file to",file))#
+			saveXML(bxml, file=file)			#
+		}
+df.denomSEQ
+setwd("/Users/Oliver/git/hivclust/pkg"); source("misc/hivclu.startme.R")
+require(data.table)#
+	require(ape)#
+	#stop()#
+	resume					<- 1 #
+	indir					<- paste(DATA,"fisheretal_140714",sep='/')#
+	outdir					<- paste(DATA,"fisheretal_140714",sep='/')#
+	indir					<- paste(DATA,"fisheretal_140729",sep='/')#
+	outdir					<- paste(DATA,"fisheretal_140729",sep='/')	#
+	#indir					<- paste(DATA,"fisheretal_140616",sep='/')#
+	#outdir					<- paste(DATA,"fisheretal_140616",sep='/')	#
+	indir					<- paste(DATA,"fisheretal_140801",sep='/')#
+	outdir					<- paste(DATA,"fisheretal_140801",sep='/')	#
+	indir					<- paste(DATA,"fisheretal_140804",sep='/')#
+	outdir					<- paste(DATA,"fisheretal_140804",sep='/')	#
+	indir					<- paste(DATA,"fisheretal_140814",sep='/')#
+	outdir					<- paste(DATA,"fisheretal_140814",sep='/')	#
+	indir					<- paste(DATA,"fisheretal_140817",sep='/')#
+	outdir					<- paste(DATA,"fisheretal_140817",sep='/')	#
+	indir					<- paste(DATA,"fisheretal_140828",sep='/')#
+	outdir					<- paste(DATA,"fisheretal_140828",sep='/')		#
+	indir					<- paste(DATA,"fisheretal_140905",sep='/')#
+	outdir					<- paste(DATA,"fisheretal_140905",sep='/')		#
+	infile					<- "ATHENA_2013_03_-DR-RC-SH+LANL_Sequences"#
+	indircov				<- paste(DATA,"fisheretal_data",sep='/')#
+	insignat				<- "Wed_Dec_18_11:37:00_2013"	#
+	outfile					<- infile#
+	infilecov				<- "ATHENA_2013_03_AllSeqPatientCovariates"	#
+	t.period				<- 1/8#
+	t.endctime				<- hivc.db.Date2numeric(as.Date("2013-03-01"))#
+	t.endctime				<- floor(t.endctime) + floor( (t.endctime%%1)*100 %/% (t.period*100) ) * t.period
+files					<- list.files(indir)#
+		files					<- files[ sapply(files, function(x) grepl('.R$',x) ) ]	#
+		if(!length(files))	stop('cannot find files matching criteria')#
+		runs.opt	<- lapply( files, function(z)#
+				{#
+					print(z)#
+					method.brl			<- regmatches(z, regexpr('Yscore[^_]*',z))#
+					method.brl			<- substr(method.brl, 7, nchar(method.brl))#
+					method.denom		<- regmatches(z, regexpr('denom[[:alnum:]]*',z))#
+					method.denom		<- substr(method.denom, 6, nchar(method.denom))#
+					method.risk			<- regmatches(z, regexpr('[^_]*.R$',z))#
+					method.risk			<- substr(method.risk,1,nchar(method.risk)-2)#
+					method.dating		<- ifelse(grepl('sasky',z),'sasky','gmrf')#
+					method.recentctime	<- ifelse(grepl('2011',z),'2011','2013-03-01')#
+					method.nodectime	<- ifelse(grepl('a',method.brl),'any','map')#
+					data.table(file=z, method.brl=method.brl, method.nodectime=method.nodectime, method.dating=method.dating, method.risk=method.risk, method.denom=method.denom, method.recentctime=method.recentctime)				#
+				})#
+		runs.opt	<- do.call('rbind', runs.opt)#
+		setkey(runs.opt, method.dating, method.brl)	#
+		runs.opt	<- subset(runs.opt, !is.na(file))#
+		print(runs.opt)#
+		#	load risk estimates#
+		runs.risk	<- runs.opt[,	{#
+					tmp	<- paste(indir, file, sep='/')#
+					cat(paste('\nprocess file=',file))#
+					tmp	<- load(tmp)#
+					ans	<- ans$risk#
+					if(!any(colnames(ans)=='t.period'))#
+						ans[, t.period:= NA_character_]										#
+					set(ans, NULL, 'factor', ans[, as.character(factor)])											#
+					ans[, method.risk:=method.risk]#
+					ans[, method.dating:=method.dating]#
+					ans[, method.nodectime:=method.nodectime]#
+					ans[, method.brl:=method.brl ]#
+					ans[, method.denom:=method.denom]#
+					ans[, method.recentctime:=method.recentctime ]#
+					ans#
+				},by='file']#
+		runs.risk[, file:=NULL]	#
+		file			<- paste(indir, '/', infile, '_', gsub('/',':',insignat), '_', "method.risks.R", sep='')#
+		save(runs.risk, file=file)
+factor.color	<- c("#990000","#EF6548","#FDBB84","#0570B0","#74A9CF","#7A0177","#F768A1","#FCC5C0","#005824","#41AB5D","#ADDD8E")#
+	factor.long		<- c(	'Undiagnosed,\n Recent infection\n at diagnosis',	#
+							'Undiagnosed,\n Chronic infection\n at diagnosis',#
+							'Undiagnosed,\n Unknown if recent',#
+							'Diagnosed < 3mo,\n Recent infection\n at diagnosis',					#
+							'Diagnosed,\n CD4 progression to\n >500',#
+							'Diagnosed,\n CD4 progression to\n [351-500]',#
+							'Diagnosed,\n CD4 progression to\n <=350',			#
+							'Diagnosed,\n Unknown CD4',#
+							'cART initiated,\n no viral suppression',#
+							'cART initiated,\n viral suppression',#
+							'cART initiated,\n Unknown viral load'				)#
+	tmp				<- c("UA","U","UAna","DA","Dtg500","Dtl500","Dtl350","Dt.NA","ART.suA.N","ART.suA.Y","ART.vlNA")#
+	factors			<- data.table( factor.legend= factor(factor.long, levels=factor.long), factor=factor(tmp, levels=tmp), factor.color=factor.color, method.risk='m2Bwmx')#
+	factor.long		<- c(	'Undiagnosed,\n Recent infection\n at diagnosis',	#
+							'Undiagnosed,\n Chronic infection\n at diagnosis',#
+							'Undiagnosed,\n Unknown if recent',#
+							'Diagnosed < 3mo,\n Recent infection\n at diagnosis',					#
+							'Diagnosed,\n CD4 progression to\n >500',#
+							'Diagnosed,\n CD4 progression to\n [351-500]',#
+							'Diagnosed,\n CD4 progression to\n <=350',			#
+							'Diagnosed,\n Unknown CD4',#
+							'cART initiated,\n no viral suppression',#
+							'cART initiated,\n viral suppression',#
+							'cART initiated,\n Unknown viral load'				)	#
+	tmp				<- c("UA","U","UAna","DA","Dtg500","Dtl500","Dtl350","Dt.NA","ART.su.N","ART.su.Y","ART.vlNA")#
+	factors			<- rbind(factors, data.table( factor.legend= factor(factor.long, levels=factor.long), factor=factor(tmp, levels=tmp), factor.color=factor.color, method.risk='m2Bt'))#
+	##
+	tperiod.info<- as.data.table(structure(list(t.period = structure(1:4, .Label = c("1", "2", "3", "4"), class = "factor"), t.period.min = c(1996.503, 2006.408, 2008.057, 2009.512), t.period.max = c(2006.308, 2007.957, 2009.49, 2010.999)), row.names = c(NA, -4L), class = "data.frame", .Names = c("t.period", "t.period.min", "t.period.max")))#
+	set(tperiod.info, NULL, 't.period.min', tperiod.info[,  paste(floor(t.period.min), floor( 1+(t.period.min%%1)*12 ), sep='-')] )#
+	set(tperiod.info, NULL, 't.period.max', tperiod.info[,  paste(floor(t.period.max), floor( 1+(t.period.max%%1)*12 ), sep='-')] )
+method.DENOM	<- 'SEQ'#
+	method.BRL		<- '3ka2H1C3V51'#
+	method.RISK		<- 'm2BwmxMv.tp'#
+	method.WEIGHT	<- ''	#
+	method.DATING	<- 'sasky'#
+	tmp				<- subset(factors, grepl('m2Bwmx',method.risk), select=c(factor, factor.legend, factor.color))#
+	stat.select		<- c(	'P','P.e0','P.e0cp','P.raw','P.raw.e0','P.raw.e0cp'	)#
+	outfile			<- infile#
+	project.athena.Fisheretal.sensitivity.getfigures.m2(runs.risk, method.DENOM, method.BRL, method.RISK, method.WEIGHT, method.DATING,  tmp, stat.select, outfile, tperiod.info=tperiod.info)
+setwd("/Users/Oliver/git/HPTN071sim/source/rPANGEAHIVsim"); source("misc/rPANGEAHIV.startme.R")
+require(hivclust)#
+	require(XML)#
+	require(ape)#
+	require(r3SEQ)#
+	#DATA			<<- "/work/or105/Gates_2014"#
+	DATA			<<- '/Users/Oliver/duke/2014_Gates'#
+	s.seed			<- 42
+infile.beast.gag<- '/Users/Oliver/git/HPTN071sim/data_rootseq/BEAST_template_v10gag.xml'#
+		infile.beast.pol<- '/Users/Oliver/git/HPTN071sim/data_rootseq/BEAST_template_v10pol.xml'#
+		infile.beast.env<- '/Users/Oliver/git/HPTN071sim/data_rootseq/BEAST_template_v10env.xml'#
+		indir			<- paste(DATA,'methods_comparison_rootseqsim/140907',sep='/')	#
+		infile			<- 'PANGEA_SSAfgBwhRc-_140811_n390.R'#
+		file			<- paste(indir, '/', infile, sep='')#
+		load(file)		#
+		#	remove sequences without calendar time 		#
+		label.sep				<- '|'#
+		label.idx.ctime			<- 5		#
+		tmp						<- sapply( strsplit( rownames(seq.gag), label.sep, fixed=1 ), '[[', label.idx.ctime )#
+		tmp						<- rownames(seq.gag)[ which(is.na(as.numeric(tmp))) ]#
+		cat(paste('\nExclude sequences with no calendar date, ', paste(tmp, collapse=' ')))#
+		tmp						<- setdiff(rownames(seq.gag), tmp)		#
+		seq.gag					<- seq.gag[tmp,]#
+		#	exclude last 2 nucleotides in gag to avoid incomple AA#
+		seq.gag					<- seq.gag[,1:1440]#
+		seq.pol					<- seq.pol[tmp,]#
+		seq.env					<- seq.env[tmp,]#
+		seq						<- seq[tmp,]#
+		#	get NJ tree and plot#
+		tmp				<- dist.dna( seq )#
+		seq.ph			<- nj(tmp)
+indir
+infile.beast.gag<- '/Users/Oliver/git/HPTN071sim/data_rootseq/BEAST_template_v10gag.xml'#
+		infile.beast.pol<- '/Users/Oliver/git/HPTN071sim/data_rootseq/BEAST_template_v10pol.xml'#
+		infile.beast.env<- '/Users/Oliver/git/HPTN071sim/data_rootseq/BEAST_template_v10env.xml'#
+		indir			<- paste(DATA,'methods_comparison_rootseqsim/140907',sep='/')	#
+		infile			<- 'PANGEA_SSAfgBwhRc-_140811_n390.R'#
+		file			<- paste(indir, '/', infile, sep='')#
+		load(file)		#
+		#	remove sequences without calendar time 		#
+		label.sep				<- '|'#
+		label.idx.ctime			<- 5		#
+		tmp						<- sapply( strsplit( rownames(seq.gag), label.sep, fixed=1 ), '[[', label.idx.ctime )#
+		tmp						<- rownames(seq.gag)[ which(is.na(as.numeric(tmp))) ]#
+		cat(paste('\nExclude sequences with no calendar date, ', paste(tmp, collapse=' ')))#
+		tmp						<- setdiff(rownames(seq.gag), tmp)		#
+		seq.gag					<- seq.gag[tmp,]#
+		#	exclude last 2 nucleotides in gag to avoid incomple AA#
+		seq.gag					<- seq.gag[,1:1440]#
+		seq.pol					<- seq.pol[tmp,]#
+		seq.env					<- seq.env[tmp,]#
+		seq						<- seq[tmp,]#
+		#	get NJ tree and plot#
+		tmp				<- dist.dna( seq )#
+		seq.ph			<- nj(tmp)
+set.seed(s.seed)#
+		pool.n			<- 3#
+		tmp				<- hivc.clu.brdist.stats(seq.ph, eval.dist.btw="leaf", stat.fun=hivc.clu.min.transmission.cascade)#
+		thresh.brl		<- 0.055#
+		clustering		<- hivc.clu.clusterbythresh(seq.ph, thresh.brl=thresh.brl, dist.brl=tmp, retval="all")#
+		#	allocate clustering tips into 3 distinct clusters#
+		seq.clumem		<- data.table( PH_NODE_ID=seq_len(Ntip(seq.ph)), CLU_ID=clustering$clu.mem[ seq_len(Ntip(seq.ph)) ] )#
+		setkey(seq.clumem, CLU_ID)		#
+		tmp				<- which(!is.na(seq.clumem[, CLU_ID]))#
+		tmp				<- seq.clumem[tmp,][, list(CLU_N=-length(PH_NODE_ID)), by='CLU_ID']#
+		setkey(tmp, CLU_N)#
+		set(tmp, NULL, 'POOL_ID', tmp[, cumsum(-CLU_N)]) 		#
+		set(tmp, NULL, 'POOL_ID', tmp[, ceiling( POOL_ID / max(POOL_ID) * pool.n ) ] )#
+		seq.clumem		<- merge(seq.clumem, subset(tmp, select=c(CLU_ID, POOL_ID)), by='CLU_ID', all.x=TRUE)#
+		#	allocate non-clustering tips into 3 distinct clusters#
+		tmp				<- subset(seq.clumem,!is.na(POOL_ID))[, list(NOCLU_N= ceiling( nrow(seq.clumem) / pool.n ) - length(PH_NODE_ID)), by='POOL_ID']		#
+		set(tmp, 1L, 'NOCLU_N', tmp[1,NOCLU_N] - ( tmp[, sum(NOCLU_N)] - ( Ntip(seq.ph) - nrow(subset(seq.clumem,!is.na(POOL_ID))) )) )		#
+		set(seq.clumem, seq.clumem[, which(is.na(POOL_ID))], 'POOL_ID',  rep(tmp[,POOL_ID], tmp[,NOCLU_N]) )#
+		seq.clumem[, table(POOL_ID)]	#
+		##
+		#	for each sequence pool, set up BEAST run#
+		##
+		verbose				<- 1#
+		bxml.template.gag	<- xmlTreeParse(infile.beast.gag, useInternalNodes=TRUE, addFinalizer = TRUE)#
+		bxml.template.pol	<- xmlTreeParse(infile.beast.pol, useInternalNodes=TRUE, addFinalizer = TRUE)#
+		bxml.template.env	<- xmlTreeParse(infile.beast.env, useInternalNodes=TRUE, addFinalizer = TRUE)
+for(pool.id in seq_len(pool.n))#
+		{			#
+			pool.seqnames	<- seq.ph$tip.label[ subset(seq.clumem, POOL_ID==pool.id)[, PH_NODE_ID] ]#
+			##
+			##
+			#	#
+			cat(paste('\ncreate GAG BEAST XML file for seqs=',paste(pool.seqnames, collapse=' ')))#
+			pool.infile		<- paste(  substr(infile,1,nchar(infile)-2),'_geneGAG_pool',pool.id, sep='' )#
+			#	write XML file with new sequences#
+			bxml			<- newXMLDoc(addFinalizer=T)#
+			bxml.beast		<- newXMLNode("beast", doc=bxml, addFinalizer=T)#
+			tmp				<- newXMLCommentNode(text=paste("Generated by HIVCLUST from template",infile.beast.gag), parent=bxml.beast, doc=bxml, addFinalizer=T)#
+			#	add new set of GAG sequences into GAG alignment#
+			tmp				<- seq.gag[pool.seqnames,]#
+			bxml			<- hivc.beast.add.seq(bxml, tmp, df=NULL, beast.label.datepos= 5, beast.label.sep= '|', beast.date.direction= "forwards", beast.date.units= "years", beast.alignment.id="GAG.alignment", beast.alignment.dataType= "nucleotide", verbose=1)#
+			#	copy from template	#
+			bt.beast		<- getNodeSet(bxml.template.gag, "//beast")[[1]]#
+			dummy			<- sapply(seq.int( 1, xmlSize(bt.beast) ), function(i)#
+					{#
+						if( class(bt.beast[[i]])[1]=="XMLInternalCommentNode" )#
+							dummy<- newXMLCommentNode(text=xmlValue(bt.beast[[i]]), parent=bxml.beast, doc=bxml, addFinalizer=T)#
+						else#
+							dummy<- addChildren( bxml.beast, xmlClone( bt.beast[[i]], addFinalizer=T, doc=bxml ) )#
+					})#
+			#	change gmrf dimensions	#
+			tmp			<- getNodeSet(bxml, "//*[@id='skyride.logPopSize']")#
+			if(length(tmp)!=1)	stop("unexpected number of *[@id='skyride.logPopSize'")#
+			tmp			<- tmp[[1]]#
+			xmlAttrs(tmp)["dimension"]	<-	length(pool.seqnames)-1  #
+			tmp			<- getNodeSet(bxml, "//*[@id='skyride.groupSize']")#
+			if(length(tmp)!=1)	stop("unexpected number of *[@id='skyride.groupSize'")#
+			tmp			<- tmp[[1]]#
+			xmlAttrs(tmp)["dimension"]	<-	length(pool.seqnames)-1			#
+			#	change outfile name #
+			bxml.onodes	<- getNodeSet(bxml, "//*[@fileName]")#
+			tmp			<- sapply(bxml.onodes, function(x) xmlGetAttr(x,"fileName"))#
+			tmp			<- gsub("(time).","time",tmp,fixed=1)#
+			tmp			<- gsub("(subst).","subst",tmp,fixed=1)	#
+			tmp			<- sapply(strsplit(tmp,'.',fixed=1), function(x)	paste(pool.infile, '.', tail(x,1), sep=''))#
+			dummy		<- sapply(seq_along(bxml.onodes), function(i){		xmlAttrs(bxml.onodes[[i]])["fileName"]<- tmp[i]		})#
+			#	write to file#
+			file		<- paste(indir,'/',pool.infile,".xml", sep='')#
+			if(verbose)	cat(paste("\nwrite xml file to",file))#
+			saveXML(bxml, file=file)#
+			##
+			#	POL#
+			##
+			cat(paste('\ncreate POL BEAST XML file for seqs=',paste(pool.seqnames, collapse=' ')))#
+			pool.infile		<- paste(  substr(infile,1,nchar(infile)-2),'_genePOL_pool',pool.id, sep='' )#
+			#	write XML file with new sequences#
+			bxml			<- newXMLDoc(addFinalizer=T)#
+			bxml.beast		<- newXMLNode("beast", doc=bxml, addFinalizer=T)#
+			tmp				<- newXMLCommentNode(text=paste("Generated by HIVCLUST from template",infile.beast.pol), parent=bxml.beast, doc=bxml, addFinalizer=T)#
+			#	add new set of GAG sequences into GAG alignment#
+			tmp				<- seq.pol[pool.seqnames,]#
+			bxml			<- hivc.beast.add.seq(bxml, tmp, df=NULL, beast.label.datepos= 5, beast.label.sep= '|', beast.date.direction= "forwards", beast.date.units= "years", beast.alignment.id="POL.alignment", beast.alignment.dataType= "nucleotide", verbose=1)#
+			#	copy from template	#
+			bt.beast		<- getNodeSet(bxml.template.pol, "//beast")[[1]]#
+			dummy			<- sapply(seq.int( 1, xmlSize(bt.beast) ), function(i)#
+					{#
+						if( class(bt.beast[[i]])[1]=="XMLInternalCommentNode" )#
+							dummy<- newXMLCommentNode(text=xmlValue(bt.beast[[i]]), parent=bxml.beast, doc=bxml, addFinalizer=T)#
+						else#
+							dummy<- addChildren( bxml.beast, xmlClone( bt.beast[[i]], addFinalizer=T, doc=bxml ) )#
+					})#
+			#	change gmrf dimensions	#
+			tmp			<- getNodeSet(bxml, "//*[@id='skyride.logPopSize']")#
+			if(length(tmp)!=1)	stop("unexpected number of *[@id='skyride.logPopSize'")#
+			tmp			<- tmp[[1]]#
+			xmlAttrs(tmp)["dimension"]	<-	length(pool.seqnames)-1  #
+			tmp			<- getNodeSet(bxml, "//*[@id='skyride.groupSize']")#
+			if(length(tmp)!=1)	stop("unexpected number of *[@id='skyride.groupSize'")#
+			tmp			<- tmp[[1]]#
+			xmlAttrs(tmp)["dimension"]	<-	length(pool.seqnames)-1			#
+			#	change outfile name #
+			bxml.onodes	<- getNodeSet(bxml, "//*[@fileName]")#
+			tmp			<- sapply(bxml.onodes, function(x) xmlGetAttr(x,"fileName"))#
+			tmp			<- gsub("(time).","time",tmp,fixed=1)#
+			tmp			<- gsub("(subst).","subst",tmp,fixed=1)	#
+			tmp			<- sapply(strsplit(tmp,'.',fixed=1), function(x)	paste(pool.infile, '.', tail(x,1), sep=''))#
+			dummy		<- sapply(seq_along(bxml.onodes), function(i){		xmlAttrs(bxml.onodes[[i]])["fileName"]<- tmp[i]		})#
+			#	write to file#
+			file		<- paste(indir,'/',pool.infile,".xml", sep='')#
+			if(verbose)	cat(paste("\nwrite xml file to",file))#
+			saveXML(bxml, file=file)#
+			##
+			#	ENV#
+			##
+			cat(paste('\ncreate ENV BEAST XML file for seqs=',paste(pool.seqnames, collapse=' ')))#
+			pool.infile		<- paste(  substr(infile,1,nchar(infile)-2),'_geneENV_pool',pool.id, sep='' )#
+			#	write XML file with new sequences#
+			bxml			<- newXMLDoc(addFinalizer=T)#
+			bxml.beast		<- newXMLNode("beast", doc=bxml, addFinalizer=T)#
+			tmp				<- newXMLCommentNode(text=paste("Generated by HIVCLUST from template",infile.beast.env), parent=bxml.beast, doc=bxml, addFinalizer=T)#
+			#	add new set of GAG sequences into GAG alignment#
+			tmp				<- seq.env[pool.seqnames,]#
+			bxml			<- hivc.beast.add.seq(bxml, tmp, df=NULL, beast.label.datepos= 5, beast.label.sep= '|', beast.date.direction= "forwards", beast.date.units= "years", beast.alignment.id="ENV.alignment", beast.alignment.dataType= "nucleotide", verbose=1)#
+			#	copy from template	#
+			bt.beast		<- getNodeSet(bxml.template.env, "//beast")[[1]]#
+			dummy			<- sapply(seq.int( 1, xmlSize(bt.beast) ), function(i)#
+					{#
+						if( class(bt.beast[[i]])[1]=="XMLInternalCommentNode" )#
+							dummy<- newXMLCommentNode(text=xmlValue(bt.beast[[i]]), parent=bxml.beast, doc=bxml, addFinalizer=T)#
+						else#
+							dummy<- addChildren( bxml.beast, xmlClone( bt.beast[[i]], addFinalizer=T, doc=bxml ) )#
+					})#
+			#	change gmrf dimensions	#
+			tmp			<- getNodeSet(bxml, "//*[@id='skyride.logPopSize']")#
+			if(length(tmp)!=1)	stop("unexpected number of *[@id='skyride.logPopSize'")#
+			tmp			<- tmp[[1]]#
+			xmlAttrs(tmp)["dimension"]	<-	length(pool.seqnames)-1  #
+			tmp			<- getNodeSet(bxml, "//*[@id='skyride.groupSize']")#
+			if(length(tmp)!=1)	stop("unexpected number of *[@id='skyride.groupSize'")#
+			tmp			<- tmp[[1]]#
+			xmlAttrs(tmp)["dimension"]	<-	length(pool.seqnames)-1			#
+			#	change outfile name #
+			bxml.onodes	<- getNodeSet(bxml, "//*[@fileName]")#
+			tmp			<- sapply(bxml.onodes, function(x) xmlGetAttr(x,"fileName"))#
+			tmp			<- gsub("(time).","time",tmp,fixed=1)#
+			tmp			<- gsub("(subst).","subst",tmp,fixed=1)	#
+			tmp			<- sapply(strsplit(tmp,'.',fixed=1), function(x)	paste(pool.infile, '.', tail(x,1), sep=''))#
+			dummy		<- sapply(seq_along(bxml.onodes), function(i){		xmlAttrs(bxml.onodes[[i]])["fileName"]<- tmp[i]		})#
+			#	write to file#
+			file		<- paste(indir,'/',pool.infile,".xml", sep='')#
+			if(verbose)	cat(paste("\nwrite xml file to",file))#
+			saveXML(bxml, file=file)			#
+		}		#
+	}
+DATA		<<- '/Users/Oliver/duke/2014_Gates'	#
+	indir		<- paste(DATA,'methods_comparison_rootseqsim/140908',sep='/')#
+	#search for XML files in indir#
+	infiles		<- list.files(indir, pattern=paste(".xml$",sep=''))#
+	insignat	<- ''	#
+	hpc.ncpu	<- 8
+infile
+infiles
+DATA		<<- '/Users/Oliver/duke/2014_Gates'	#
+	indir		<- paste(DATA,'methods_comparison_rootseqsim/140907',sep='/')#
+	#search for XML files in indir#
+	infiles		<- list.files(indir, pattern=paste(".xml$",sep=''))#
+	insignat	<- ''	#
+	hpc.ncpu	<- 8
+infiles
+infile<- infiles[1]
+infile		<- substr(infile, 1, nchar(infile)-4) 		#
+		cmd			<- hivc.cmd.beast.runxml(indir, infile, insignat, prog.beast=PR.BEAST, prog.beast.opt=" -beagle -working", hpc.tmpdir.prefix="beast", hpc.ncpu=hpc.ncpu)#
+		tmp			<- paste(infile,'.timetrees',sep='')	#
+		cmd			<- paste(cmd, hivc.cmd.beast.read.nexus(indir, tmp, indir, tree.id=NA, method.node.stat='any.node'), sep='\n')#
+		cmd			<- paste(cmd, hivc.cmd.beast.run.treeannotator(indir, infile, insignat, prog.beastmcc=PR.BEASTMCC, beastmcc.burnin=500, beastmcc.heights="median"), sep='\n')#
+		cat(cmd)
+require(hivclust)#
+	require(XML)#
+	require(ape)#
+	require(r3SEQ)#
+	#DATA			<<- "/work/or105/Gates_2014"#
+	DATA			<<- '/Users/Oliver/duke/2014_Gates'#
+	s.seed			<- 42
+infile.beast.gag<- '/Users/Oliver/git/HPTN071sim/data_rootseq/BEAST_template_v10gag.xml'#
+		infile.beast.pol<- '/Users/Oliver/git/HPTN071sim/data_rootseq/BEAST_template_v10pol.xml'#
+		infile.beast.env<- '/Users/Oliver/git/HPTN071sim/data_rootseq/BEAST_template_v10env.xml'#
+		indir			<- paste(DATA,'methods_comparison_rootseqsim/140907',sep='/')	#
+		infile			<- 'PANGEA_SSAfgBwhRc-_140811_n390.R'#
+		file			<- paste(indir, '/', infile, sep='')#
+		load(file)		#
+		#	remove sequences without calendar time 		#
+		label.sep				<- '|'#
+		label.idx.ctime			<- 5		#
+		tmp						<- sapply( strsplit( rownames(seq.gag), label.sep, fixed=1 ), '[[', label.idx.ctime )#
+		tmp						<- rownames(seq.gag)[ which(is.na(as.numeric(tmp))) ]#
+		cat(paste('\nExclude sequences with no calendar date, ', paste(tmp, collapse=' ')))#
+		tmp						<- setdiff(rownames(seq.gag), tmp)		#
+		seq.gag					<- seq.gag[tmp,]#
+		#	exclude last 2 nucleotides in gag to avoid incomple AA#
+		seq.gag					<- seq.gag[,1:1440]#
+		seq.pol					<- seq.pol[tmp,]#
+		seq.env					<- seq.env[tmp,]#
+		seq						<- seq[tmp,]#
+		#	get NJ tree and plot#
+		tmp				<- dist.dna( seq )#
+		seq.ph			<- nj(tmp)
+set.seed(s.seed)#
+		pool.n			<- 3#
+		tmp				<- hivc.clu.brdist.stats(seq.ph, eval.dist.btw="leaf", stat.fun=hivc.clu.min.transmission.cascade)#
+		thresh.brl		<- 0.055#
+		clustering		<- hivc.clu.clusterbythresh(seq.ph, thresh.brl=thresh.brl, dist.brl=tmp, retval="all")#
+		#	allocate clustering tips into 3 distinct clusters#
+		seq.clumem		<- data.table( PH_NODE_ID=seq_len(Ntip(seq.ph)), CLU_ID=clustering$clu.mem[ seq_len(Ntip(seq.ph)) ] )#
+		setkey(seq.clumem, CLU_ID)		#
+		tmp				<- which(!is.na(seq.clumem[, CLU_ID]))#
+		tmp				<- seq.clumem[tmp,][, list(CLU_N=-length(PH_NODE_ID)), by='CLU_ID']#
+		setkey(tmp, CLU_N)#
+		set(tmp, NULL, 'POOL_ID', tmp[, cumsum(-CLU_N)]) 		#
+		set(tmp, NULL, 'POOL_ID', tmp[, ceiling( POOL_ID / max(POOL_ID) * pool.n ) ] )#
+		seq.clumem		<- merge(seq.clumem, subset(tmp, select=c(CLU_ID, POOL_ID)), by='CLU_ID', all.x=TRUE)#
+		#	allocate non-clustering tips into 3 distinct clusters#
+		tmp				<- subset(seq.clumem,!is.na(POOL_ID))[, list(NOCLU_N= ceiling( nrow(seq.clumem) / pool.n ) - length(PH_NODE_ID)), by='POOL_ID']		#
+		set(tmp, 1L, 'NOCLU_N', tmp[1,NOCLU_N] - ( tmp[, sum(NOCLU_N)] - ( Ntip(seq.ph) - nrow(subset(seq.clumem,!is.na(POOL_ID))) )) )		#
+		set(seq.clumem, seq.clumem[, which(is.na(POOL_ID))], 'POOL_ID',  rep(tmp[,POOL_ID], tmp[,NOCLU_N]) )#
+		seq.clumem[, table(POOL_ID)]	#
+		##
+		#	for each sequence pool, set up BEAST run#
+		##
+		verbose				<- 1#
+		bxml.template.gag	<- xmlTreeParse(infile.beast.gag, useInternalNodes=TRUE, addFinalizer = TRUE)#
+		bxml.template.pol	<- xmlTreeParse(infile.beast.pol, useInternalNodes=TRUE, addFinalizer = TRUE)#
+		bxml.template.env	<- xmlTreeParse(infile.beast.env, useInternalNodes=TRUE, addFinalizer = TRUE)
+for(pool.id in seq_len(pool.n))#
+		{			#
+			pool.seqnames	<- seq.ph$tip.label[ subset(seq.clumem, POOL_ID==pool.id)[, PH_NODE_ID] ]#
+			##
+			##
+			#	#
+			cat(paste('\ncreate GAG BEAST XML file for seqs=',paste(pool.seqnames, collapse=' ')))#
+			pool.infile		<- paste(  substr(infile,1,nchar(infile)-2),'_geneGAG_pool',pool.id, sep='' )#
+			#	write XML file with new sequences#
+			bxml			<- newXMLDoc(addFinalizer=T)#
+			bxml.beast		<- newXMLNode("beast", doc=bxml, addFinalizer=T)#
+			tmp				<- newXMLCommentNode(text=paste("Generated by HIVCLUST from template",infile.beast.gag), parent=bxml.beast, doc=bxml, addFinalizer=T)#
+			#	add new set of GAG sequences into GAG alignment#
+			tmp				<- seq.gag[pool.seqnames,]#
+			bxml			<- hivc.beast.add.seq(bxml, tmp, df=NULL, beast.label.datepos= 5, beast.label.sep= '|', beast.date.direction= "forwards", beast.date.units= "years", beast.alignment.id="GAG.alignment", beast.alignment.dataType= "nucleotide", verbose=1)#
+			#	copy from template	#
+			bt.beast		<- getNodeSet(bxml.template.gag, "//beast")[[1]]#
+			dummy			<- sapply(seq.int( 1, xmlSize(bt.beast) ), function(i)#
+					{#
+						if( class(bt.beast[[i]])[1]=="XMLInternalCommentNode" )#
+							dummy<- newXMLCommentNode(text=xmlValue(bt.beast[[i]]), parent=bxml.beast, doc=bxml, addFinalizer=T)#
+						else#
+							dummy<- addChildren( bxml.beast, xmlClone( bt.beast[[i]], addFinalizer=T, doc=bxml ) )#
+					})#
+			#	change gmrf dimensions	#
+			tmp			<- getNodeSet(bxml, "//*[@id='skyride.logPopSize']")#
+			if(length(tmp)!=1)	stop("unexpected number of *[@id='skyride.logPopSize'")#
+			tmp			<- tmp[[1]]#
+			xmlAttrs(tmp)["dimension"]	<-	length(pool.seqnames)-1  #
+			tmp			<- getNodeSet(bxml, "//*[@id='skyride.groupSize']")#
+			if(length(tmp)!=1)	stop("unexpected number of *[@id='skyride.groupSize'")#
+			tmp			<- tmp[[1]]#
+			xmlAttrs(tmp)["dimension"]	<-	length(pool.seqnames)-1			#
+			#	change outfile name #
+			bxml.onodes	<- getNodeSet(bxml, "//*[@fileName]")#
+			tmp			<- sapply(bxml.onodes, function(x) xmlGetAttr(x,"fileName"))#
+			tmp			<- gsub("(time).","time",tmp,fixed=1)#
+			tmp			<- gsub("(subst).","subst",tmp,fixed=1)	#
+			tmp			<- sapply(strsplit(tmp,'.',fixed=1), function(x)	paste(pool.infile, '.', tail(x,1), sep=''))#
+			dummy		<- sapply(seq_along(bxml.onodes), function(i){		xmlAttrs(bxml.onodes[[i]])["fileName"]<- tmp[i]		})#
+			#	write to file#
+			file		<- paste(indir,'/',pool.infile,".xml", sep='')#
+			if(verbose)	cat(paste("\nwrite xml file to",file))#
+			saveXML(bxml, file=file)#
+			##
+			#	POL#
+			##
+			cat(paste('\ncreate POL BEAST XML file for seqs=',paste(pool.seqnames, collapse=' ')))#
+			pool.infile		<- paste(  substr(infile,1,nchar(infile)-2),'_genePOL_pool',pool.id, sep='' )#
+			#	write XML file with new sequences#
+			bxml			<- newXMLDoc(addFinalizer=T)#
+			bxml.beast		<- newXMLNode("beast", doc=bxml, addFinalizer=T)#
+			tmp				<- newXMLCommentNode(text=paste("Generated by HIVCLUST from template",infile.beast.pol), parent=bxml.beast, doc=bxml, addFinalizer=T)#
+			#	add new set of GAG sequences into GAG alignment#
+			tmp				<- seq.pol[pool.seqnames,]#
+			bxml			<- hivc.beast.add.seq(bxml, tmp, df=NULL, beast.label.datepos= 5, beast.label.sep= '|', beast.date.direction= "forwards", beast.date.units= "years", beast.alignment.id="POL.alignment", beast.alignment.dataType= "nucleotide", verbose=1)#
+			#	copy from template	#
+			bt.beast		<- getNodeSet(bxml.template.pol, "//beast")[[1]]#
+			dummy			<- sapply(seq.int( 1, xmlSize(bt.beast) ), function(i)#
+					{#
+						if( class(bt.beast[[i]])[1]=="XMLInternalCommentNode" )#
+							dummy<- newXMLCommentNode(text=xmlValue(bt.beast[[i]]), parent=bxml.beast, doc=bxml, addFinalizer=T)#
+						else#
+							dummy<- addChildren( bxml.beast, xmlClone( bt.beast[[i]], addFinalizer=T, doc=bxml ) )#
+					})#
+			#	change gmrf dimensions	#
+			tmp			<- getNodeSet(bxml, "//*[@id='skyride.logPopSize']")#
+			if(length(tmp)!=1)	stop("unexpected number of *[@id='skyride.logPopSize'")#
+			tmp			<- tmp[[1]]#
+			xmlAttrs(tmp)["dimension"]	<-	length(pool.seqnames)-1  #
+			tmp			<- getNodeSet(bxml, "//*[@id='skyride.groupSize']")#
+			if(length(tmp)!=1)	stop("unexpected number of *[@id='skyride.groupSize'")#
+			tmp			<- tmp[[1]]#
+			xmlAttrs(tmp)["dimension"]	<-	length(pool.seqnames)-1			#
+			#	change outfile name #
+			bxml.onodes	<- getNodeSet(bxml, "//*[@fileName]")#
+			tmp			<- sapply(bxml.onodes, function(x) xmlGetAttr(x,"fileName"))#
+			tmp			<- gsub("(time).","time",tmp,fixed=1)#
+			tmp			<- gsub("(subst).","subst",tmp,fixed=1)	#
+			tmp			<- sapply(strsplit(tmp,'.',fixed=1), function(x)	paste(pool.infile, '.', tail(x,1), sep=''))#
+			dummy		<- sapply(seq_along(bxml.onodes), function(i){		xmlAttrs(bxml.onodes[[i]])["fileName"]<- tmp[i]		})#
+			#	write to file#
+			file		<- paste(indir,'/',pool.infile,".xml", sep='')#
+			if(verbose)	cat(paste("\nwrite xml file to",file))#
+			saveXML(bxml, file=file)#
+			##
+			#	ENV#
+			##
+			cat(paste('\ncreate ENV BEAST XML file for seqs=',paste(pool.seqnames, collapse=' ')))#
+			pool.infile		<- paste(  substr(infile,1,nchar(infile)-2),'_geneENV_pool',pool.id, sep='' )#
+			#	write XML file with new sequences#
+			bxml			<- newXMLDoc(addFinalizer=T)#
+			bxml.beast		<- newXMLNode("beast", doc=bxml, addFinalizer=T)#
+			tmp				<- newXMLCommentNode(text=paste("Generated by HIVCLUST from template",infile.beast.env), parent=bxml.beast, doc=bxml, addFinalizer=T)#
+			#	add new set of GAG sequences into GAG alignment#
+			tmp				<- seq.env[pool.seqnames,]#
+			bxml			<- hivc.beast.add.seq(bxml, tmp, df=NULL, beast.label.datepos= 5, beast.label.sep= '|', beast.date.direction= "forwards", beast.date.units= "years", beast.alignment.id="ENV.alignment", beast.alignment.dataType= "nucleotide", verbose=1)#
+			#	copy from template	#
+			bt.beast		<- getNodeSet(bxml.template.env, "//beast")[[1]]#
+			dummy			<- sapply(seq.int( 1, xmlSize(bt.beast) ), function(i)#
+					{#
+						if( class(bt.beast[[i]])[1]=="XMLInternalCommentNode" )#
+							dummy<- newXMLCommentNode(text=xmlValue(bt.beast[[i]]), parent=bxml.beast, doc=bxml, addFinalizer=T)#
+						else#
+							dummy<- addChildren( bxml.beast, xmlClone( bt.beast[[i]], addFinalizer=T, doc=bxml ) )#
+					})#
+			#	change gmrf dimensions	#
+			tmp			<- getNodeSet(bxml, "//*[@id='skyride.logPopSize']")#
+			if(length(tmp)!=1)	stop("unexpected number of *[@id='skyride.logPopSize'")#
+			tmp			<- tmp[[1]]#
+			xmlAttrs(tmp)["dimension"]	<-	length(pool.seqnames)-1  #
+			tmp			<- getNodeSet(bxml, "//*[@id='skyride.groupSize']")#
+			if(length(tmp)!=1)	stop("unexpected number of *[@id='skyride.groupSize'")#
+			tmp			<- tmp[[1]]#
+			xmlAttrs(tmp)["dimension"]	<-	length(pool.seqnames)-1			#
+			#	change outfile name #
+			bxml.onodes	<- getNodeSet(bxml, "//*[@fileName]")#
+			tmp			<- sapply(bxml.onodes, function(x) xmlGetAttr(x,"fileName"))#
+			tmp			<- gsub("(time).","time",tmp,fixed=1)#
+			tmp			<- gsub("(subst).","subst",tmp,fixed=1)	#
+			tmp			<- sapply(strsplit(tmp,'.',fixed=1), function(x)	paste(pool.infile, '.', tail(x,1), sep=''))#
+			dummy		<- sapply(seq_along(bxml.onodes), function(i){		xmlAttrs(bxml.onodes[[i]])["fileName"]<- tmp[i]		})#
+			#	write to file#
+			file		<- paste(indir,'/',pool.infile,".xml", sep='')#
+			if(verbose)	cat(paste("\nwrite xml file to",file))#
+			saveXML(bxml, file=file)			#
+		}
+runs.risk
+subset(runs.risk, stat=='P.raw.e0cp')
+subset(runs.risk, stat=='P.raw.e0cp', select=c(factor, v, l95.bs, u95.bs))
+tmp<- subset(runs.risk, stat=='P.raw.e0cp', select=c(factor, v, l95.bs, u95.bs))
+tmp[, t.period:=substr(factor, nchar(factor), nchar(factor))]
+tmp
+tmp[, factor2:=substr(factor, 1, nchar(factor)-2)]
+tmp
+subset(tmp, grepl('U', factor2))[, list(v=sum(v), l95=mean(l95.bs), u95=mean(u95.bs)), by='t.period']
+subset(tmp, grepl('U', factor2))[, list(v=sum(v), l95=sum(l95.bs), u95=sum(u95.bs)), by='t.period']
+subset(tmp, grepl('^A', factor2))[, list(v=sum(v), l95=sum(l95.bs), u95=sum(u95.bs)), by='t.period']
+subset(tmp, grepl('^A', factor2))
+subset(tmp, grepl('^Dtl', factor2))[, list(v=sum(v), l95=sum(l95.bs), u95=sum(u95.bs)), by='t.period']
+1.2*10^(-4)*12
+1.3*10^(-4)*12
+0.9*10^(-4)*12
+1.0*10^(-4)*12
+seq.clumem
+seq.gag
+sapply( strsplit( rownames(seq.gag), '|', fixed=1), '[[', 5 )
+range(as.numeric(sapply( strsplit( rownames(seq.gag), '|', fixed=1), '[[', 5 )))
+2010-c(1935,1975)
+2010-c(1935,1955,1975)
+require(hivclust)#
+	require(XML)#
+	require(ape)#
+	require(r3SEQ)#
+	#DATA			<<- "/work/or105/Gates_2014"#
+	DATA			<<- '/Users/Oliver/duke/2014_Gates'#
+	s.seed			<- 42
+infile.beast.gag<- '/Users/Oliver/git/HPTN071sim/data_rootseq/BEAST_template_v10gag.xml'#
+		infile.beast.pol<- '/Users/Oliver/git/HPTN071sim/data_rootseq/BEAST_template_v10pol.xml'#
+		infile.beast.env<- '/Users/Oliver/git/HPTN071sim/data_rootseq/BEAST_template_v10env.xml'#
+		indir			<- paste(DATA,'methods_comparison_rootseqsim/140907',sep='/')	#
+		infile			<- 'PANGEA_SSAfgBwhRc-_140811_n390.R'#
+		file			<- paste(indir, '/', infile, sep='')#
+		load(file)		#
+		#	remove sequences without calendar time 		#
+		label.sep				<- '|'#
+		label.idx.ctime			<- 5		#
+		tmp						<- sapply( strsplit( rownames(seq.gag), label.sep, fixed=1 ), '[[', label.idx.ctime )#
+		tmp						<- rownames(seq.gag)[ which(is.na(as.numeric(tmp))) ]#
+		cat(paste('\nExclude sequences with no calendar date, ', paste(tmp, collapse=' ')))#
+		tmp						<- setdiff(rownames(seq.gag), tmp)		#
+		seq.gag					<- seq.gag[tmp,]#
+		#	exclude last 2 nucleotides in gag to avoid incomple AA#
+		seq.gag					<- seq.gag[,1:1440]#
+		seq.pol					<- seq.pol[tmp,]#
+		seq.env					<- seq.env[tmp,]#
+		seq						<- seq[tmp,]#
+		#	get NJ tree and plot#
+		tmp				<- dist.dna( seq )#
+		seq.ph			<- nj(tmp)
+set.seed(s.seed)#
+		pool.n			<- 3#
+		tmp				<- hivc.clu.brdist.stats(seq.ph, eval.dist.btw="leaf", stat.fun=hivc.clu.min.transmission.cascade)#
+		thresh.brl		<- 0.055#
+		clustering		<- hivc.clu.clusterbythresh(seq.ph, thresh.brl=thresh.brl, dist.brl=tmp, retval="all")#
+		#	allocate clustering tips into 3 distinct clusters#
+		seq.clumem		<- data.table( PH_NODE_ID=seq_len(Ntip(seq.ph)), CLU_ID=clustering$clu.mem[ seq_len(Ntip(seq.ph)) ] )#
+		setkey(seq.clumem, CLU_ID)		#
+		tmp				<- which(!is.na(seq.clumem[, CLU_ID]))#
+		tmp				<- seq.clumem[tmp,][, list(CLU_N=-length(PH_NODE_ID)), by='CLU_ID']#
+		setkey(tmp, CLU_N)#
+		set(tmp, NULL, 'POOL_ID', tmp[, cumsum(-CLU_N)]) 		#
+		set(tmp, NULL, 'POOL_ID', tmp[, ceiling( POOL_ID / max(POOL_ID) * pool.n ) ] )#
+		seq.clumem		<- merge(seq.clumem, subset(tmp, select=c(CLU_ID, POOL_ID)), by='CLU_ID', all.x=TRUE)#
+		#	allocate non-clustering tips into 3 distinct clusters#
+		tmp				<- subset(seq.clumem,!is.na(POOL_ID))[, list(NOCLU_N= ceiling( nrow(seq.clumem) / pool.n ) - length(PH_NODE_ID)), by='POOL_ID']		#
+		set(tmp, 1L, 'NOCLU_N', tmp[1,NOCLU_N] - ( tmp[, sum(NOCLU_N)] - ( Ntip(seq.ph) - nrow(subset(seq.clumem,!is.na(POOL_ID))) )) )		#
+		set(seq.clumem, seq.clumem[, which(is.na(POOL_ID))], 'POOL_ID',  rep(tmp[,POOL_ID], tmp[,NOCLU_N]) )#
+		seq.clumem[, table(POOL_ID)]	#
+		##
+		#	for each sequence pool, set up BEAST run#
+		##
+		verbose				<- 1#
+		bxml.template.gag	<- xmlTreeParse(infile.beast.gag, useInternalNodes=TRUE, addFinalizer = TRUE)#
+		bxml.template.pol	<- xmlTreeParse(infile.beast.pol, useInternalNodes=TRUE, addFinalizer = TRUE)#
+		bxml.template.env	<- xmlTreeParse(infile.beast.env, useInternalNodes=TRUE, addFinalizer = TRUE)
+for(pool.id in seq_len(pool.n))#
+		{			#
+			pool.seqnames	<- seq.ph$tip.label[ subset(seq.clumem, POOL_ID==pool.id)[, PH_NODE_ID] ]#
+			##
+			##
+			#	#
+			cat(paste('\ncreate GAG BEAST XML file for seqs=',paste(pool.seqnames, collapse=' ')))#
+			pool.infile		<- paste(  substr(infile,1,nchar(infile)-2),'_geneGAG_pool',pool.id, sep='' )#
+			#	write XML file with new sequences#
+			bxml			<- newXMLDoc(addFinalizer=T)#
+			bxml.beast		<- newXMLNode("beast", doc=bxml, addFinalizer=T)#
+			tmp				<- newXMLCommentNode(text=paste("Generated by HIVCLUST from template",infile.beast.gag), parent=bxml.beast, doc=bxml, addFinalizer=T)#
+			#	add new set of GAG sequences into GAG alignment#
+			tmp				<- seq.gag[pool.seqnames,]#
+			bxml			<- hivc.beast.add.seq(bxml, tmp, df=NULL, beast.label.datepos= 5, beast.label.sep= '|', beast.date.direction= "forwards", beast.date.units= "years", beast.alignment.id="GAG.alignment", beast.alignment.dataType= "nucleotide", verbose=1)#
+			#	copy from template	#
+			bt.beast		<- getNodeSet(bxml.template.gag, "//beast")[[1]]#
+			dummy			<- sapply(seq.int( 1, xmlSize(bt.beast) ), function(i)#
+					{#
+						if( class(bt.beast[[i]])[1]=="XMLInternalCommentNode" )#
+							dummy<- newXMLCommentNode(text=xmlValue(bt.beast[[i]]), parent=bxml.beast, doc=bxml, addFinalizer=T)#
+						else#
+							dummy<- addChildren( bxml.beast, xmlClone( bt.beast[[i]], addFinalizer=T, doc=bxml ) )#
+					})#
+			#	change gmrf dimensions	#
+			tmp			<- getNodeSet(bxml, "//*[@id='skyride.logPopSize']")#
+			if(length(tmp)!=1)	stop("unexpected number of *[@id='skyride.logPopSize'")#
+			tmp			<- tmp[[1]]#
+			xmlAttrs(tmp)["dimension"]	<-	length(pool.seqnames)-1  #
+			tmp			<- getNodeSet(bxml, "//*[@id='skyride.groupSize']")#
+			if(length(tmp)!=1)	stop("unexpected number of *[@id='skyride.groupSize'")#
+			tmp			<- tmp[[1]]#
+			xmlAttrs(tmp)["dimension"]	<-	length(pool.seqnames)-1			#
+			#	change outfile name #
+			bxml.onodes	<- getNodeSet(bxml, "//*[@fileName]")#
+			tmp			<- sapply(bxml.onodes, function(x) xmlGetAttr(x,"fileName"))#
+			tmp			<- gsub("(time).","time",tmp,fixed=1)#
+			tmp			<- gsub("(subst).","subst",tmp,fixed=1)	#
+			tmp			<- sapply(strsplit(tmp,'.',fixed=1), function(x)	paste(pool.infile, '.', tail(x,1), sep=''))#
+			dummy		<- sapply(seq_along(bxml.onodes), function(i){		xmlAttrs(bxml.onodes[[i]])["fileName"]<- tmp[i]		})#
+			#	write to file#
+			file		<- paste(indir,'/',pool.infile,".xml", sep='')#
+			if(verbose)	cat(paste("\nwrite xml file to",file))#
+			saveXML(bxml, file=file)#
+			##
+			#	POL#
+			##
+			cat(paste('\ncreate POL BEAST XML file for seqs=',paste(pool.seqnames, collapse=' ')))#
+			pool.infile		<- paste(  substr(infile,1,nchar(infile)-2),'_genePOL_pool',pool.id, sep='' )#
+			#	write XML file with new sequences#
+			bxml			<- newXMLDoc(addFinalizer=T)#
+			bxml.beast		<- newXMLNode("beast", doc=bxml, addFinalizer=T)#
+			tmp				<- newXMLCommentNode(text=paste("Generated by HIVCLUST from template",infile.beast.pol), parent=bxml.beast, doc=bxml, addFinalizer=T)#
+			#	add new set of GAG sequences into GAG alignment#
+			tmp				<- seq.pol[pool.seqnames,]#
+			bxml			<- hivc.beast.add.seq(bxml, tmp, df=NULL, beast.label.datepos= 5, beast.label.sep= '|', beast.date.direction= "forwards", beast.date.units= "years", beast.alignment.id="POL.alignment", beast.alignment.dataType= "nucleotide", verbose=1)#
+			#	copy from template	#
+			bt.beast		<- getNodeSet(bxml.template.pol, "//beast")[[1]]#
+			dummy			<- sapply(seq.int( 1, xmlSize(bt.beast) ), function(i)#
+					{#
+						if( class(bt.beast[[i]])[1]=="XMLInternalCommentNode" )#
+							dummy<- newXMLCommentNode(text=xmlValue(bt.beast[[i]]), parent=bxml.beast, doc=bxml, addFinalizer=T)#
+						else#
+							dummy<- addChildren( bxml.beast, xmlClone( bt.beast[[i]], addFinalizer=T, doc=bxml ) )#
+					})#
+			#	change gmrf dimensions	#
+			tmp			<- getNodeSet(bxml, "//*[@id='skyride.logPopSize']")#
+			if(length(tmp)!=1)	stop("unexpected number of *[@id='skyride.logPopSize'")#
+			tmp			<- tmp[[1]]#
+			xmlAttrs(tmp)["dimension"]	<-	length(pool.seqnames)-1  #
+			tmp			<- getNodeSet(bxml, "//*[@id='skyride.groupSize']")#
+			if(length(tmp)!=1)	stop("unexpected number of *[@id='skyride.groupSize'")#
+			tmp			<- tmp[[1]]#
+			xmlAttrs(tmp)["dimension"]	<-	length(pool.seqnames)-1			#
+			#	change outfile name #
+			bxml.onodes	<- getNodeSet(bxml, "//*[@fileName]")#
+			tmp			<- sapply(bxml.onodes, function(x) xmlGetAttr(x,"fileName"))#
+			tmp			<- gsub("(time).","time",tmp,fixed=1)#
+			tmp			<- gsub("(subst).","subst",tmp,fixed=1)	#
+			tmp			<- sapply(strsplit(tmp,'.',fixed=1), function(x)	paste(pool.infile, '.', tail(x,1), sep=''))#
+			dummy		<- sapply(seq_along(bxml.onodes), function(i){		xmlAttrs(bxml.onodes[[i]])["fileName"]<- tmp[i]		})#
+			#	write to file#
+			file		<- paste(indir,'/',pool.infile,".xml", sep='')#
+			if(verbose)	cat(paste("\nwrite xml file to",file))#
+			saveXML(bxml, file=file)#
+			##
+			#	ENV#
+			##
+			cat(paste('\ncreate ENV BEAST XML file for seqs=',paste(pool.seqnames, collapse=' ')))#
+			pool.infile		<- paste(  substr(infile,1,nchar(infile)-2),'_geneENV_pool',pool.id, sep='' )#
+			#	write XML file with new sequences#
+			bxml			<- newXMLDoc(addFinalizer=T)#
+			bxml.beast		<- newXMLNode("beast", doc=bxml, addFinalizer=T)#
+			tmp				<- newXMLCommentNode(text=paste("Generated by HIVCLUST from template",infile.beast.env), parent=bxml.beast, doc=bxml, addFinalizer=T)#
+			#	add new set of GAG sequences into GAG alignment#
+			tmp				<- seq.env[pool.seqnames,]#
+			bxml			<- hivc.beast.add.seq(bxml, tmp, df=NULL, beast.label.datepos= 5, beast.label.sep= '|', beast.date.direction= "forwards", beast.date.units= "years", beast.alignment.id="ENV.alignment", beast.alignment.dataType= "nucleotide", verbose=1)#
+			#	copy from template	#
+			bt.beast		<- getNodeSet(bxml.template.env, "//beast")[[1]]#
+			dummy			<- sapply(seq.int( 1, xmlSize(bt.beast) ), function(i)#
+					{#
+						if( class(bt.beast[[i]])[1]=="XMLInternalCommentNode" )#
+							dummy<- newXMLCommentNode(text=xmlValue(bt.beast[[i]]), parent=bxml.beast, doc=bxml, addFinalizer=T)#
+						else#
+							dummy<- addChildren( bxml.beast, xmlClone( bt.beast[[i]], addFinalizer=T, doc=bxml ) )#
+					})#
+			#	change gmrf dimensions	#
+			tmp			<- getNodeSet(bxml, "//*[@id='skyride.logPopSize']")#
+			if(length(tmp)!=1)	stop("unexpected number of *[@id='skyride.logPopSize'")#
+			tmp			<- tmp[[1]]#
+			xmlAttrs(tmp)["dimension"]	<-	length(pool.seqnames)-1  #
+			tmp			<- getNodeSet(bxml, "//*[@id='skyride.groupSize']")#
+			if(length(tmp)!=1)	stop("unexpected number of *[@id='skyride.groupSize'")#
+			tmp			<- tmp[[1]]#
+			xmlAttrs(tmp)["dimension"]	<-	length(pool.seqnames)-1			#
+			#	change outfile name #
+			bxml.onodes	<- getNodeSet(bxml, "//*[@fileName]")#
+			tmp			<- sapply(bxml.onodes, function(x) xmlGetAttr(x,"fileName"))#
+			tmp			<- gsub("(time).","time",tmp,fixed=1)#
+			tmp			<- gsub("(subst).","subst",tmp,fixed=1)	#
+			tmp			<- sapply(strsplit(tmp,'.',fixed=1), function(x)	paste(pool.infile, '.', tail(x,1), sep=''))#
+			dummy		<- sapply(seq_along(bxml.onodes), function(i){		xmlAttrs(bxml.onodes[[i]])["fileName"]<- tmp[i]		})#
+			#	write to file#
+			file		<- paste(indir,'/',pool.infile,".xml", sep='')#
+			if(verbose)	cat(paste("\nwrite xml file to",file))#
+			saveXML(bxml, file=file)			#
+		}
+0.395*0.621
+detach(package:rPANGEAHIV)
+detach('package:rPANGEAHIV')
+?detach
+detach('package:rPANGEAHIVsim')
+library(rPANGEAHIVsim)
+data()
+z<- data(140716_RUN001_IND)
+data(140716_RUN001_IND)
+data('140716_RUN001_IND')
+z<- data('140716_RUN001_IND')
+z
+140716_RUN001_IND
+140716\_RUN001\_IND
+140716\\_RUN001\\_IND
+detach('package:rPANGEAHIVsim')
+library(rPANGEAHIVsim)
+z<- data('140716.RUN001.IND')
+z
+140716.RUN001.IND
+str(140716.RUN001.IND)
+detach('package:rPANGEAHIVsim')
+library(rPANGEAHIVsim)
+?dir.create
+tmpdir			<- '/Users/Oliver/git/HPTN071sim/tmp140908'#
+	dir.create(tmpdir, showWarnings=FALSE)
+indir			<- system.file(package="rPANGEAHIVsim", "misc")	#
+	tmpdir			<- '/Users/Oliver/git/HPTN071sim/tmp140908'#
+	infile.ind		<- '140716_RUN001_IND.csv'#
+	infile.trm		<- '140716_RUN001_TRM.txt'	#
+	outfile.ind		<- '140716_RUN001_IND.csv'#
+	outfile.trm		<- '140716_RUN001_TRM.csv'
+dir.create(tmpdir, showWarnings=FALSE)#
+	cmd				<- cmd.HPTN071.input.parser(indir, infile.trm, infile.ind, tmpdir.HPTN071,  infile.trm, infile.ind)
+cmd				<- cmd.HPTN071.input.parser(indir, infile.trm, infile.ind, tmpdir.HPTN071,  infile.trm, infile.ind)
+tmpdir.HPTN071	<- '/Users/Oliver/git/HPTN071sim/tmp140908'
+cmd				<- cmd.HPTN071.input.parser(indir, infile.trm, infile.ind, tmpdir.HPTN071,  infile.trm, infile.ind)
+cmd
+cat(cmd)
+cmd				<- cmd.HPTN071.input.parser(indir, infile.trm, infile.ind, tmpdir.HPTN071,  infile.trm, infile.ind)				 #
+	argv			<<- unlist(strsplit(cmd,' '))
+argv
+prog.HPTN071.input.parser.v1()
+prog.HPTN071.input.parser.v1()
+indir			<- system.file(package="rPANGEAHIVsim", "misc")	#
+	tmpdir.HPTN071	<- '/Users/Oliver/git/HPTN071sim/tmp140908'#
+	infile.ind		<- '140716_RUN001_IND.csv'#
+	infile.trm		<- '140716_RUN001_TRM.csv'	#
+	outfile.ind		<- '140716_RUN001_IND.csv'#
+	outfile.trm		<- '140716_RUN001_TRM.csv'#
+	dir.create(tmpdir.HPTN071, showWarnings=FALSE)#
+	#get input into 'argv'. this is needed because the input parser is usually called from the command line, and 'argv' mimics the way input is provided when the parser is called from the command line#
+	cmd				<- cmd.HPTN071.input.parser(indir, infile.trm, infile.ind, tmpdir.HPTN071,  infile.trm, infile.ind)				 #
+	argv			<<- unlist(strsplit(cmd,' '))#
+	prog.HPTN071.input.parser.v1()
+require(roxygen2)
+roxygenize(CODE.HOME)
+detach('package:rPANGEAHIVsim')
+library(rPANGEAHIVsim)
+?prog.HPTN071.input.parser.v1
+roxygenize(CODE.HOME)
+detach('package:rPANGEAHIVsim')
+library(rPANGEAHIVsim)
+?prog.HPTN071.input.parser.v2
+?prog.HPTN071.input.parser.v1
+system.file(package="rPANGEAHIVsim", "miscc")
+roxygenize(CODE.HOME)
+detach('package:rPANGEAHIVsim')
+library(rPANGEAHIVsim)
+?prog.HPTN071.input.parser.v2
+?prog.HPTN071.input.parser.v1
+detach('package:rPANGEAHIVsim')
+library(rPANGEAHIVsim)
+?prog.HPTN071.input.parser.v1
+indir			<- system.file(package="rPANGEAHIVsim", "misc")
+indir
+tmpdir.HPTN071	<- '/Users/Oliver/git/HPTN071sim/tmp140908'#
 #
-	pipeline.recom.run.3seq(indir, infile, batch.n=1, hpc.walltime=35, hpc.q='pqeph', hpc.mem="3850mb", hpc.nproc=1)
-PR.PACKAGE					<- "recombination.analyzer"#
-PR.STARTME					<- system.file(package=PR.PACKAGE, "misc", "3seq.startme.R") #
-PR.EXAML.BSCREATE			<- paste(PR.STARTME,"-exeBOOTSTRAPSEQ",sep=' ')#
-PR.RECOMB.3SEQ				<- system.file(package="hivclust", "ext", "3seq") #
-PR.RECOMB.PROCESS3SEQOUTPUT	<- paste(PR.STARTME,"-exe=RECOMB.PROCESS3SEQOUT",sep=' ')#
-PR.RECOMB.CHECKCANDIDATES	<- paste(PR.STARTME,"-exe=RECOMB.CHECKCANDIDATES",sep=' ')#
-PR.RECOMB.PLOTINCONGRUENCE	<- paste(PR.STARTME,"-exe=RECOMB.PLOTINCONGRUENCE",sep=' ')#
-PR.EXAML.PARSER				<- system.file(package=PR.PACKAGE, "ext", "ExaML-parser") #
-PR.EXAML.STARTTREE			<- system.file(package=PR.PACKAGE, "ext", "ExaML-parsimonator")#
-PR.EXAML.EXAML				<- system.file(package=PR.PACKAGE, "ext", "examl")#
-PR.EXAML.BS					<- system.file(package=PR.PACKAGE, "ext", "ExaML-raxml")#
-HPC.NPROC					<- {tmp<- c(1,4); names(tmp)<- c("debug","cx1.hpc.ic.ac.uk"); tmp}#
-HPC.MPIRUN					<- {tmp<- c("mpirun","mpiexec"); names(tmp)<- c("debug","cx1.hpc.ic.ac.uk"); tmp}#
-HPC.CX1.IMPERIAL			<- "cx1.hpc.ic.ac.uk"		#this is set to system('domainname',intern=T) for the hpc cluster of choice#
-HPC.MEM						<- "1750mb"#
-HPC.LOAD					<- "module load intel-suite mpi R/2.15"
-require(recombination.analyzer)#
-	data(neisseria)#
-	print( seq )#
-	indir		<- paste(CODE.HOME,'demo', sep='/')#
-	infile		<- 'neisseria.R'#
-	insignat	<- ''#
-	save(seq, file=paste(indir, infile, sep='/'))#
+#	simulation input files from the epi-simulator#
+infile.ind		<- '140716_RUN001_IND.csv'#
+infile.trm		<- '140716_RUN001_TRM.csv'#
 #
-	pipeline.recom.run.3seq(indir, infile, batch.n=1, hpc.walltime=35, hpc.q='pqeph', hpc.mem="3850mb", hpc.nproc=1)
-PR.PACKAGE					<- "recombination.analyzer"#
-PR.STARTME					<- system.file(package=PR.PACKAGE, "misc", "3seq.startme.R") #
-PR.EXAML.BSCREATE			<- paste(PR.STARTME,"-exeBOOTSTRAPSEQ",sep=' ')#
-PR.RECOMB.3SEQ				<- system.file(package=PR.PACKAGE, "ext", "3seq") #
-PR.RECOMB.PROCESS3SEQOUTPUT	<- paste(PR.STARTME,"-exe=RECOMB.PROCESS3SEQOUT",sep=' ')#
-PR.RECOMB.CHECKCANDIDATES	<- paste(PR.STARTME,"-exe=RECOMB.CHECKCANDIDATES",sep=' ')#
-PR.RECOMB.PLOTINCONGRUENCE	<- paste(PR.STARTME,"-exe=RECOMB.PLOTINCONGRUENCE",sep=' ')#
-PR.EXAML.PARSER				<- system.file(package=PR.PACKAGE, "ext", "ExaML-parser") #
-PR.EXAML.STARTTREE			<- system.file(package=PR.PACKAGE, "ext", "ExaML-parsimonator")#
-PR.EXAML.EXAML				<- system.file(package=PR.PACKAGE, "ext", "examl")#
-PR.EXAML.BS					<- system.file(package=PR.PACKAGE, "ext", "ExaML-raxml")#
-HPC.NPROC					<- {tmp<- c(1,4); names(tmp)<- c("debug","cx1.hpc.ic.ac.uk"); tmp}#
-HPC.MPIRUN					<- {tmp<- c("mpirun","mpiexec"); names(tmp)<- c("debug","cx1.hpc.ic.ac.uk"); tmp}#
-HPC.CX1.IMPERIAL			<- "cx1.hpc.ic.ac.uk"		#this is set to system('domainname',intern=T) for the hpc cluster of choice#
-HPC.MEM						<- "1750mb"#
-HPC.LOAD					<- "module load intel-suite mpi R/2.15"
-require(recombination.analyzer)#
-	data(neisseria)#
-	print( seq )#
-	indir		<- paste(CODE.HOME,'demo', sep='/')#
-	infile		<- 'neisseria.R'#
-	insignat	<- ''#
-	save(seq, file=paste(indir, infile, sep='/'))#
+#	output files#
+outfile.ind		<- '140716_RUN001_IND.csv'#
+outfile.trm		<- '140716_RUN001_TRM.csv'#
+dir.create(tmpdir.HPTN071, showWarnings=FALSE)#
 #
-	pipeline.recom.run.3seq(indir, infile, batch.n=1, hpc.walltime=35, hpc.q='pqeph', hpc.mem="3850mb", hpc.nproc=1)
-require(recombination.analyzer)#
-	data(neisseria)#
-	print( seq )#
-	indir		<- paste(CODE.HOME,'demo', sep='/')#
-	infile		<- 'neisseria.R'#
-	insignat	<- ''#
-	save(seq, file=paste(indir, infile, sep='/'))#
+#	get input into 'argv'. this is needed because the input parser is usually called from the command line, and 'argv' mimics the way input is provided when the parser is called from the command line#
+cmd				<- cmd.HPTN071.input.parser.v2(indir, infile.trm, infile.ind, tmpdir.HPTN071,  infile.trm, infile.ind)				 #
+argv			<<- unlist(strsplit(cmd,' '))
+library(help=rPANGEAHIVsim)
+library(rPANGEAHIVsim)
+tmpdir.HPTN071	<- '/Users/Oliver/git/HPTN071sim/tmp140908'#
 #
-	pipeline.recom.run.3seq(indir, infile, batch.n=1, hpc.walltime=35, hpc.q='pqeph', hpc.mem="3850mb", hpc.nproc=1)
+#	simulation input files from the epi-simulator#
+infile.ind		<- '140716_RUN001_IND.csv'#
+infile.trm		<- '140716_RUN001_TRM.csv'#
+#
+#	output files#
+outfile.ind		<- '140716_RUN001_IND.csv'#
+outfile.trm		<- '140716_RUN001_TRM.csv'#
+dir.create(tmpdir.HPTN071, showWarnings=FALSE)#
+#
+#	get input into 'argv'. this is needed because the input parser is usually called from the command line, and 'argv' mimics the way input is provided when the parser is called from the command line#
+cmd				<- cmd.HPTN071.input.parser.v2(indir, infile.trm, infile.ind, tmpdir.HPTN071,  infile.trm, infile.ind)				 #
+argv			<<- unlist(strsplit(cmd,' '))

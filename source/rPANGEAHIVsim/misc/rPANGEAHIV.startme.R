@@ -51,7 +51,8 @@ if(length(args))
 		else default.fun<- switch(tmp[1],
 					ROXYGENIZE				= "package.roxygenize",
 					MAKE.RDATA				= "package.generate.rdafiles",					
-					HPTN071.INPUT.PARSER	= "prog.HPTN071.input.parser.v1",
+					HPTN071.INPUT.PARSER1	= "prog.HPTN071.input.parser.v1",
+					HPTN071.INPUT.PARSER2	= "prog.HPTN071.input.parser.v2",
 					PR.SEQGEN.FILECREATOR	= "prog.PANGEA.SeqGen.createInputFile",
 					PR.SEQGEN.READER		= "prog.PANGEA.SeqGen.readOutput"
 					)
@@ -128,6 +129,7 @@ function.list<-c(list.files(path= paste(CODE.HOME,"R",sep='/'), pattern = ".R$",
 sapply(function.list,function(x){ source(x,echo=FALSE,print.eval=FALSE, verbose=FALSE) })
 ###############################################################################
 #	run script
+#stop()
 if(DEBUG)	options(error= my.dumpframes)	
 cat(paste("\nrPANGEAHIV: ",ifelse(DEBUG,"debug",""),"call",default.fun,"\n"))
 do.call(default.fun,list()) 	
