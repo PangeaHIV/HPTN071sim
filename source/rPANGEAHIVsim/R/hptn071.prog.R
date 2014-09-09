@@ -415,10 +415,8 @@ rPANGEAHIVsim.pipeline<- function(indir, infile.ind, infile.trm, outdir)
 #######################################################\n")	
 	#cat(cmd)
 	outfile			<- paste("pngea",paste(strsplit(date(),split=' ')[[1]],collapse='_',sep=''),sep='.')
-	cat(paste('\nWrite UNIX batch file or QSUB file to file', outfile))
-	cmd.hpccaller(outdir, outfile, cmd)
-	
-	paste(outdir, '/', outfile, sep='')
+	#cat(paste('\nWrite UNIX batch file or QSUB file to file', outfile))
+	cmd.hpccaller(outdir, outfile, cmd)	
 }
 ##--------------------------------------------------------------------------------------------------------
 ##	olli originally written 26-07-2014

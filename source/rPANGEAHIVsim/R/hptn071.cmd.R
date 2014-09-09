@@ -75,7 +75,7 @@ cmd.hpccaller<- function(outdir, outfile, cmd)
 		Sys.chmod(file, mode = "777")	
 		Sys.sleep(1)
 	}
-	
+	file
 }
 ##--------------------------------------------------------------------------------------------------------
 ##	command line generator for 'prog.HPTN071.input.parser.v1'
