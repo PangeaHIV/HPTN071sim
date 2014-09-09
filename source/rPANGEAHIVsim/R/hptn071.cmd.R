@@ -3,7 +3,7 @@ PR.STARTME					<- system.file(package=PR.PACKAGE, "misc", "rPANGEAHIV.startme.R"
 PR.HPTN071.INPUT.PARSER1	<- paste(PR.STARTME,"-exe=HPTN071.INPUT.PARSER1",sep=' ')
 PR.HPTN071.INPUT.PARSER2	<- paste(PR.STARTME,"-exe=HPTN071.INPUT.PARSER2",sep=' ')
 PR.SEQGEN.FILECREATOR		<- paste(PR.STARTME,"-exe=PR.SEQGEN.FILECREATOR",sep=' ')
-PR.SEQGEN.READER			<- paste(PR.STARTME,"-exe=PR.SEQGEN.READER",sep=' ')
+PR.SEQGEN.SIMULATOR			<- paste(PR.STARTME,"-exe=PR.SEQGEN.SIMULATOR",sep=' ')
 PR.VIRUSTREESIMULATOR		<- system.file(package=PR.PACKAGE, "ext", "VirusTreeSimulator.jar")
 PR.SEQGEN					<- system.file(package=PR.PACKAGE, "ext", "seq-gen")
 
@@ -24,7 +24,6 @@ cmd.hpcsys<- function()
 ##	batch file wrapper
 ##	olli originally written 26-08-2014
 ##--------------------------------------------------------------------------------------------------------
-#' @export
 cmd.hpcwrapper<- function(cmd, hpcsys= cmd.hpcsys(), hpc.walltime=24, hpc.mem="1750mb", hpc.nproc=1, hpc.q=NA)
 {
 	wrap<- "#!/bin/sh"
@@ -54,7 +53,6 @@ cmd.hpcwrapper<- function(cmd, hpcsys= cmd.hpcsys(), hpc.walltime=24, hpc.mem="1
 ##	batch file caller
 ##	olli originally written 26-08-2014
 ##--------------------------------------------------------------------------------------------------------
-#' @export
 cmd.hpccaller<- function(outdir, outfile, cmd)
 {
 	if( nchar( Sys.which("qsub") ) )
@@ -82,6 +80,7 @@ cmd.hpccaller<- function(outdir, outfile, cmd)
 ##	olli originally written 19-08-2014
 ##--------------------------------------------------------------------------------------------------------
 #' @title Command line generator for \code{HPTN071.input.parser.v1}
+#' @return command line string
 #' @example example/ex.seq.sampler.v1.R
 #' @export
 cmd.HPTN071.input.parser.v1<- function(indir, infile.trm, infile.ind, outdir, outfile.trm, outfile.ind, prog=PR.HPTN071.INPUT.PARSER1 )	
@@ -102,6 +101,7 @@ cmd.HPTN071.input.parser.v1<- function(indir, infile.trm, infile.ind, outdir, ou
 ##	olli originally written 08-09-2014
 ##--------------------------------------------------------------------------------------------------------
 #' @title Command line generator for \code{HPTN071.input.parser.v2}
+#' @return command line string
 #' @example example/ex.seq.sampler.v2.R
 #' @export
 cmd.HPTN071.input.parser.v2<- function(indir, infile.trm, infile.ind, outdir, outfile.trm, outfile.ind, prog=PR.HPTN071.INPUT.PARSER2 )	
@@ -126,6 +126,7 @@ cmd.HPTN071.input.parser.v2<- function(indir, infile.trm, infile.ind, outdir, ou
 #' in directory \code{outdir} for the virus tree simulator. The program generates within-host phylogenies
 #' for sampled and unsampled individuals in a transmission chain along the specified within host coalescent
 #' model. Within-host phylogenies are then concatenated into a between-host phylogeny for each transmission chain.
+#' @return command line string
 #' @example example/ex.virus.tree.simulator.R
 #' @export
 cmd.VirusTreeSimulator<- function(indir, infile.trm, infile.ind, outdir, outfile, prog=PR.VIRUSTREESIMULATOR, prog.args='-demoModel Logistic -N0 0.1 -growthRate 1.5 -t50 -4')
@@ -146,13 +147,24 @@ cmd.VirusTreeSimulator<- function(indir, infile.trm, infile.ind, outdir, outfile
 #	return command line to run SeqGen Input File Creator	
 #	olli originally written 26-08-2014
 #	return 		character string 
+#' @title Command line generator for \code{prog.PANGEA.SeqGen.createInputFile}
+#' @description The \code{prog.PANGEA.SeqGen.createInputFile} reads files from the virus tree simulator in directory \code{indir.vts} and writes input files for \code{SeqGen}
+#' to directory \code{outdir}. The program reads simulated transmission chain phylogenies with branches in units of calendar time
+#' for sampled and unsampled individuals in a transmission chain. Within host evolutionary rates are drawn from a distribution, and
+#' within host branch lengths are converted into the expected number of substitutions along the branch. Transmission branches are
+#' multiplied with a multiplier to allow for slower evolution between hosts. The multiplier is drawn from a distribution. Starting sequences
+#' are drawn from a pool of precomputed sequences. GTR parameters are drawn from a distribution. This is all that s needed to specify 
+#' the SeqGen input files for each transmission chain.
+#' @return command line string
+#' @example example/ex.seqgen.inputfilecreator.R
+#' @export
 cmd.SeqGen.createInputFiles<- function(indir.epi, infile.epi, indir.vts, infile.vts, outdir, prog=PR.SEQGEN.FILECREATOR)
 {
 	cmd<- "#######################################################
 # start: run SeqGen.createInputFile 
 #######################################################"
 	cmd		<- paste(cmd, paste("\necho \'run ",prog,"\'\n",sep=''))
-	cmd		<- paste(cmd, paste(prog,' -indir.epi=', indir.epi,' -infile.epi=',infile.epi,' -indir.vts=', indir.vts,' -infile.vts=',infile.vts,' -outdir=',outdir,'\n', sep=''))
+	cmd		<- paste(cmd, paste(prog,' -indir.epi=', indir.epi,' -infile.epi=',infile.epi,' -indir.vts=', indir.vts,' -infile.vts=',infile.vts,' -outdir=',outdir,' \n', sep=''))
 	cmd		<- paste(cmd,paste("echo \'end ",prog,"\'\n",sep=''))
 	cmd		<- paste(cmd,"#######################################################
 # end: run SeqGen.createInputFile
@@ -160,19 +172,27 @@ cmd.SeqGen.createInputFiles<- function(indir.epi, infile.epi, indir.vts, infile.
 	cmd
 }
 ######################################################################################
-#	return command line to run SeqGen Output File Reader	
-#	olli originally written 26-08-2014
+#	return command line to run SeqGen and process SeqGen output 	
+#	olli originally written 09-09-2014
 #	return 		character string 
-cmd.SeqGen.readOutputFiles<- function(indir.epi, infile.epi, indir.sg, outdir, prog=PR.SEQGEN.READER)
+#' @title Command line generator for \code{prog.PANGEA.SeqGen.run}
+#' @description \code{prog.PANGEA.SeqGen.run} reads file \code{infile.sg} in directory \code{indir.sg} that was
+#' created with the \code{SeqGen} input file creator. The simulated partial sequences are collected, coerced back
+#' into Gag, Pol, Env genes, and written in fasta format to directory \code{outdir}. Patient Metavariables are 
+#' stored in the same directory, and zip files are created.
+#' @return command line string
+#' @example example/ex.seqgen.run.R
+#' @export
+cmd.SeqGen.run<- function(indir.sg, infile.sg, outdir, prog=PR.SEQGEN.SIMULATOR)
 {
 	cmd<- "#######################################################
-# start: run SeqGen.readOutputFiles 
+# start: run SeqGen.run 
 #######################################################"
 	cmd		<- paste(cmd, paste("\necho \'run ",prog,"\'\n",sep=''))
-	cmd		<- paste(cmd, paste(prog,' -indir.epi=', indir.epi,' -infile.epi=',infile.epi,' -indir.sg=', indir.sg,' -outdir=',outdir,'\n', sep=''))
+	cmd		<- paste(cmd, paste(prog,' -indir.sg=', indir.sg,' -infile.sg=',infile.sg,' -outdir=',outdir,' \n', sep=''))
 	cmd		<- paste(cmd,paste("echo \'end ",prog,"\'\n",sep=''))
 	cmd		<- paste(cmd,"#######################################################
-# end: run SeqGen.readOutputFiles
+# end: run SeqGen.run
 #######################################################\n",sep='')
 	cmd
 }
@@ -196,79 +216,11 @@ cmd.SeqGen<- function(indir, infile, outdir, outfile, prog=PR.SEQGEN, prog.args=
 									' -r',rate.AC, ',', rate.AG, ',', rate.AT, ',', rate.CG, ',', rate.CT, ',', rate.GT, sep=''),sep='')
 	#	add I/O
 	cmd		<- paste(cmd, paste(' < ', indir,'/',infile,' > ', outdir,'/',outfile, '\n', sep=''))
-	cmd		<- paste(cmd, 'rm ',indir,'/',infile,'\n', sep='')
+	#cmd		<- paste(cmd, 'rm ',indir,'/',infile,'\n', sep='')
 	cmd		<- paste(cmd,paste("echo \'end ",prog,"\'\n",sep=''))
 	cmd		<- paste(cmd,"#######################################################
 # end: run SeqGen
 #######################################################\n",sep='')
-	cmd
-}
-######################################################################################
-#	return command line to run a batch of Seq-Gen-1.3.3 jobs for a PANGEA simulation	
-#	olli originally written 26-08-2014
-#	return 		character string 
-cmd.PANGEA.SeqGen<- function(indir.sg, infile.prefix, plot.file=NA)
-{	
-	s.seed		<- 42
-	set.seed(s.seed)
-	file		<- paste(indir.sg,'/',infile.prefix, 'seqgen.R',sep='')
-	load(file)	#expect df.seqgen, gtr.central, log.df, df.nodestat
-	#	check posterior samples
-	tmp			<- log.df[, list(N=length(a)), by=c('GENE','CODON_POS')]
-	stopifnot( tmp[, length(unique(N))==1] )
-	n.samples	<- tmp[1,N] 
-			
-	#	create SeqGen input files
-	df.ph.out	<- df.seqgen[,	{
-				#print( table( strsplit(ANCSEQ, ''), useNA='if') )
-				file	<- paste(indir.sg,'/',infile.prefix, IDCLU, '_', GENE, '_', CODON_POS,'.seqgen',sep='')
-				cat(paste('\nwrite to file',file))
-				txt		<- paste('1\t',nchar(ANCSEQ),'\n',sep='')
-				txt		<- paste(txt, 'ANCSEQ\t',toupper(ANCSEQ),'\n',sep='')					
-				txt		<- paste(txt, '1\n',sep='')
-				txt		<- paste(txt, NEWICK, '\n',sep='')
-				cat(txt, file=file)
-				list(FILE= paste(infile.prefix, IDCLU, '_', GENE, '_', CODON_POS,'.seqgen',sep='') )
-				# ./seq-gen -mHKY -t3.0 -f0.3,0.2,0.2,0.3 -n1 -k1 -on < /Users/Oliver/git/HPTN071sim/tmp/SeqGen/140716_RUN001_50.seqgen > example.nex
-			}, by=c('GENE','CODON_POS','IDCLU')]
-	df.ph.out	<- df.ph.out[, list(FILE=FILE, IDCLU=IDCLU, IDX=sample(n.samples, length(FILE), replace=FALSE)), by=c('GENE','CODON_POS')]
-	if(1)
-	{
-		#	sample GTR parameters from posterior
-		setkey(log.df, GENE, CODON_POS)
-		log.df[, IDX:=seq_len(n.samples)]
-		df.ph.out	<- merge(df.ph.out, log.df, by=c('GENE', 'CODON_POS', 'IDX'))
-		#	standardise mu for each FILE
-		tmp			<- df.ph.out[, list(FILE=FILE, mu=mu/mean(mu)), by='IDCLU']
-		df.ph.out	<- merge( subset(df.ph.out, select=which(colnames(df.ph.out)!='mu')), subset(tmp, select=c(FILE, mu)), by='FILE')
-	}
-	if(0)
-	{
-		#	pick central GTR parameters
-		df.ph.out	<- merge(df.ph.out, gtr.central, by= c('GENE','CODON_POS'))
-	}
-	if(!is.na(plot.file))
-	{
-		tmp			<- subset(df.nodestat, select=c(IDPOP, ER, BWM, IDCLU))
-		tmp			<- merge(tmp, subset(df.ph.out, select=c(GENE, CODON_POS, IDCLU, mu)), by='IDCLU', allow.cartesian=TRUE)
-		set(tmp, NULL, 'ER', tmp[, ER*mu])		
-		
-		ggplot(tmp, aes(x=CODON_POS, y=ER, colour=CODON_POS, group=CODON_POS)) + geom_boxplot() +				
-				facet_grid(.~GENE, scales='free_y') +
-				scale_colour_discrete(guide=FALSE) +
-				scale_y_continuous(breaks= seq(0, 0.05, 0.002)) + labs(linetype='Gene', y='simulated within-host evolutionary rate', x='codon position')		
-		ggsave(file=plot.file, w=6, h=6)						
-	}	
-	#	create SeqGen command line
-	df.ph.out	<- df.ph.out[, {												
-					cmd	<- cmd.SeqGen(indir.sg, FILE, indir.sg, gsub('seqgen','phy',FILE), prog=PR.SEQGEN, prog.args=paste('-n',Global.gen.n.seq,' -k1 -or -z',Global.rng.seed,sep=''), 
-							alpha=alpha, gamma=4, invariable=0, scale=mu, freq.A=a, freq.C=c, freq.G=g, freq.T=t,
-							rate.AC=ac, rate.AG=ag, rate.AT=at, rate.CG=cg, rate.CT=1, rate.GT=gt)
-					#cat(cmd)
-					list(CMD=cmd)							
-				}, by='FILE']
-	#print(df.ph.out)
-	cmd	<- paste(df.ph.out[, CMD], collapse='\n')
 	cmd
 }
 

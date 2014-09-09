@@ -222,18 +222,7 @@ hivc.beast2out.read.nodeidtree <- function(bstr, method.node.stat='any.node')
 	dummy.tree	<- paste(dummy.tree, collapse=':',sep='')
 	dummy.tree	<- regmatches(dummy.tree, regexpr('\\(.*',dummy.tree))
 	dummy.tree	<- paste(dummy.tree, ';', sep='')	
-	ph<-  tryCatch(
-			{
-				read.tree(text=dummy.tree)	
-			}, error=function(e)
-			{ 
-				cat(paste('\nerror in read.tree\n',e$message,'\ntry seq.read.newick'))
-				return( seq.read.newick(text=dummy.tree) )			
-			}, warning=function(e)
-			{ 
-				cat(paste('\nwarning in read.tree\n',e$message,'\ntry seq.read.newick'))
-				return( seq.read.newick(text=dummy.tree) )			
-			})
+	ph<-  seq.read.newick(text=dummy.tree)
 	ph
 }
 ##--------------------------------------------------------------------------------------------------------
@@ -312,7 +301,7 @@ hivc.beast2out.read.nexus.and.stats<- function(file, tree.id=NA, method.node.sta
 			node.stat	<- do.call('rbind',node.stat)
 		if(length(node.stat)==1)
 			node.stat	<- node.stat[[1]]
-		node.stat[, NODE_ID:=NA_integer_]		
+		suppressWarnings({ node.stat[, NODE_ID:=NA_integer_] })				
 		setkey(node.stat, TREE_ID, NODE_PARSE_ID)
 		btree		<- vector('list',length(tree.id))
 		for(i in seq_along(tree.id))

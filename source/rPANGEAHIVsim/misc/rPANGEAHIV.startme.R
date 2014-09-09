@@ -54,7 +54,7 @@ if(length(args))
 					HPTN071.INPUT.PARSER1	= "prog.HPTN071.input.parser.v1",
 					HPTN071.INPUT.PARSER2	= "prog.HPTN071.input.parser.v2",
 					PR.SEQGEN.FILECREATOR	= "prog.PANGEA.SeqGen.createInputFile",
-					PR.SEQGEN.READER		= "prog.PANGEA.SeqGen.readOutput"
+					PR.SEQGEN.SIMULATOR		= "prog.PANGEA.SeqGen.run"
 					)
 	}
 	tmp<- na.omit(sapply(args,function(arg)

@@ -6,6 +6,9 @@
     infile.ind, outdir, outfile.trm, outfile.ind,
     prog = PR.HPTN071.INPUT.PARSER2)
 }
+\value{
+  command line string
+}
 \description{
   Command line generator for \code{HPTN071.input.parser.v2}
 }
