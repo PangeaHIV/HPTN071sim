@@ -31,12 +31,12 @@ See also '?rPANGEAHIVsim.pipeline' for help.
 rPANGEAHIV Documentation
 ======================
 
-> **PANGEAphy-01: help with the software**
-The package documentation can be loaded with `library(help=rPANGEAHIVsim)`. The main function is `rPANGEAHIVsim.pipeline`, which glues various subprograms together. Type `?rPANGEAHIVsim.pipeline` for help. You can also type, for example,  `?prog.HPTN071.input.parser.v2` to see how the different subprograms can be executed. 
+**PANGEAphy-01: help with the software**
+> The package documentation can be loaded with `library(help=rPANGEAHIVsim)`. The main function is `rPANGEAHIVsim.pipeline`, which glues various subprograms together. Type `?rPANGEAHIVsim.pipeline` for help. You can also type, for example,  `?prog.HPTN071.input.parser.v2` to see how the different subprograms can be executed. 
 
 ----------
 
- **PANGEAphy-01: simulated genome**
+**PANGEAphy-01: simulated genome**
 > The following parts of the genome are simulated:
 
 > - gag: p17 start to pol PROT start; length 1440 nucleotides. This is shorter than HXB2-K03455-gag due to several deletions in HIV-1C. The the simulated gag gene does not include the last 14 amino acids of p6, due to the overlap with pol.
@@ -47,7 +47,7 @@ The package documentation can be loaded with `library(help=rPANGEAHIVsim)`. The 
 
 ----------
 
-> **PANGEAphy-01: genome simulation**
+**PANGEAphy-01: genome simulation**
 > Concatenated gag+pol+env HIV sequences are generated along each simulated transmission chain (from either the DSPS or HPTN071 epidemic simulator). Briefly, the simulation proceeds along the following steps:
 > 
 > - Simulate a viral genealogy through sampled and unsampled individuals of a transmission chain that allows for within-host evolution of the virus. Branch lengths are in units of calendar time. The VirusTreeSimulator JAVA program is used for this purpose (Matthew Hall).
@@ -57,7 +57,6 @@ The package documentation can be loaded with `library(help=rPANGEAHIVsim)`. The 
 
 ----------
 
-> **PANGEAphy-01: further details**
+**PANGEAphy-01: further details**
 > XX TODO XX
 >
-
