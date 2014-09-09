@@ -14,7 +14,8 @@
   phylogenies for sampled and unsampled individuals in a
   transmission chain along the specified within host
   coalescent model. Within-host phylogenies are then
-  concatenated into a between-host phylogeny.
+  concatenated into a between-host phylogeny for each
+  transmission chain.
 }
 \examples{
 ##--------------------------------------------------------------------------------------------------------
@@ -60,6 +61,5 @@ prog.args		<- '-demoModel Logistic -N0 100000 -growthRate 0.0001 -t50 -0.04'
 #prog.args		<- '-demoModel Logistic -N0 300000 -growthRate XXX -t50 -XXX'
 cmd				<- cmd.VirusTreeSimulator(tmpdir.HPTN071, infile.trm, infile.ind, tmpdir.VTS, outfile, prog.args=prog.args)	
 cat(cmd)
-	
 }
 

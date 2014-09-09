@@ -108,7 +108,7 @@ cmd.HPTN071.input.parser.v2<- function(indir, infile.trm, infile.ind, outdir, ou
 {
 	cmd<- "#######################################################
 # start: run HPTN071.input.parser.v2
-			#######################################################"
+#######################################################"
 	cmd		<- paste(cmd, paste("\necho \'run ",prog,"\'\n",sep=''))
 	cmd		<- paste(cmd, paste(prog,' -indir=', indir,' -infile.trm=',infile.trm,' -infile.ind=',infile.ind,' -outdir=',outdir,' -outfile.ind=',outfile.ind,' -outfile.trm=',outfile.trm,' \n', sep=''))
 	cmd		<- paste(cmd,paste("echo \'end ",prog,"\'\n",sep=''))
@@ -117,7 +117,6 @@ cmd.HPTN071.input.parser.v2<- function(indir, infile.trm, infile.ind, outdir, ou
 #######################################################\n",sep='')
 	cmd
 }
-
 ######################################################################################
 #	return command line to run the VirusTreeSimulator	
 #	olli originally written 19-08-2014
@@ -126,7 +125,7 @@ cmd.HPTN071.input.parser.v2<- function(indir, infile.trm, infile.ind, outdir, ou
 #' @description The \code{VirusTreeSimulator} reads files from the sequence sampler in directory \code{indir} and writes detailed nexus files
 #' in directory \code{outdir} for the virus tree simulator. The program generates within-host phylogenies
 #' for sampled and unsampled individuals in a transmission chain along the specified within host coalescent
-#' model. Within-host phylogenies are then concatenated into a between-host phylogeny.
+#' model. Within-host phylogenies are then concatenated into a between-host phylogeny for each transmission chain.
 #' @example example/ex.virus.tree.simulator.R
 #' @export
 cmd.VirusTreeSimulator<- function(indir, infile.trm, infile.ind, outdir, outfile, prog=PR.VIRUSTREESIMULATOR, prog.args='-demoModel Logistic -N0 0.1 -growthRate 1.5 -t50 -4')

@@ -11,7 +11,7 @@ To install this R package from the command line:
  
 rPANGEAHIV Help files
 ======================
-Then run R and load the package with 'library(rPANGEAHIVsim)'. The package content that is currently documented is shown with 'library(help=rPANGEAHIVsim)'. You can type e.g.  '?prog.HPTN071.input.parser.v2' to see how the different functions can be executed.
+Then run R and load the package with 'library(rPANGEAHIVsim)'. The package content that is currently documented is shown with 'library(help=rPANGEAHIVsim)'. You can type e.g.  '?prog.HPTN071.input.parser.v2' to see how the calling syntax for different functions. The help file for the virus tree simulator is '?cmd.VirusTreeSimulator'.
 
 ----------
 

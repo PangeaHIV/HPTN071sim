@@ -354,9 +354,73 @@ prog.PANGEA.SeqGen.createInputFile<- function()
 	df.seqgen	<- df.ph
 	save(df.seqgen, gtr.central, log.df, df.nodestat, file=file)
 }
-
 ##--------------------------------------------------------------------------------------------------------
-##	
+##	olli originally written 08-09-2014
+##--------------------------------------------------------------------------------------------------------
+#' @title rPANGEAHIV simulation pipeline
+#' @description Reads two files \code{infile.ind} and \code{infile.trm} from the epi simulator in directory \code{indir} and produces a UNIX batch
+#' file that contains all the simulation steps in directory \code{outdir}. 
+#' @param indir		Input directory
+#' @param infile.ind		Input file with individual metavariables
+#' @param infile.trm		Input file with transmission events
+#' @return file name of qsub or UNIX batch file
+#' @example example/ex.pipeline.R
+#' @export
+rPANGEAHIVsim.pipeline<- function(indir, infile.ind, infile.trm, outdir)
+{
+	verbose			<- 1
+	#
+	if(verbose)
+	{
+		cat('\ninput args\n',paste(indir, infile.ind, infile.trm, outdir, sep='\n'))
+	}	
+	#
+	#	pipeline start
+	#	
+	##	sample sequences and draw imports 
+	cmd				<- "#######################################################
+#######################################################
+#######################################################
+#
+# start: run rPANGEAHIVsim.pipeline
+#
+#######################################################
+#######################################################
+#######################################################"	
+	cmd				<- paste(cmd,'\nmkdir -p ', outdir,'\n',sep='')	
+	outdir.HPTN071	<- paste(outdir,'/HPTN071parser',sep='')
+	cmd				<- paste(cmd, 'mkdir -p ', outdir.HPTN071,'\n',sep='')
+	cmd				<- paste(cmd, cmd.HPTN071.input.parser.v2(indir, infile.trm, infile.ind, outdir.HPTN071,  infile.trm, infile.ind), sep='\n')
+	##	run virus tree simulator
+	outdir.VTS		<- paste(outdir,'/VirusTreeSimulator',sep='')
+	cmd				<- paste(cmd, 'mkdir -p ', outdir.VTS,'\n',sep='')
+	outfile			<- substr(infile.ind, 1, nchar(infile.ind)-7)
+	prog.args		<- '-demoModel Logistic -N0 100000 -growthRate 0.0001 -t50 -0.04'
+	cmd				<- paste(cmd, cmd.VirusTreeSimulator(outdir.HPTN071, infile.trm, infile.ind, outdir.VTS, outfile, prog.args=prog.args), sep='\n')	
+	##	create seq gen input files 
+	#outdir.SG		<- paste(outdir,'/SeqGen',sep='')
+	#cmd				<- paste(cmd, 'mkdir -p ', outdir.SG,'\n',sep='')
+	#infile.epi		<- paste( substr(infile.ind, 1, nchar(infile.ind)-7),'SAVE.R', sep='' )
+	#infile.vts		<- substr(infile.ind, 1, nchar(infile.ind)-7)
+	#cmd				<- paste(cmd, cmd.SeqGen.createInputFiles(indir, infile.epi, outdir.VTS, infile.vts, outdir.SG), sep='\n')
+	#cat(cmd)	
+	cmd				<- paste(cmd,"#######################################################
+#######################################################
+#######################################################
+#
+# end: run rPANGEAHIVsim.pipeline
+#
+#######################################################
+#######################################################
+#######################################################\n")	
+	#cat(cmd)
+	outfile			<- paste("pngea",paste(strsplit(date(),split=' ')[[1]],collapse='_',sep=''),sep='.')
+	cat(paste('\nWrite UNIX batch file or QSUB file to file', outfile))
+	cmd.hpccaller(outdir, outfile, cmd)
+	
+	paste(outdir, '/', outfile, sep='')
+}
+##--------------------------------------------------------------------------------------------------------
 ##	olli originally written 26-07-2014
 ##--------------------------------------------------------------------------------------------------------
 #' @title Sequence sampler (version 1)
@@ -532,7 +596,12 @@ prog.HPTN071.input.parser.v1<- function()
 	#	TRANSMISSION NETWORKS
 	#
 	require(igraph)
-	tmp			<- subset(df.trms, IDTR>=0, select=c(IDTR, IDREC))			
+	#	need a unique index number for every cluster
+	setkey(df.trms, TIME_TR)
+	tmp			<- df.trms[, which(IDTR<0)]
+	set(df.trms, tmp, 'IDTR', rev(-seq_along(tmp)))
+	#	cluster with index case
+	tmp			<- subset(df.trms, select=c(IDTR, IDREC))			
 	tmp			<- graph.data.frame(tmp, directed=TRUE, vertices=NULL)
 	tmp			<- data.table(IDPOP=as.integer(V(tmp)$name), CLU=clusters(tmp, mode="weak")$membership)
 	tmp2		<- tmp[, list(CLU_SIZE=length(IDPOP)), by='CLU']
@@ -542,6 +611,8 @@ prog.HPTN071.input.parser.v1<- function()
 	df.inds		<- merge( df.inds, tmp, by='IDPOP', all.x=TRUE )
 	setnames(tmp, 'IDPOP', 'IDREC')
 	df.trms		<- merge( df.trms, tmp, by='IDREC', all.x=TRUE )
+	stopifnot( nrow(subset(df.trms, is.na(IDCLU)))==0 )
+	cat(paste('\nFound transmission clusters, n=', df.trms[, length(unique(IDCLU))]))
 	#
 	#	PLOTS
 	#
@@ -560,17 +631,17 @@ prog.HPTN071.input.parser.v1<- function()
 		ggplot(tmp, aes(x=YR, y=v, group=stat.long)) + geom_point() +
 				scale_x_continuous(name='year', breaks=seq(1980,2020,2)) + scale_y_continuous(name='total')	+
 				facet_grid(stat.long ~ ., scales='free_y', margins=FALSE)
-		file<- paste(substr(infile.ind, 1, nchar(infile.ind)-7),'INFO_Totals.pdf',sep='')
+		file<- paste(substr(outfile.ind, 1, nchar(outfile.ind)-7),'INFO_Totals.pdf',sep='')
 		ggsave(file=file, w=16, h=8)
 		#	plot distribution between transmission time and sequencing time
 		tmp	<- subset(df.inds, !is.na(TIME_SEQ))
 		set(tmp, NULL, 'TIME_TO_SEQ', tmp[, TIME_SEQ-TIME_TR])
 		ggplot(tmp, aes(x=TIME_TO_SEQ)) + geom_histogram(binwidth=1) + 
 				scale_x_continuous(name='time from transmission to sequence sampling\n(years)', breaks=seq(0,100,2))
-		file<- paste(substr(infile.ind, 1, nchar(infile.ind)-7),'INFO_Time2Seq.pdf',sep='')
+		file<- paste(substr(outfile.ind, 1, nchar(outfile.ind)-7),'INFO_Time2Seq.pdf',sep='')
 		ggsave(file=file, w=8, h=8)
 		#	plot transmission network
-		file		<- paste(substr(infile.ind, 1, nchar(infile.ind)-7),'INFO_TrNetworks.pdf',sep='')
+		file		<- paste(substr(outfile.ind, 1, nchar(outfile.ind)-7),'INFO_TrNetworks.pdf',sep='')
 		pdf(file=file, w=20, h=20)
 		dummy	<- sapply( df.inds[, sort(na.omit(unique(IDCLU)))], function(clu)
 				{
@@ -592,7 +663,7 @@ prog.HPTN071.input.parser.v1<- function()
 	#	SAVE SAMPLED RECIPIENTS AND TRANSMISSIONS TO SAMPLED RECIPIENTS
 	#
 	#	save for us
-	file		<- paste(substr(infile.ind, 1, nchar(infile.ind)-7),'SAVE.R',sep='')
+	file		<- paste(substr(outfile.ind, 1, nchar(outfile.ind)-7),'SAVE.R',sep='')
 	save(file=file, df.epi, df.trms, df.inds, df.sample)
 	#	save for virus tree simulator
 	#	exclude columns that are not needed	
@@ -704,8 +775,10 @@ prog.HPTN071.input.parser.v2<- function()
 	stopifnot(length(tmp)>1)
 	stopifnot(length(tmp2)>=0)
 	tmp2	<- as.integer(sample( tmp, tmp2, replace=FALSE ))
-	set(df.trm, tmp2, 'IDTR', df.trm[tmp2, -1])
+	set(df.trm, tmp2, 'IDTR', -1L)
 	cat(paste('\nProportion of imported transmissions, p=', (nrow(subset(df.trm, IDTR<0))-1)/nrow(df.trm) ))
+	#	need to set TIME_TR to NA
+	
 	
 	
 	df.ind	<- as.data.table(read.csv(infile.ind, stringsAsFactors=FALSE))		
@@ -721,7 +794,7 @@ prog.HPTN071.input.parser.v2<- function()
 	
 	
 	# compute prevalence and incidence by year	
-	df.epi		<- df.trm[, list(INC=length(IDREC), IMPORT=length(which(IDTR==-1))), by='YR']
+	df.epi		<- df.trm[, list(INC=length(IDREC), IMPORT=length(which(IDTR<0))), by='YR']
 	tmp			<- df.epi[, 	{
 									alive		<- which( floor(df.ind[['DOB']])<=YR  &  ceiling(df.ind[['DOD']])>YR )
 									infected	<- which( floor(df.ind[['DOB']])<=YR  &  ceiling(df.ind[['DOD']])>YR  &  floor(df.ind[['TIME_TR']])<=YR )
@@ -800,7 +873,12 @@ prog.HPTN071.input.parser.v2<- function()
 	#	TRANSMISSION NETWORKS
 	#
 	require(igraph)
-	tmp			<- subset(df.trms, IDTR>=0, select=c(IDTR, IDREC))			
+	#	need a unique index number for every cluster
+	setkey(df.trms, TIME_TR)
+	tmp			<- df.trms[, which(IDTR<0)]
+	set(df.trms, tmp, 'IDTR', rev(-seq_along(tmp)))
+	#	cluster with index case
+	tmp			<- subset(df.trms, select=c(IDTR, IDREC))			
 	tmp			<- graph.data.frame(tmp, directed=TRUE, vertices=NULL)
 	tmp			<- data.table(IDPOP=as.integer(V(tmp)$name), CLU=clusters(tmp, mode="weak")$membership)
 	tmp2		<- tmp[, list(CLU_SIZE=length(IDPOP)), by='CLU']
@@ -810,6 +888,8 @@ prog.HPTN071.input.parser.v2<- function()
 	df.inds		<- merge( df.inds, tmp, by='IDPOP', all.x=TRUE )
 	setnames(tmp, 'IDPOP', 'IDREC')
 	df.trms		<- merge( df.trms, tmp, by='IDREC', all.x=TRUE )
+	stopifnot( nrow(subset(df.trms, is.na(IDCLU)))==0 )
+	cat(paste('\nFound transmission clusters, n=', df.trms[, length(unique(IDCLU))]))
 	#
 	#	PLOTS
 	#
@@ -828,17 +908,19 @@ prog.HPTN071.input.parser.v2<- function()
 		ggplot(tmp, aes(x=YR, y=v, group=stat.long)) + geom_point() +
 				scale_x_continuous(name='year', breaks=seq(1980,2020,2)) + scale_y_continuous(name='total')	+
 				facet_grid(stat.long ~ ., scales='free_y', margins=FALSE)
-		file<- paste(substr(infile.ind, 1, nchar(infile.ind)-7),'INFO_Totals.pdf',sep='')
+		file<- paste(substr(outfile.ind, 1, nchar(outfile.ind)-7),'INFO_Totals.pdf',sep='')
+		cat(paste('\nPlotting to file',file))
 		ggsave(file=file, w=16, h=8)
 		#	plot distribution between transmission time and sequencing time
 		tmp	<- subset(df.inds, !is.na(TIME_SEQ))
 		set(tmp, NULL, 'TIME_TO_SEQ', tmp[, TIME_SEQ-TIME_TR])
 		ggplot(tmp, aes(x=TIME_TO_SEQ)) + geom_histogram(binwidth=1) + 
 				scale_x_continuous(name='time from transmission to sequence sampling\n(years)', breaks=seq(0,100,2))
-		file<- paste(substr(infile.ind, 1, nchar(infile.ind)-7),'INFO_Time2Seq.pdf',sep='')
+		file<- paste(substr(outfile.ind, 1, nchar(outfile.ind)-7),'INFO_Time2Seq.pdf',sep='')
 		ggsave(file=file, w=8, h=8)
 		#	plot transmission network
-		file		<- paste(substr(infile.ind, 1, nchar(infile.ind)-7),'INFO_TrNetworks.pdf',sep='')
+		file		<- paste(substr(outfile.ind, 1, nchar(outfile.ind)-7),'INFO_TrNetworks.pdf',sep='')
+		cat(paste('\nPlotting to file',file))
 		pdf(file=file, w=20, h=20)
 		dummy	<- sapply( df.inds[, sort(na.omit(unique(IDCLU)))], function(clu)
 				{
@@ -860,7 +942,7 @@ prog.HPTN071.input.parser.v2<- function()
 	#	SAVE SAMPLED RECIPIENTS AND TRANSMISSIONS TO SAMPLED RECIPIENTS
 	#
 	#	save for us
-	file		<- paste(substr(infile.ind, 1, nchar(infile.ind)-7),'SAVE.R',sep='')
+	file		<- paste(substr(outfile.ind, 1, nchar(outfile.ind)-7),'SAVE.R',sep='')
 	save(file=file, df.epi, df.trms, df.inds, df.sample)
 	#	save for virus tree simulator
 	#	exclude columns that are not needed	
