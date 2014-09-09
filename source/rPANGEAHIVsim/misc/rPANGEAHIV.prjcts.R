@@ -621,7 +621,7 @@ project.PANGEA.RootSeqSim.BEAST.SSAfg.getGTR<- function()
 	ggsave(file, h=15, w=20)
 }
 ##--------------------------------------------------------------------------------------------------------
-##	get anecestral sequences from BEAST XML
+##	get ancestral sequences from BEAST XML
 ##--------------------------------------------------------------------------------------------------------
 project.PANGEA.RootSeqSim.BEAST.SSApg.getancestralseq.from.output<- function()
 {
