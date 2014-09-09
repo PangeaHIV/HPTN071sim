@@ -7,8 +7,12 @@ Maintainer: Oliver Ratmann <oliver.ratmann@imperial.ac.uk>
 Depends:
     R (>= 2.15),
     ape,
+    reshape2,
     data.table,
-    RColorBrewer
+    RColorBrewer,
+    grid,
+    ggplot2,
+    igraph
 Description: R scripts for the PANGEA-HIV methods comparison exercise.
 License: GPL (>=2)
 LazyLoad: yes

@@ -695,15 +695,16 @@ prog.HPTN071.input.parser.v2<- function()
 {
 	require(data.table)
 	verbose			<- 1
-	with.plot		<- 1		
-	indir			<- '/Users/Oliver/git/HPTN071sim/raw_trchain'
+	with.plot		<- 1	
+	indir			<- system.file(package="rPANGEAHIVsim", "misc")
+	indir			<- ifelse(indir=='','/Users/Oliver/git/HPTN071sim/raw_trchain',indir)
+	outdir			<- '/Users/Oliver/git/HPTN071sim/tmp140908'
 	infile.ind		<- '140716_RUN001_IND.csv'
-	infile.trm		<- '140716_RUN001_TRM.txt'
-	outdir			<- '/Users/Oliver/git/HPTN071sim/sim_trchain'
+	infile.trm		<- '140716_RUN001_TRM.csv'
 	outfile.ind		<- '140716_RUN001_IND.csv'
 	outfile.trm		<- '140716_RUN001_TRM.csv'
 	
-	setup.df		<- data.table(stat= c('yr.start','yr.end','s.INC.recent','s.INC.recent.len', 's.PREV.min', 's.PREV.max', 's.seed', 'epi.dt', 'epi.import'), v=c(1980, 2020, 0.1, 5, 0.01, 0.25, 42, 1/48, 0.1) )
+	setup.df		<- data.table(stat= c('yr.start','yr.end','s.INC.recent','s.INC.recent.len', 's.PREV.min', 's.PREV.max', 's.seed', 'epi.dt', 'epi.import','startseq.backdate'), v=c(1980, 2020, 0.1, 5, 0.01, 0.25, 42, 1/48, 0.1, 40) )
 	setkey(setup.df, stat)	
 	
 	if(exists("argv"))
@@ -762,8 +763,7 @@ prog.HPTN071.input.parser.v2<- function()
 	set(df.trm, NULL, 'YR', df.trm[, floor(TIME_TR)])
 	#	check that all transmission times except baseline are unique
 	tmp		<- subset(df.trm, TIME_TR>setup.df['yr.start',][,v])
-	stopifnot( nrow(tmp)==tmp[,length(unique(TIME_TR))] )
-	
+	stopifnot( nrow(tmp)==tmp[,length(unique(TIME_TR))] )	
 	#	model imports by re-assigning a fraction of infecteds as 'index cases'
 	#	assume there are no imports at the moment, and that we know the time of infection of the imports
 	tmp		<- df.trm[, which(IDTR!='-1')]	  
@@ -775,8 +775,6 @@ prog.HPTN071.input.parser.v2<- function()
 	tmp2	<- as.integer(sample( tmp, tmp2, replace=FALSE ))
 	set(df.trm, tmp2, 'IDTR', -1L)
 	cat(paste('\nProportion of imported transmissions, p=', (nrow(subset(df.trm, IDTR<0))-1)/nrow(df.trm) ))
-	#	need to set TIME_TR to NA
-	
 	
 	
 	df.ind	<- as.data.table(read.csv(infile.ind, stringsAsFactors=FALSE))		
@@ -883,11 +881,24 @@ prog.HPTN071.input.parser.v2<- function()
 	setkey(tmp2, CLU_SIZE)
 	tmp2[, IDCLU:=rev(seq_len(nrow(tmp2)))]
 	tmp			<- subset( merge(tmp, tmp2, by='CLU'), select=c(IDPOP, IDCLU) )
-	df.inds		<- merge( df.inds, tmp, by='IDPOP', all.x=TRUE )
 	setnames(tmp, 'IDPOP', 'IDREC')
 	df.trms		<- merge( df.trms, tmp, by='IDREC', all.x=TRUE )
 	stopifnot( nrow(subset(df.trms, is.na(IDCLU)))==0 )
 	cat(paste('\nFound transmission clusters, n=', df.trms[, length(unique(IDCLU))]))
+	#	add transmission time for index case -- this is 40 years back in time so we can sample a starting sequence 
+	#	and then generate a long branch to the transmission chain in the population 
+	tmp			<- subset( df.trms, IDTR<0, select=c(IDTR, TIME_TR) )
+	set(tmp, NULL, 'TIME_TR', tmp[, TIME_TR]-setup.df['startseq.backdate',][,v] )
+	setnames(tmp, 'IDTR', 'IDPOP')
+	df.inds		<- rbind(df.inds, tmp, useNames=TRUE, fill=TRUE)
+	df.inds		<- subset(df.inds, is.na(V1))
+	df.inds[, V1:=NULL]
+	#	add IDCLU to df.inds
+	tmp			<- subset( df.trms, select=c(IDREC, IDTR, IDCLU) )
+	tmp			<- subset( melt(tmp, id.var='IDCLU', value.name='IDPOP'), select=c(IDPOP, IDCLU))
+	setkey(tmp, IDPOP, IDCLU)
+	tmp			<- unique(tmp)
+	df.inds		<- merge( df.inds, tmp, by='IDPOP', all.x=TRUE )
 	#
 	#	PLOTS
 	#
@@ -923,7 +934,7 @@ prog.HPTN071.input.parser.v2<- function()
 		dummy	<- sapply( df.inds[, sort(na.omit(unique(IDCLU)))], function(clu)
 				{
 					cat(paste('\nprocess cluster no',clu))
-					tmp					<- subset(df.inds, IDCLU==clu, select=c(IDPOP, GENDER, TIME_SEQ))
+					tmp					<- subset(df.inds, IDCLU==clu & IDPOP>=0, select=c(IDPOP, GENDER, TIME_SEQ))
 					tmp[, IS_SEQ:= tmp[, factor(!is.na(TIME_SEQ), label=c('N','Y'), levels=c(FALSE, TRUE))]]
 					clu.igr				<- graph.data.frame(subset(df.trms, IDCLU==clu & IDTR>=0, select=c(IDTR, IDREC)), directed=TRUE, vertices=subset(tmp, select=c(IDPOP, GENDER, IS_SEQ)))
 					V(clu.igr)$color	<- ifelse( get.vertex.attribute(clu.igr, 'IS_SEQ')=='Y', 'green', 'grey90' )
