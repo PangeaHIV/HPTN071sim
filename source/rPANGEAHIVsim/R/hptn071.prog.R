@@ -149,25 +149,16 @@ prog.PANGEA.SeqGen.createInputFile<- function()
 	tmp				<- PANGEA.RootSeq.create.sampler.v1(root.ctime.grace= 0.5, sample.grace= 3, sample.shift= 40)
 	rANCSEQ			<- tmp$rANCSEQ
 	rANCSEQ.args	<- tmp$rANCSEQ.args
-	#	read GTR parameters	
-	indir.internal.data	<-	'/Users/Oliver/git/HPTN071sim/data_rootseq'
-	infile.gtr		<- 'PANGEA_SSAfgBwhRc-_140811_n390_BEASTlog.R'
-	file			<- paste(indir.internal.data, '/', infile.gtr, sep='')
-	cat(paste('\nreading GTR parameters from file',file))
-	load(file)	# expect log.df
-	log.df[, state:=NULL]
-	log.df[, ucldmean:=NULL]
-	log.df[, ucldstdev:=NULL]
-	log.df[, treeLikelihood:=NULL]
-	log.df[, FILE:=NULL]
+	#	read GTR parameters
+	log.df			<- PANGEA.GTR.params()
 	#
 	#	read I/O
 	#
-	indir.epi		<- '/Users/Oliver/git/HPTN071sim/data_HPTN071epimodel_output'
+	indir.epi		<- '/Users/Oliver/git/HPTN071sim/tmp140908/HPTN071parser'
 	infile.epi		<- '140716_RUN001_SAVE.R'	
-	indir.vts		<- '/Users/Oliver/git/HPTN071sim/tmp/VirusTreeSimulator'
+	indir.vts		<- '/Users/Oliver/git/HPTN071sim/tmp140908/VirusTreeSimulator'
 	infile.prefix	<- '140716_RUN001_'	
-	outdir.sg		<- '/Users/Oliver/git/HPTN071sim/tmp/SeqGen'	
+	outdir.sg		<- '/Users/Oliver/git/HPTN071sim/tmp140908/SeqGen'	
 	if(exists("argv"))
 	{
 		#	args input
@@ -215,6 +206,7 @@ prog.PANGEA.SeqGen.createInputFile<- function()
 	df.nodestat		<- vector('list', length(infiles))	
 	for(i in seq_along(infiles))
 	{				
+		i<- 16
 		infile			<- infiles[i]
 		cat(paste('\nprocess file',i,infile))
 		file			<- paste(indir.vts, '/', infile, sep='')
@@ -961,6 +953,10 @@ prog.HPTN071.input.parser.v2<- function()
 	df.inds[, TIME_SEQYR:=NULL]	
 	df.trms[, TR_ACUTE:=NULL]
 	df.trms[, YR:=NULL]	
+	#	add columns that the virus tree simulator needs
+	tmp		<- subset( df.inds, !is.na(TIME_TR), c(IDPOP, TIME_TR) )
+	setnames(tmp, c('IDPOP','TIME_TR'), c('IDTR','IDTR_TIME_INFECTED') )
+	df.trms	<- merge(df.trms, tmp, by='IDTR', all.x=TRUE)
 	cat(paste('\nwrite to file',outfile.ind))
 	write.csv(file=outfile.ind, df.inds)
 	cat(paste('\nwrite to file',outfile.trm))

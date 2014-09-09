@@ -6,6 +6,7 @@ Author: {Oliver Ratmann}
 Maintainer: Oliver Ratmann <oliver.ratmann@imperial.ac.uk>
 Depends:
     R (>= 2.15),
+    gamlss,
     ape,
     reshape2,
     data.table,

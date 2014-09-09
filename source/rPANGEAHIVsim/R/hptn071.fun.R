@@ -1,12 +1,400 @@
-######################################################################################
+##--------------------------------------------------------------------------------------------------------
+#	olli copied from hivclust
+##--------------------------------------------------------------------------------------------------------
+seq.unique<- function(seq.DNAbin.matrix)
+{
+	x<- as.character(seq.DNAbin.matrix)
+	x<- apply(x, 1, function(z) paste(z,collapse=''))
+	seq.DNAbin.matrix[!duplicated(x),]			
+}
+##--------------------------------------------------------------------------------------------------------
+#	olli copied from hivclust
+##--------------------------------------------------------------------------------------------------------
+seq.collapse.singles<- function (tree) 
+{
+	elen 		<- tree$edge.length
+	xmat 		<- tree$edge
+	node.lab 	<- tree$node.label
+	nnode 		<- tree$Nnode
+	ntip 		<- length(tree$tip.label)
+	root		<- 0
+	singles 	<- NA
+	while (length(singles) > 0) 
+	{
+		tx <- tabulate(xmat[, 1])
+		singles <- which(tx == 1)
+		if (length(singles) > 0) 
+		{
+			i 					<- singles[1]
+			prev.node 			<- which(xmat[, 2] == i)
+			next.node 			<- which(xmat[, 1] == i)
+			xmat[prev.node, 2] 	<- xmat[next.node, 2]
+			xmat 				<- xmat[xmat[, 1] != i, , drop=0]
+			xmat[xmat > i] 		<- xmat[xmat > i] - 1L
+			if(!length(prev.node))
+				root			<- root + elen[next.node]
+			if(length(prev.node))
+				elen[prev.node] <- elen[prev.node] + elen[next.node]
+			if (!is.null(node.lab)) 
+				node.lab <- node.lab[-c(i - ntip)]
+			nnode <- nnode - 1L
+			elen <- elen[-next.node]
+		}
+	}
+	tree$edge 			<- xmat
+	tree$edge.length 	<- elen
+	tree$node.label 	<- node.lab
+	tree$Nnode 			<- nnode
+	tree$root.edge		<- root
+	tree
+}
+##--------------------------------------------------------------------------------------------------------
+#	olli copied from hivclust
+##--------------------------------------------------------------------------------------------------------
+seq.read.newick<- function (file = "", text) 
+{
+	if (file != "") 
+		text <- scan(file, sep = "\n", what = "character")	
+	Nnode		<- length(gregexpr("\\(", text)[[1]])
+	Ntip		<- 1+length(gregexpr(",", text)[[1]])	
+	tree 		<- unlist(strsplit(text, NULL))
+	tip.label 	<- vector(mode = "character")
+	node.label	<- vector(mode = 'character')
+	edge 		<- matrix(data = 0, Nnode + Ntip - 1, 2)
+	edge.length <- rep(0, Nnode + Ntip - 1)
+	ntip 		<- vector(mode = "numeric")
+	currnode 	<- Ntip + 1
+	nodecount 	<- currnode
+	i 	<- 1
+	j 	<- 1
+	k 	<- 1
+	while(tree[i] != ";") 
+	{
+		if(tree[i] == "(") 
+		{
+			edge[j, 1] <- currnode
+			i <- i + 1
+			if(is.na(match(tree[i], c("(", ")", ",", ":", ";")))) 
+			{
+				l				<- gregexpr(",|:|\\)", substr(text, i, nchar(text)))[[1]][1]
+				stopifnot(l>0)
+				tip.label[k] 	<- substr(text, i, i+l-2)	
+				i				<- i+l-1
+				edge[j, 2] 		<- k
+				k 				<- k + 1
+				ntip[j] 		<- 1
+				if (tree[i] == ":") 
+				{
+					i				<- i + 1
+					l				<- gregexpr(",|\\)", substr(text, i, nchar(text)))[[1]][1]
+					stopifnot(l>0)
+					edge.length[j]	<- as.numeric(substr(text, i, i+l-2))
+					i				<- i+l-1					
+				}
+			}
+			else if(tree[i] == "(") 
+			{
+				nodecount 	<- nodecount + 1
+				currnode 	<- nodecount
+				edge[j, 2] 	<- currnode
+			}
+			j <- j + 1
+		}
+		else if(tree[i] == ")") 
+		{
+			i <- i + 1			
+			if(is.na(match(tree[i], c(":", ")")))) 
+			{
+				l	<- gregexpr(":|;|\\)", substr(text, i, nchar(text)))[[1]][1]
+				stopifnot(l>0)
+				node.label[currnode-Ntip]	<- substr(text, i, i+l-2)
+				i	<- i+l-1				
+			}
+			if(tree[i] == ":") 
+			{
+				i 	<- i + 1
+				l	<- gregexpr(",|\\)", substr(text, i, nchar(text)))[[1]][1]
+				stopifnot(l>0)
+				edge.length[match(currnode, edge[, 2])] <- as.numeric(substr(text, i, i+l-2))
+				i	<- i+l-1	
+			}
+			ntip[match(currnode, edge[, 2])] 	<- sum(ntip[which(edge[, 1] == currnode)])
+			currnode 							<- edge[match(currnode, edge[, 2]), 1]
+		}
+		else if(tree[i]==",") 
+		{
+			edge[j, 1] 	<- currnode
+			i 			<- i + 1
+			if(is.na(match(tree[i], c("(", ")", ",", ":", ";")))) 
+			{
+				l				<- gregexpr(",|:|\\)", substr(text, i, nchar(text)))[[1]][1]
+				stopifnot(l>0)
+				tip.label[k] 	<- substr(text, i, i+l-2)	
+				i				<- i+l-1
+				edge[j, 2] 		<- k
+				k 				<- k + 1
+				ntip[j] 		<- 1
+				if (tree[i] == ":") 
+				{
+					i				<- i + 1
+					l				<- gregexpr(",|\\)", substr(text, i, nchar(text)))[[1]][1]
+					stopifnot(l>0)
+					edge.length[j]	<- as.numeric(substr(text, i, i+l-2))
+					i				<- i+l-1
+				}
+			}
+			else if (tree[i] == "(") 
+			{
+				nodecount 	<- nodecount + 1
+				currnode 	<- nodecount
+				edge[j, 2] 	<- currnode
+			}
+			j <- j + 1
+		}
+	}
+	tmp	<- which(edge[,1]==0)
+	if(length(tmp))
+	{
+		edge		<- edge[-tmp,]
+		edge.length	<- edge.length[-tmp]		
+		tmp			<- sort( unique( as.numeric( edge ) ) )
+		tmp			<- rbind(tmp, seq_along(tmp))		
+		tmp			<- sapply( as.numeric( edge ), function(j)	tmp[2, match(j, tmp[1,])] )
+		edge		<- matrix(tmp, ncol=2)
+	}
+	phy <- list(edge = edge, Nnode = as.integer(Nnode), tip.label = tip.label, Ndesc = ntip)
+	if(sum(edge.length) > 1e-08) 
+		phy$edge.length	<- edge.length
+	if(length(node.label))
+		phy$node.label	<- node.label
+	class(phy) <- "phylo"
+	return(phy)
+}
+##--------------------------------------------------------------------------------------------------------
+#	olli copied from hivclust
+##--------------------------------------------------------------------------------------------------------
+hivc.beast2out.read.nodestats <- function(bstr) 
+{
+	#	remove anything before first '('
+	bstr	<- regmatches(bstr, regexpr('\\(.*',bstr))
+	# 	store meta info for inner nodes that is given in [], and not in :[] which is meta info for edges	
+	tmp		<- unlist(regmatches(bstr,gregexpr('[^:]\\[[^]]+',bstr)))
+	tmp		<- sapply( tmp, function(x) substr(x, 4, nchar(x)) ) 
+	#	for each inner node, extract stats
+	tmp		<- strsplit(tmp, ',')
+	tmp		<- lapply(seq_along(tmp), function(i)
+			{
+				z<- strsplit(tmp[[i]],'=')				
+				data.table(NODE_PARSE_ID=i, STAT=sapply(z,'[',1), VALUE=sapply(z,'[',2))
+			})
+	node.stat	<- do.call('rbind', tmp)
+	tmp			<- node.stat[, unique(STAT)]
+	cat(paste('\nFound node statistics=',paste(tmp,collapse=' ')))
+	tmp			<- node.stat[, list(has.all.stats= !length(setdiff(tmp, STAT))  ) , by='NODE_PARSE_ID']
+	tmp			<- subset(tmp, !has.all.stats)[, NODE_PARSE_ID]
+	cat(paste('\nSome statistics missing for nodes=',paste(tmp,collapse=' ')))
+	node.stat 
+}
+##--------------------------------------------------------------------------------------------------------
+#	olli copied from hivclust
+##--------------------------------------------------------------------------------------------------------
+hivc.beast2out.read.nodeidtree <- function(bstr, method.node.stat='any.node') 
+{
+	# strip all meta variables and ; at end
+	bstr		<- gsub("\\[[^]]*\\]", "", bstr)
+	bstr		<- gsub(';','',bstr)
+	# for each node, add a dummy node label NODE_PARSE_IDxx	
+	dummy.tree	<- unlist(strsplit(bstr, ":"))
+	if(method.node.stat=='inner.node')
+	{
+		#	interior branch length: 	previous index ends in ). so tmp is the index of the dummy.tree chunks that gives the start of a branch length of an inner node
+		tmp			<- which( c(FALSE, grepl(')$',dummy.tree)[-length(dummy.tree)]) )
+		#	prepend NODE_PARSE_IDxx before the branch length of an inner node
+		tmp			<- tmp-1			
+	}
+	if(method.node.stat=='any.node')
+		tmp			<- seq_along(dummy.tree)
+	dummy.tree	<- sapply(seq_along(dummy.tree), function(i)
+			{
+				z<- which(i==tmp)
+				ifelse(length(z),	paste(dummy.tree[i],'NODE_PARSE_ID',z,sep=''),	dummy.tree[i] )
+			}) 			
+	dummy.tree	<- paste(dummy.tree, collapse=':',sep='')
+	dummy.tree	<- regmatches(dummy.tree, regexpr('\\(.*',dummy.tree))
+	dummy.tree	<- paste(dummy.tree, ';', sep='')	
+	ph<-  tryCatch(
+			{
+				read.tree(text=dummy.tree)	
+			}, error=function(e)
+			{ 
+				cat(paste('\nerror in read.tree\n',e$message,'\ntry seq.read.newick'))
+				return( seq.read.newick(text=dummy.tree) )			
+			}, warning=function(e)
+			{ 
+				cat(paste('\nwarning in read.tree\n',e$message,'\ntry seq.read.newick'))
+				return( seq.read.newick(text=dummy.tree) )			
+			})
+	ph
+}
+##--------------------------------------------------------------------------------------------------------
+#	olli copied from hivclust
+##--------------------------------------------------------------------------------------------------------
+hivc.beast2out.read.nexus.and.stats<- function(file, tree.id=NA, method.node.stat='any.node') 
+{	
+	stopifnot(method.node.stat%in%c('any.node','inner.node'))
+	
+	X				<- scan(file = file, what = "", sep = "\n", quiet = TRUE)	
+	#	read TRANSLATE chunk
+	X.endblock		<- grep("END;|ENDBLOCK;|End;", X, ignore.case = TRUE)
+	X.semico 		<- grep(";", X)
+	X.i1 			<- grep("BEGIN TREES;|Begin trees;", X, ignore.case = TRUE)
+	X.i2 			<- grep("TRANSLATE|Translate", X, ignore.case = TRUE)	
+	tmp 			<- X.semico[X.semico > X.i2][1]
+	tmp 			<- X[(X.i2 + 1):tmp]
+	tmp				<- gsub('[,;]$','',gsub('^\\s+','',tmp))
+	tmp				<- tmp[nzchar(tmp)]
+	tmp				<- strsplit(tmp, ' ')
+	df.translate	<- data.table(NEXUS_ID= sapply(tmp, '[[', 1), NEXUS_LABEL=sapply(tmp, '[[', 2) )
+	set(df.translate, NULL, 'NEXUS_LABEL', df.translate[, gsub("\'","",NEXUS_LABEL)])
+	cat(paste('\nFound taxa, n=', nrow(df.translate)))
+	
+	if(!is.na(tree.id))
+	{
+		#	read one newick tree with id 'tree.id'
+		bstr		<- X[grep(paste(tree.id,"[[:space:]]+",sep=''), X)]
+		node.stat	<- hivc.beast2out.read.nodestats(bstr)
+		cat(paste('\nFound node statistics, n=', nrow(node.stat)))
+		set(node.stat, NULL, 'tree.id', tree.id[i] )		
+		btree		<- hivc.beast2out.read.nodeidtree(bstr, method.node.stat=method.node.stat) 
+		#
+		# link node.stats with tree nodes (tip + inner node)
+		# NODE_ID is index of node in 'btree' phylo object
+		#
+		tmp			<- strsplit( btree$tip.label, 'NODE_PARSE_ID' )
+		df.link		<- data.table(NODE_ID=seq_along(btree$tip.label), NEXUS_ID=sapply(tmp,'[[',1), NODE_PARSE_ID=sapply(tmp,'[[',2))
+		df.link		<- merge(df.link, df.translate, by='NEXUS_ID')
+		cat(paste('\nFound tree tips with taxon name, n=', nrow(df.link)))
+		tmp			<- strsplit( btree$node.label, 'NODE_PARSE_ID' )
+		tmp			<- data.table(NODE_ID=Ntip(btree)+seq_along(btree$node.label), NODE_PARSE_ID=sapply(tmp,'[[',2), NEXUS_LABEL=NA_character_)
+		df.link		<- rbind(subset(df.link,select=c(NODE_ID, NODE_PARSE_ID, NEXUS_LABEL)), tmp)
+		set(df.link,NULL,'NODE_PARSE_ID',df.link[, as.integer(NODE_PARSE_ID)])
+		set(df.link,NULL,'NODE_ID',df.link[, as.integer(NODE_ID)])
+		set(df.link,NULL,'TREE_ID',tree.id)
+		node.stat	<- merge( node.stat, subset(df.link, select=c(NODE_PARSE_ID, NODE_ID, TREE_ID)), by='NODE_PARSE_ID' )
+		set(node.stat,NULL,'NODE_PARSE_ID',NULL)
+		cat(paste('\nLinked node statistics to tree nodes, n=', nrow(node.stat)))
+		#
+		# set tip.labels and rm node.labels
+		#
+		setkey(df.link, NODE_ID)
+		btree$tip.label		<- df.link[seq_len(Ntip(btree)),][,NEXUS_LABEL]
+		btree$node.label	<- NULL		
+	}
+	if(is.na(tree.id))
+	{
+		#	read all newick trees in nexus file
+		tmp			<- regexpr('^tree\\s\\S+',X)
+		tree.id		<- sapply( regmatches(X,tmp), function(x) substr(x, 5, nchar(x)))
+		tree.id		<- gsub('\\s','',tree.id)		
+		cat(paste('\nFound tree id=', paste(tree.id, collapse=' ')))
+		X			<- X[ which(tmp>0) ]
+		cat(paste('\nFound trees, n=',length(tree.id)))
+		node.stat	<- lapply(seq_along(tree.id), function(i)
+				{
+					
+					bstr	<- X[grep(paste(tree.id[i],"[[:space:]]+",sep=''), X)]
+					cat(paste('\nGet node statistics for tree id=',tree.id[i]))
+					tmp		<- hivc.beast2out.read.nodestats(bstr)
+					set(tmp, NULL, 'TREE_ID', tree.id[i] )
+					tmp
+				})
+		if(length(node.stat)>1)
+			node.stat	<- do.call('rbind',node.stat)
+		if(length(node.stat)==1)
+			node.stat	<- node.stat[[1]]
+		node.stat[, NODE_ID:=NA_integer_]		
+		setkey(node.stat, TREE_ID, NODE_PARSE_ID)
+		btree		<- vector('list',length(tree.id))
+		for(i in seq_along(tree.id))
+		{
+			bstr		<- X[grep(paste(tree.id[i],"[[:space:]]+",sep=''), X)]
+			cat(paste('\nRead tree for tree id=',tree.id[i]))
+			btree.i		<- hivc.beast2out.read.nodeidtree(bstr, method.node.stat=method.node.stat)
+			#
+			# link node.stats with tree nodes (tip + inner node)
+			# NODE_ID is index of node in 'btree.i' phylo object
+			#
+			tmp			<- strsplit( btree.i$tip.label, 'NODE_PARSE_ID' )
+			df.link		<- data.table(NODE_ID=seq_along(btree.i$tip.label), NEXUS_ID=sapply(tmp,'[[',1), NODE_PARSE_ID=sapply(tmp,'[[',2))
+			df.link		<- merge(df.link, df.translate, by='NEXUS_ID')
+			cat(paste('\nFound tree tips with taxon name, n=', nrow(df.link)))
+			tmp			<- strsplit( btree.i$node.label, 'NODE_PARSE_ID' )
+			tmp			<- data.table(NODE_ID=Ntip(btree.i)+seq_along(btree.i$node.label), NODE_PARSE_ID=sapply(tmp,'[[',2), NEXUS_LABEL=NA_character_)
+			df.link		<- rbind(subset(df.link,select=c(NODE_ID, NODE_PARSE_ID, NEXUS_LABEL)), tmp)
+			set(df.link,NULL,'NODE_PARSE_ID',df.link[, as.integer(NODE_PARSE_ID)])
+			set(df.link,NULL,'NODE_ID',df.link[, as.integer(NODE_ID)])		
+			for(j in seq_len(nrow(df.link)))
+				set(node.stat, node.stat[, which(TREE_ID==tree.id[i] & NODE_PARSE_ID==df.link[j,NODE_PARSE_ID])], 'NODE_ID', df.link[j,NODE_ID])		
+			tmp			<- node.stat[, length(which(!is.na(NODE_ID)))]
+			cat(paste('\nTotal linked node statistics to tree nodes, n=', tmp  ))
+			#
+			# set tip.labels and rm node.labels
+			#
+			setkey(df.link, NODE_ID)
+			btree.i$tip.label	<- df.link[seq_len(Ntip(btree.i)),][,NEXUS_LABEL]
+			btree.i$node.label	<- NULL	
+			btree[[i]]			<- btree.i
+		}
+		if(length(btree)>=2)
+		{
+			names(btree)	<- tree.id
+			class(btree)	<- "multiPhylo"			
+		}
+		if(length(btree)<2)
+			btree	<- btree[[1]]
+		tmp				<- node.stat[, length(which(is.na(NODE_ID)))]
+		cat(paste('\nTotal unlinked node statistics [should be zero], n=', tmp  ))
+		set(node.stat,NULL,'NODE_PARSE_ID',NULL)
+	}
+	list(tree=btree, node.stat=node.stat)	 
+}
+##--------------------------------------------------------------------------------------------------------
+#	return distribution of GTR parameters	
+#	olli originally written 09-09-2014
+##--------------------------------------------------------------------------------------------------------
+#' @title Create data.table of GTR parameters
+#' @description Returns a data.table of GTR parameters. 
+#' @return data.table
+#' @export
+PANGEA.GTR.params<- function()
+{	
+	file			<- system.file(package="rPANGEAHIVsim", "misc",'PANGEA_SSAfgBwhRc-_140811_n390_BEASTlog.R')
+	cat(paste('\nreading GTR parameters from file',file))
+	load(file)	# expect log.df
+	log.df[, state:=NULL]
+	#log.df[, ucldmean:=NULL]
+	#log.df[, ucldstdev:=NULL]
+	log.df[, treeLikelihood:=NULL]
+	log.df[, FILE:=NULL]
+	log.df
+}
+##--------------------------------------------------------------------------------------------------------
 #	return ancestral sequence sampler	
 #	olli originally written 22-08-2014
+##--------------------------------------------------------------------------------------------------------
+#' @title Create starting sequence sampler
+#' @description Returns a function and function arguments to draw ancestral sequences. 
+#' @param root.ctime.grace	Sample a starting sequence with time that matches a query times +- this grace
+#' @param sample.grace		Internal parameter to make sure the requested number of samples is obtained. Internally oversample by this multiplier to the sample size, and then check if sequences are unique.
+#' @param sample.shift		Shift query time to find a starting sequence by this value
+#' @return list of the sampler \code{rANCSEQ} and its arguments \code{rANCSEQ.args}
+#' @export
 PANGEA.RootSeq.create.sampler.v1<- function(root.ctime.grace= 0.5, sample.grace= 3, sample.shift= 40)
 {	
-	tree.id.labelsep<- '|'
-	tree.id.labelidx.ctime<- 4
-	#	TODO move this into R data folder
-	file	<- '/Users/Oliver/git/HPTN071sim/data_rootseq/PANGEA_SSAfgBwhRc-_140811_n390_AncSeq.R'
+	#tree.id.labelsep		<- '|'
+	#tree.id.labelidx.ctime	<- 4
+	file			<- system.file(package="rPANGEAHIVsim", "misc",'PANGEA_SSAfgBwhRc-_140811_n390_AncSeq.R')
+	cat(paste('\nLoading starting sequences from file', file))
 	load(file)		#expect "anc.seq.gag"  "anc.seq.pol"  "anc.seq.env"  "anc.seq.info"
 	setkey(anc.seq.info, CALENDAR_TIME)
 	rANCSEQ.args<- list(	root.ctime.grace=root.ctime.grace, sample.grace=sample.grace, sample.shift=sample.shift, 
@@ -47,11 +435,17 @@ PANGEA.RootSeq.create.sampler.v1<- function(root.ctime.grace= 0.5, sample.grace=
 	}
 	list(rANCSEQ=rANCSEQ, rANCSEQ.args=rANCSEQ.args)
 }
-######################################################################################
+##--------------------------------------------------------------------------------------------------------
 #	return within host evolutionary rate sampler	
 #	olli originally written 21-08-2014
+##--------------------------------------------------------------------------------------------------------
+#' @title Create sampler of the Between Host Evolutionary Rate Multipliers
+#' @description Returns a function to draw the between host evolutionary rate multipliers. 
+#' @return R function
+#' @export
 PANGEA.BetweenHostEvolutionaryRateModifier.create.sampler.v1<- function()
 {
+	require(gamlss)
 	if(0)
 	{
 		#from Vrancken et al:
@@ -67,11 +461,17 @@ PANGEA.BetweenHostEvolutionaryRateModifier.create.sampler.v1<- function()
 	}
 	rER.bwm
 }
-######################################################################################
+##--------------------------------------------------------------------------------------------------------
 #	return within host evolutionary rate sampler	
 #	olli originally written 21-08-2014
+##--------------------------------------------------------------------------------------------------------
+#' @title Create sampler of Within Host Evolutionary Rates 
+#' @description Returns a function to draw within host evolutionary rates. 
+#' @return R function
+#' @export
 PANGEA.WithinHostEvolutionaryRate.create.sampler.v1<- function()
 {
+	require(gamlss)
 	if(0)
 	{	
 		#extremely basic model of within host evolutionary rate from HIV-1B pol estimates in the literature
@@ -213,6 +613,75 @@ PANGEA.RootSeqSim.get.ancestral.seq.withDecompression<- function(tree, node.stat
 	#ancseq					<- cbind(ancseq.gag, ancseq.pol, ancseq.env)
 	#
 	list(GAG=ancseq.gag, POL=ancseq.pol, ENV=ancseq.env)
+}
+######################################################################################
+#	return GAG POL ENV ancestral sequences from BEAST PARSER output	
+#	olli originally written 09-09-2014
+#	tree 		beast trees in ape format, needed to compute calendar time for each ancestral sequence
+#	node.stat	data.table containing meta information in nexus file for nodes
+#	return 		list of GAG POL ENV sequences in ape format 
+PANGEA.RootSeqSim.get.ancestral.seq.pg<- function(tree, node.stat, tree.id.sep='_', tree.id.idx.mcmcit=2, tree.id.burnin=1, label.sep='|', label.idx.ctime=5)
+{
+	require(data.table)
+	require(ape)
+	
+	tree.id				<- names(tree)
+	#	add calendar time for inner node at NODE_ID to node.stat
+	node.stat[, CALENDAR_TIME:=NA_real_]		
+	setkey(node.stat, TREE_ID, NODE_ID)
+	for(i in seq_along(tree.id))
+	{
+		cat(paste('\nProcess CALENDAR_TIME for tree id', tree.id[i]  ))
+		label.ctime			<- sapply( strsplit(tree[[i]]$tip.label, label.sep, fixed=TRUE), '[[', label.idx.ctime ) 
+		label.ctime			<- as.numeric(label.ctime)			
+		depth				<- node.depth.edgelength( tree[[ i ]] )
+		tmp					<- which.max(depth)
+		depth				<- depth-depth[tmp]+label.ctime[tmp]
+		tmp					<- node.stat[, which(TREE_ID==tree.id[i])]
+		for(j in seq_along(depth))
+		{
+			set(node.stat, tmp[ node.stat[tmp, which(NODE_ID==j)] ], 'CALENDAR_TIME', depth[j])
+		}								
+	}
+	tmp			<- node.stat[, length(which(is.na(CALENDAR_TIME)))]
+	cat(paste('\nTotal node statistics with no CALENDAR_TIME [should be zero], n=', tmp  ))
+	#	keep only inner nodes
+	tmp			<- sapply(tree, Ntip)
+	stopifnot(all(tmp==tmp[1]))
+	node.stat	<- subset(node.stat, NODE_ID>tmp[1])	
+	#
+	set(node.stat, NULL, 'VALUE', node.stat[, gsub('\"','',VALUE)])
+	#	checks of ancseq before we proceed
+	tmp			<- node.stat[, list(NSEQ= nchar(VALUE)), by=c('TREE_ID', 'NODE_ID', 'STAT')]		
+	stopifnot( tmp[, list(CHECK= all(NSEQ==NSEQ[1])), by='STAT'][, all(CHECK)] )
+	set(tmp, NULL, 'GENE', tmp[, sapply(strsplit(STAT,'\\.'),'[[',1)])
+	set(tmp, NULL, 'CODON_POS', tmp[, sapply(strsplit(STAT,'\\.'),'[[',2)])	
+	tmp			<- dcast.data.table(tmp, TREE_ID + NODE_ID + GENE ~ CODON_POS, value.var='NSEQ')
+	tmp			<- tmp[, list(CPM=min(CP1, CP2, CP3)), by=c('TREE_ID','NODE_ID','GENE')]
+	stopifnot( tmp[, list(CHECK=all(CPM==CPM[1])), by='GENE'][, all(CHECK)] )
+	setkey(tmp, GENE)
+	#	truncate to following size of coding regions (if necessary)
+	tmp			<- unique(tmp)[, list(STAT=paste(GENE,'.CP',1:3,sep=''), CPM=CPM), by='GENE']
+	node.stat	<- merge(node.stat, subset(tmp, select=c(STAT, CPM)), by='STAT')
+	set(node.stat, NULL, 'VALUE', node.stat[, substr(VALUE,1,CPM)])
+	set(node.stat, NULL, 'CPM', NULL)
+	set(node.stat, NULL, 'GENE', node.stat[, substr(STAT,1,nchar(STAT)-4)])
+	set(node.stat, NULL, 'STAT', node.stat[, substr(STAT,nchar(STAT)-2,nchar(STAT))])
+	#	reconstruct genes from codon positions
+	node.stat	<- dcast.data.table(node.stat, TREE_ID + NODE_ID + GENE + CALENDAR_TIME ~ STAT, value.var="VALUE")
+	node.stat	<- node.stat[, {
+									tmp		<- do.call('rbind',sapply(list(CP1,CP2,CP3), strsplit, ''))
+									tmp		<- paste(as.vector(tmp), collapse='')
+									list(SEQ=tmp, GENE=GENE, CALENDAR_TIME=CALENDAR_TIME)
+								}, by=c('TREE_ID','NODE_ID')]	
+	set(node.stat, NULL, 'LABEL', node.stat[, paste(TREE_ID, NODE_ID, round(CALENDAR_TIME,d=3), sep='|')])		
+	#	remove tree id STATE_xx where xx is smaller than burn-in
+	set(node.stat, NULL, 'BEAST_MCMC_IT', node.stat[, as.integer(sapply(strsplit(TREE_ID,tree.id.sep),'[[',tree.id.idx.mcmcit))])
+	node.stat			<- subset(node.stat, BEAST_MCMC_IT>tree.id.burnin)
+	cat(paste('\nFound ancestral sequences, n=', nrow(node.stat)  ))
+	tmp			<- node.stat[, unique(GENE)]
+	stopifnot(length(tmp)==1)
+	node.stat
 }
 ######################################################################################
 #	return GAG POL ENV ancestral sequences from BEAST PARSER output	

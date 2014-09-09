@@ -623,6 +623,59 @@ project.PANGEA.RootSeqSim.BEAST.SSAfg.getGTR<- function()
 ##--------------------------------------------------------------------------------------------------------
 ##	get anecestral sequences from BEAST XML
 ##--------------------------------------------------------------------------------------------------------
+project.PANGEA.RootSeqSim.BEAST.SSApg.getancestralseq.from.output<- function()
+{
+	tree.id.burnin		<- 2e7
+	tree.id.labelsep	<- '|'
+	dir.name			<- '/Users/Oliver/duke/2014_Gates'  	
+	indir				<- paste(dir.name,'methods_comparison_rootseqsim/140902',sep='/')
+	outdir				<- indir
+	#	search for BEAST output
+	files				<- list.files(indir)
+	files				<- files[ sapply(files, function(x) grepl('pool[0-9].R$',x) ) ]	
+	if(!length(files))	stop('cannot find files matching criteria')
+	
+	#	load and process BEAST PARSER output
+	anc.seq				<- lapply(files, function(file)
+			{
+				cat(paste('\nProcess file=', file  ))
+				load( paste(indir, file, sep='/') )	#	expect tree, node.stat
+				#	compute gag pol env ancestral sequences		
+				anc.seq	<- PANGEA.RootSeqSim.get.ancestral.seq.pg(tree, node.stat, tree.id.sep='_', tree.id.idx.mcmcit=2, tree.id.burnin=tree.id.burnin, label.sep=tree.id.labelsep, label.idx.ctime=5)				
+				set(anc.seq, NULL, 'LABEL', anc.seq[, paste( substr(file,1,nchar(file)-2), LABEL, sep=tree.id.labelsep )] )				
+				set(anc.seq, NULL, 'TREE_ID', NULL )
+				set(anc.seq, NULL, 'NODE_ID', NULL )
+				set(anc.seq, NULL, 'BEAST_MCMC_IT', NULL )
+				anc.seq
+			})
+	anc.seq				<- do.call('rbind',anc.seq)
+	#
+	#	return DNAbin
+	#
+	anc.seq.gag				<- tolower(do.call('rbind',strsplit(anc.seq[, GAG],'')))
+	rownames(anc.seq.gag)	<- anc.seq[, LABEL]
+	anc.seq.gag				<- as.DNAbin(anc.seq.gag)		
+	anc.seq.pol				<- tolower(do.call('rbind',strsplit(anc.seq[, POL],'')))
+	rownames(anc.seq.pol)	<- anc.seq[, LABEL]
+	anc.seq.pol				<- as.DNAbin(anc.seq.pol)		
+	anc.seq.env				<- tolower(do.call('rbind',strsplit(anc.seq[, ENV],'')))
+	rownames(anc.seq.env)	<- anc.seq[, LABEL]
+	anc.seq.env				<- as.DNAbin(anc.seq.env)	
+	
+	set( anc.seq, NULL, 'GAG', NULL )
+	set( anc.seq, NULL, 'POL', NULL )
+	set( anc.seq, NULL, 'ENV', NULL )
+	anc.seq.info			<- anc.seq
+	#anc.seq					<- cbind(anc.seq.gag, anc.seq.pol, anc.seq.env)
+	#
+	outfile				<- paste( substr(files[1],1,nchar(files[1])-7), 'AncSeq.R',sep='' )
+	file				<- paste(outdir, outfile, sep='/')
+	cat(paste('\nwrite Ancestral Sequences to ',file))
+	save(file=file, anc.seq.gag, anc.seq.pol, anc.seq.env, anc.seq.info)
+}
+##--------------------------------------------------------------------------------------------------------
+##	get anecestral sequences from BEAST XML
+##--------------------------------------------------------------------------------------------------------
 project.PANGEA.RootSeqSim.BEAST.SSAfg.getancestralseq.from.output<- function()
 {
 	tree.id.burnin		<- 2e7
