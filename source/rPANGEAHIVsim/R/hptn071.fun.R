@@ -349,35 +349,110 @@ hivc.beast2out.read.nexus.and.stats<- function(file, tree.id=NA, method.node.sta
 }
 ##--------------------------------------------------------------------------------------------------------
 #	return distribution of GTR parameters	
-#	olli originally written 09-09-2014
+#	olli originally written 10-09-2014
 ##--------------------------------------------------------------------------------------------------------
 #' @title Create data.table of GTR parameters
 #' @description Returns a data.table of GTR parameters. 
 #' @return data.table
 #' @export
 PANGEA.GTR.params<- function()
+{		
+	file		<- system.file(package="rPANGEAHIVsim", "misc",'PANGEA_SSAfgBwhRc-_140902_n390_BEASTlog.R')	
+	cat(paste('\nreading GTR parameters from file',file))
+	load(file)	# expect log.df
+	#	exclude odd BEAST runs
+	log.df		<- subset(log.df, !(GENE=='GAG' & FILE=='pool1'))
+	log.df		<- subset(log.df, !(GENE=='POL' & FILE=='pool2'))
+	#	exclude cols
+	log.df[, ucld.mean:=NULL]
+	log.df[, ucld.stdev:=NULL]
+	log.df[, coefficientOfVariation:=NULL]
+	log.df[, treeModel.rootHeight:=NULL]
+	#	set mean meanRate and put all variation into the mu's
+	tmp		<- log.df[, mean(meanRate)]
+	set(log.df, NULL, 'mu', log.df[, mu * meanRate / tmp])
+	set(log.df, NULL, 'meanRate', tmp)
+	log.df
+}
+##--------------------------------------------------------------------------------------------------------
+#	return distribution of GTR parameters	
+#	olli originally written 09-09-2014
+##--------------------------------------------------------------------------------------------------------
+PANGEA.GTR.params.v1<- function()
 {	
-	file			<- system.file(package="rPANGEAHIVsim", "misc",'PANGEA_SSAfgBwhRc-_140811_n390_BEASTlog.R')
+	file		<- system.file(package="rPANGEAHIVsim", "misc",'PANGEA_SSAfgBwhRc-_140811_n390_BEASTlog.R')		
 	cat(paste('\nreading GTR parameters from file',file))
 	load(file)	# expect log.df
 	log.df[, state:=NULL]
-	#log.df[, ucldmean:=NULL]
-	#log.df[, ucldstdev:=NULL]
+	log.df[, ucldmean:=NULL]
+	log.df[, ucldstdev:=NULL]
 	log.df[, treeLikelihood:=NULL]
 	log.df[, FILE:=NULL]
 	log.df
 }
 ##--------------------------------------------------------------------------------------------------------
 #	return ancestral sequence sampler	
-#	olli originally written 22-08-2014
+#	olli originally written 10-09-2014
 ##--------------------------------------------------------------------------------------------------------
 #' @title Create starting sequence sampler
 #' @description Returns a function and function arguments to draw ancestral sequences. 
 #' @param root.ctime.grace	Sample a starting sequence with time that matches a query times +- this grace
 #' @param sample.grace		Internal parameter to make sure the requested number of samples is obtained. Internally oversample by this multiplier to the sample size, and then check if sequences are unique.
-#' @param sample.shift		Shift query time to find a starting sequence by this value
 #' @return list of the sampler \code{rANCSEQ} and its arguments \code{rANCSEQ.args}
 #' @export
+PANGEA.RootSeq.create.sampler.v1<- function(root.ctime.grace= 0.5, sample.grace= 3)
+{	
+	#tree.id.labelsep		<- '|'
+	#tree.id.labelidx.ctime	<- 4
+	file			<- system.file(package="rPANGEAHIVsim", "misc",'PANGEA_SSAfgBwhRc-_140902_n390_AncSeq.R')
+	cat(paste('\nLoading starting sequences from file', file))
+	load(file)		#expect "anc.seq.gag"  "anc.seq.pol"  "anc.seq.env"  "anc.seq.info"
+	setkey(anc.seq.info, CALENDAR_TIME)
+	rANCSEQ.args<- list(	root.ctime.grace=root.ctime.grace, sample.grace=sample.grace, anc.seq.info=anc.seq.info, anc.seq.gag=anc.seq.gag, anc.seq.pol=anc.seq.pol, anc.seq.env=anc.seq.env)	
+	
+	rANCSEQ<- function(root.ctime, rANCSEQ.args)
+	{		
+		tmp		<- lapply(seq_along(root.ctime), function(i)
+				{
+					tmp	<- subset(rANCSEQ.args$anc.seq.info, CALENDAR_TIME>root.ctime[i]-rANCSEQ.args$root.ctime.grace &  CALENDAR_TIME<=root.ctime[i]+rANCSEQ.args$root.ctime.grace)
+					if(nrow(tmp)<rANCSEQ.args$sample.grace*100)
+					{
+						cat(paste('\n',nrow(tmp),'\t',rANCSEQ.args$sample.grace*100))
+						stop()
+					}
+					data.table( LABEL= tmp[, sample( LABEL, rANCSEQ.args$sample.grace ) ], CALENDAR_TIME=root.ctime[i], DRAW=i )
+				})
+		tmp		<- do.call('rbind',tmp)
+		#	get unique seqs
+		setkey(tmp, LABEL)
+		tmp				<- unique(tmp)	
+		anc.seq.draw	<- do.call( 'cbind', list( rANCSEQ.args$anc.seq.gag[tmp[, LABEL], ], rANCSEQ.args$anc.seq.pol[tmp[, LABEL], ], rANCSEQ.args$anc.seq.env[tmp[, LABEL], ] ) ) 
+		anc.seq.draw	<- seq.unique(anc.seq.draw)
+		#	check if at least one seq for each draw
+		tmp				<- merge( data.table(LABEL=rownames(anc.seq.draw)), tmp, by='LABEL' )	
+		stopifnot( !length(setdiff( seq_along(root.ctime), tmp[, unique(DRAW)] )) )
+		#	take first seq for each draw	
+		tmp				<- tmp[, list(LABEL= LABEL[1]), by='DRAW']
+		setkey(tmp, DRAW)
+		anc.seq.draw	<- anc.seq.draw[ tmp[, LABEL], ]
+		#	set new calendar time for sequences
+		#set(tmp, NULL, 'LABEL_NEW', tmp[, as.numeric( sapply( strsplit(LABEL,tree.id.labelsep,fixed=TRUE), '[[', tree.id.labelidx.ctime) ) ])
+		#set(tmp, NULL, 'LABEL_NEW', tmp[, LABEL_NEW+sample.shift])	
+		#tmp			<- tmp[,	{
+		#							z							<- strsplit(LABEL,tree.id.labelsep,fixed=TRUE)[[1]]
+		#							z[tree.id.labelidx.ctime]	<- LABEL_NEW
+		#							list(LABEL_NEW=paste(z, collapse=tree.id.labelsep,sep=''))
+		#						}, by='LABEL']
+		#setkey(tmp, LABEL)
+		#rownames(anc.seq.draw)		<- tmp[ rownames(anc.seq.draw), ][, LABEL_NEW]		
+		anc.seq.draw
+	}
+	list(rANCSEQ=rANCSEQ, rANCSEQ.args=rANCSEQ.args)
+}
+##--------------------------------------------------------------------------------------------------------
+#	return ancestral sequence sampler	
+#	olli originally written 22-08-2014
+##--------------------------------------------------------------------------------------------------------
 PANGEA.RootSeq.create.sampler.v1<- function(root.ctime.grace= 0.5, sample.grace= 3, sample.shift= 40)
 {	
 	#tree.id.labelsep		<- '|'
@@ -429,10 +504,12 @@ PANGEA.RootSeq.create.sampler.v1<- function(root.ctime.grace= 0.5, sample.grace=
 #	olli originally written 21-08-2014
 ##--------------------------------------------------------------------------------------------------------
 #' @title Create sampler of the Between Host Evolutionary Rate Multipliers
-#' @description Returns a function to draw the between host evolutionary rate multipliers. 
+#' @description Returns a function to draw the between host evolutionary rate multipliers. Currently modelled with a log normal density.
+#' @param bwerm.mu		mean of the log normal density
+#' @param bwerm.sigma	standard deviation of the log normal density
 #' @return R function
 #' @export
-PANGEA.BetweenHostEvolutionaryRateModifier.create.sampler.v1<- function()
+PANGEA.BetweenHostEvolutionaryRateModifier.create.sampler.v1<- function(bwerm.mu=1.5, bwerm.sigma=0.12)
 {
 	require(gamlss)
 	if(0)
@@ -446,7 +523,7 @@ PANGEA.BetweenHostEvolutionaryRateModifier.create.sampler.v1<- function()
 	}
 	rER.bwm<- function(n)
 	{
-		rLOGNO(n, mu=log(1.5), sigma=0.1)
+		rLOGNO(n, mu=log(bwerm.mu), sigma=bwerm.sigma)
 	}
 	rER.bwm
 }
@@ -455,10 +532,12 @@ PANGEA.BetweenHostEvolutionaryRateModifier.create.sampler.v1<- function()
 #	olli originally written 21-08-2014
 ##--------------------------------------------------------------------------------------------------------
 #' @title Create sampler of Within Host Evolutionary Rates 
-#' @description Returns a function to draw within host evolutionary rates. 
+#' @description Returns a function to draw within host evolutionary rates. Currently modelled with a log normal density.
+#' @param wher.mu		mean of the log normal density
+#' @param wher.sigma 	standard deviation of the log normal density
 #' @return R function
 #' @export
-PANGEA.WithinHostEvolutionaryRate.create.sampler.v1<- function()
+PANGEA.WithinHostEvolutionaryRate.create.sampler.v1<- function(wher.mu=0.005, wher.sigma=0.8)
 {
 	require(gamlss)
 	if(0)
@@ -476,7 +555,7 @@ PANGEA.WithinHostEvolutionaryRate.create.sampler.v1<- function()
 					ans	<- numeric(0)
 					while(length(ans)<n)
 					{
-						tmp		<- rLOGNO(2*n, mu=log(0.005), sigma=0.8)
+						tmp		<- rLOGNO(2*n, mu=log(wher.mu), sigma=wher.sigma)
 						tmp[which(tmp>0.02)]	<- NA
 						ans		<- c(ans, na.omit(tmp))						
 					}			

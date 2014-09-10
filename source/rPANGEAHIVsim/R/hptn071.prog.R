@@ -62,10 +62,9 @@ prog.PANGEA.SeqGen.run<- function()
 	file			<- paste(indir.sg,'/',infile.prefix, 'seqgen.R',sep='')
 	cat(paste('\nLoad seqgen R input file, file=',file))
 	load(file)	#expect df.seqgen, gtr.central, log.df, df.nodestat
-	#	check posterior samples
-	tmp			<- log.df[, list(N=length(a)), by=c('GENE','CODON_POS')]
-	stopifnot( tmp[, length(unique(N))==1] )
-	n.samples	<- tmp[1,N] 
+	#
+	log.df[, IDX:= seq_len(nrow(log.df))]
+	log.df[, FILE:=NULL]	 
 	#
 	#	create SeqGen input files
 	#
@@ -81,18 +80,17 @@ prog.PANGEA.SeqGen.run<- function()
 				list(FILE= paste(infile.prefix, IDCLU, '_', GENE, '_', CODON_POS,'.seqgen',sep='') )
 				# ./seq-gen -mHKY -t3.0 -f0.3,0.2,0.2,0.3 -n1 -k1 -on < /Users/Oliver/git/HPTN071sim/tmp/SeqGen/140716_RUN001_50.seqgen > example.nex
 			}, by=c('GENE','CODON_POS','IDCLU')]
-	df.ph.out	<- df.ph.out[, list(FILE=FILE, IDCLU=IDCLU, IDX=sample(n.samples, length(FILE), replace=FALSE)), by=c('GENE','CODON_POS')]
+	df.ph.out	<- df.ph.out[, 	{
+									tmp	<- log.df[['IDX']][ which( log.df[['GENE']]==GENE & log.df[['CODON_POS']]==CODON_POS ) ]
+									stopifnot(length(tmp)>1)
+									list( FILE=FILE, IDCLU=IDCLU, IDX=sample(tmp, length(FILE), replace=FALSE) )
+								}, by=c('GENE','CODON_POS')]
 	#	sample GTR parameters from posterior
-	setkey(log.df, GENE, CODON_POS)
-	log.df[, IDX:=seq_len(n.samples)]
 	df.ph.out	<- merge(df.ph.out, log.df, by=c('GENE', 'CODON_POS', 'IDX'))
-	#	standardise mu for each FILE
-	tmp			<- df.ph.out[, list(FILE=FILE, mu=mu/mean(mu)), by='IDCLU']
-	df.ph.out	<- merge( subset(df.ph.out, select=which(colnames(df.ph.out)!='mu')), subset(tmp, select=c(FILE, mu)), by='FILE')
 	#
 	if(with.plot)
 	{
-		tmp			<- subset(df.nodestat, select=c(IDPOP, ER, BWM, IDCLU))
+		tmp			<- subset(df.nodestat, ER!=log.df$meanRate[1], select=c(IDPOP, ER, BWM, IDCLU))
 		tmp			<- merge(tmp, subset(df.ph.out, select=c(GENE, CODON_POS, IDCLU, mu)), by='IDCLU', allow.cartesian=TRUE)
 		set(tmp, NULL, 'ER', tmp[, ER*mu])		
 		
@@ -229,18 +227,6 @@ prog.PANGEA.SeqGen.createInputFile<- function()
 	verbose			<- 1
 	with.plot		<- 1
 	label.sep		<- '|'	
-	cat(paste('\ncreate sampler of evolutionary rates'))
-	#	create sampler of within host evolutionary rates
-	rER.pol			<- PANGEA.WithinHostEvolutionaryRate.create.sampler.v1()
-	#	create sampler of between host evolutionary rate dampener
-	rER.bwm			<- PANGEA.BetweenHostEvolutionaryRateModifier.create.sampler.v1()
-	#	create sampler of ancestral sequences
-	cat(paste('\ncreate sampler of ancestral sequences'))
-	tmp				<- PANGEA.RootSeq.create.sampler.v1(root.ctime.grace= 0.5, sample.grace= 3, sample.shift= 40)
-	rANCSEQ			<- tmp$rANCSEQ
-	rANCSEQ.args	<- tmp$rANCSEQ.args
-	#	read GTR parameters
-	log.df			<- PANGEA.GTR.params()
 	#
 	#	read I/O
 	#
@@ -278,7 +264,7 @@ prog.PANGEA.SeqGen.createInputFile<- function()
 						{	switch(substr(arg,2,7),
 									outdir= return(substr(arg,9,nchar(arg))),NA)	}))
 		if(length(tmp)>0) outdir.sg<- tmp[1]		
-				
+		
 	}
 	if(verbose)
 	{
@@ -293,7 +279,22 @@ prog.PANGEA.SeqGen.createInputFile<- function()
 		cat('\nCould not find pipeline.args, generating default')
 		pipeline.args	<- rPANGEAHIVsim.pipeline.args()
 	}	
-	stopifnot( all( c('s.seed')%in%pipeline.args[, stat] ) )
+	stopifnot( all( c('s.seed','wher.mu','wher.sigma','bwerm.mu','bwerm.sigma')%in%pipeline.args[, stat] ) )
+	#
+	#	setup samplers
+	#
+	cat(paste('\ncreate sampler of evolutionary rates'))
+	#	create sampler of within host evolutionary rates
+	rER.pol			<- PANGEA.WithinHostEvolutionaryRate.create.sampler.v1(wher.mu=pipeline.args['wher.mu',][,v], wher.sigma=pipeline.args['wher.sigma',][,v])
+	#	create sampler of between host evolutionary rate dampener
+	rER.bwm			<- PANGEA.BetweenHostEvolutionaryRateModifier.create.sampler.v1(bwerm.mu=pipeline.args['bwerm.mu',][,v], bwerm.sigma=pipeline.args['bwerm.sigma',][,v])
+	#	create sampler of ancestral sequences
+	cat(paste('\ncreate sampler of ancestral sequences'))
+	tmp				<- PANGEA.RootSeq.create.sampler.v1(root.ctime.grace= 0.5, sample.grace= 3)
+	rANCSEQ			<- tmp$rANCSEQ
+	rANCSEQ.args	<- tmp$rANCSEQ.args
+	#	read GTR parameters
+	log.df			<- PANGEA.GTR.params()	
 	#
 	#
 	#
@@ -328,7 +329,6 @@ prog.PANGEA.SeqGen.createInputFile<- function()
 		#	create collapsed Newick tree with expected substitutions / site for each branch 
 		#
 		#	draw evolutionary rates for every individual in the transmission chain
-		#	TODO: this is currently a simple LOGNO from some HIV-1B pol data
 		node.stat		<- merge(node.stat, data.table( IDPOP=node.stat[, unique(IDPOP)], ER= rER.pol(node.stat[, length(unique(IDPOP))]) ), by='IDPOP')
 		#	smaller ER for transmission edge
 		node.stat[, BWM:= rER.bwm(nrow(node.stat))]
@@ -340,6 +340,12 @@ prog.PANGEA.SeqGen.createInputFile<- function()
 		tmp				<- merge( subset(node.stat, select=c(NODE_ID, IDPOP)), tmp, by='NODE_ID') 
 		tmp				<- subset( tmp, IDPOP!=IDPOP_FROM)[, NODE_ID]	#recipient node of transmission edge
 		set( node.stat, node.stat[, which(!NODE_ID%in%tmp)], 'BWM', 1. )		
+		#	set root edge evolutionary rate to overall mean between-host rate
+		#	get NODE_ID of edge from root
+		tmp				<- ph$edge[match(Ntip(ph)+1, ph$edge[1, ]), 2]
+		tmp				<- node.stat[, which(NODE_ID==tmp)]		
+		set(node.stat, tmp, 'ER', log.df[1,meanRate] )
+		stopifnot( node.stat[tmp, BWM]==1)
 		#	get calendar time of root so we can draw ancestral seq
 		tmp				<- seq.collapse.singles(ph)
 		tmp2			<- regmatches(tmp$tip.label[1], regexpr('ID_[0-9]+',tmp$tip.label[1]))
@@ -347,7 +353,10 @@ prog.PANGEA.SeqGen.createInputFile<- function()
 		tmp2			<- subset(node.stat, IDPOP==tmp2)[1, TIME_SEQ]
 		root.ctime		<- ifelse(Nnode(tmp), tmp2 - (node.depth.edgelength(tmp)[1] + tmp$root.edge), tmp2-tmp$root.edge)	
 		#	set expected numbers of substitutions per branch within individual IDPOP
+		setkey(node.stat, NODE_ID)
 		ph$edge.length	<- ph$edge.length * node.stat[ ph$edge[, 2], ][, ER / BWM]
+		#	set expected numbers of substitutions for the root edge
+		
 		#	once expected number of substitutions / site are simulated, can collapse singleton nodes
 		ph				<- seq.collapse.singles(ph)	
 		#	set tip label so that IDPOP can be checked for consistency	
@@ -361,11 +370,14 @@ prog.PANGEA.SeqGen.createInputFile<- function()
 		#readline()
 	}
 	df.ph		<- do.call('rbind',df.ph)
-	df.nodestat	<- do.call('rbind',df.nodestat)	
+	df.nodestat	<- do.call('rbind',df.nodestat)
+	#	check that we have exactly one root edge with overall mean between host rate per cluster
+	stopifnot( df.nodestat[, length(unique(IDCLU))]==nrow(subset(df.nodestat, ER==log.df$meanRate[1])) )
+	
 	if(with.plot)
 	{
 		#	plot used within-host ERs
-		ggplot(df.nodestat, aes(x=ER)) + geom_histogram(binwidth=0.001)	+ labs(x='simulated within-host evolutionary rate') +
+		ggplot(subset(df.nodestat, ER!=log.df$meanRate[1]), aes(x=ER)) + geom_histogram(binwidth=0.001)	+ labs(x='simulated within-host evolutionary rate') +
 			scale_x_continuous(breaks= seq(0, 0.02, 0.002))
 		file	<- paste(indir.epi, '/', substr(infile.epi,1,nchar(infile.epi)-6),'INFO_sg_ER.pdf', sep='')
 		ggsave(file, w=6, h=6)
@@ -373,6 +385,11 @@ prog.PANGEA.SeqGen.createInputFile<- function()
 		ggplot(subset(df.nodestat, BWM!=1) , aes(x=BWM)) + geom_histogram(binwidth=0.05) + labs(x='simulated between-host rate multiplier') +
 				scale_x_continuous(breaks= seq(0.8, 2.4, 0.2))
 		file	<- paste(indir.epi, '/', substr(infile.epi,1,nchar(infile.epi)-6),'INFO_sg_BWM.pdf', sep='')
+		ggsave(file, w=6, h=6)
+		#	plot used ERs along transmission edges
+		ggplot(subset(df.nodestat, BWM!=1) , aes(x=ER/BWM)) + geom_histogram(binwidth=0.001) + labs(x='simulated evolutionary rates along transmission edges') +
+				scale_x_continuous(breaks= seq(0, 0.02, 0.002))
+		file	<- paste(indir.epi, '/', substr(infile.epi,1,nchar(infile.epi)-6),'INFO_sg_BWER.pdf', sep='')
 		ggsave(file, w=6, h=6)		
 	}	
 	#
@@ -416,6 +433,10 @@ prog.PANGEA.SeqGen.createInputFile<- function()
 ##--------------------------------------------------------------------------------------------------------
 #' @title Arguments for rPANGEAHIV simulation pipeline
 #' @description Construct table with all input arguments to the rPANGEAHIV simulation pipeline.
+#' The demographic within host coealescent model is N0tau*(1+exp(-r*T50))/(1+exp(-r*(T50-t))). Default parameters are set
+#' so that the curve asymptotes at Ne*tau=3e5 and reaches half its asymptotic value 1 year post infection. Branch lengths are 
+#' multiplied by within host evolutionary rates, and within host branch lengths ending in a transmission event are multiplied
+#' in addition with a between-host evolutionary rate multiplier.
 #' @param seed				Random number seed 
 #' @param yr.start			Start year of the epi simulation (default 1980)
 #' @param yr.end			First year after the epi simulation (default 2020)
@@ -425,17 +446,35 @@ prog.PANGEA.SeqGen.createInputFile<- function()
 #' @param s.PREV.max		Proportion of infected cases sampled at the end of the simulation
 #' @param epi.dt			Time increment of the epi simulation (default 1/48)
 #' @param epi.import		Proportion of imported cases of all cases (default 0.1)
-#' @param startseq.backdate	Hack to backdate the time of index cases to draw a starting sequence (default 0)
+#' @param v.N0tau			Parameter of BEAST::LogisticGrowthN0::N0 (default 3.58e4) 
+#' @param v.r				Parameter of BEAST::LogisticGrowthN0::r (default 2)
+#' @param v.T50				Parameter of BEAST::LogisticGrowthN0::T50
+#' @param wher.mu			Mean within host evolutionary rate of log normal density
+#' @param wher.sigma		Standard deviation in within host evolutionary rate of log normal density
+#' @param bwerm.mu			Mean between host evolutionary rate multiplier of log normal density
+#' @param bwerm.sigma		Standard deviation in between host evolutionary rate multiplier of log normal density
+#' @param startseq.backdate	Hack to backdate the time of index cases to draw a starting sequence (default -1)
 #' @return data.table
 #' @example example/ex.pipeline.R
 #' @export
 rPANGEAHIVsim.pipeline.args<- function(	yr.start=1980, yr.end=2020, seed=42,
 										s.INC.recent=0.1, s.INC.recent.len=5, s.PREV.min=0.01, s.PREV.max=0.25, 
 										epi.dt=1/48, epi.import=0.1,
+										v.N0tau=3.58e4, v.r=2, v.T50=-1,
+										wher.mu=0.005, wher.sigma=0.8,
+										bwerm.mu=1.5, bwerm.sigma=0.12,
 										startseq.backdate=40)
 {
-	pipeline.args	<- data.table(	stat= 	c('yr.start','yr.end','s.INC.recent','s.INC.recent.len', 's.PREV.min', 's.PREV.max', 's.seed', 'epi.dt', 'epi.import','startseq.backdate'), 
-									v	=	c(yr.start, yr.end, s.INC.recent, s.INC.recent.len, s.PREV.min, s.PREV.max, seed, epi.dt, epi.import, startseq.backdate) )
+	#explore within host Neff*tau model
+	if(0)
+	{
+		N0tau		<- 3.58e4; r=2; T50<- -1
+		t			<- seq(-10,0,0.001)
+		Netau(t)	<- function(t){  N0tau*(1+exp(-r*T50))/(1+exp(-r*(T50-t)))	}
+		plot(t, f(t), type='l')
+	}
+	pipeline.args	<- data.table(	stat= 	c('yr.start','yr.end','s.INC.recent','s.INC.recent.len', 's.PREV.min', 's.PREV.max', 's.seed', 'epi.dt', 'epi.import','v.N0tau','v.r','v.T50','wher.mu','wher.sigma','bwerm.mu','bwerm.sigma','startseq.backdate'), 
+									v	=	c(yr.start, yr.end, s.INC.recent, s.INC.recent.len, s.PREV.min, s.PREV.max, seed, epi.dt, epi.import, v.N0tau, v.r, v.T50, wher.mu, wher.sigma, bwerm.mu, bwerm.sigma, startseq.backdate) )
 	setkey(pipeline.args, stat)	
 	pipeline.args
 }

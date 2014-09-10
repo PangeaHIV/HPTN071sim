@@ -621,6 +621,63 @@ project.PANGEA.RootSeqSim.BEAST.SSAfg.getGTR<- function()
 	ggsave(file, h=15, w=20)
 }
 ##--------------------------------------------------------------------------------------------------------
+##	process BEAST log file and extract GTR parameters
+##--------------------------------------------------------------------------------------------------------
+project.PANGEA.RootSeqSim.BEAST.SSApg.getGTR<- function()
+{
+	tree.id.burnin		<- 2e7
+	tree.id.labelsep	<- '|'
+	dir.name			<- '/Users/Oliver/duke/2014_Gates'  	
+	indir				<- paste(dir.name,'methods_comparison_rootseqsim/140902',sep='/')
+	outdir				<- indir
+	#	search for BEAST output
+	infiles				<- list.files(indir)
+	infiles				<- infiles[ sapply(infiles, function(x) grepl('pool[0-9].log$',x) ) ]
+	#	collect log variables
+	log.df	<- lapply(seq_along(infiles), function(i)
+			{
+				infile	<- infiles[i]
+				cat(paste('\nprocess file', infile))
+				file	<- paste(indir, '/', infile, sep='')
+				df		<- as.data.table(read.delim(file, comment.char='#'))
+				cat(paste('\nignore logs for\n',paste(colnames(df)[ !grepl('state|POL|GAG|ENV|ucld|meanRate|coefficientOfVariation|treeModel.rootHeight',colnames(df)) ], collapse=', ') ))	
+				df		<- subset(df, select=which(grepl('state|POL|GAG|ENV|ucld|meanRate|coefficientOfVariation|treeModel.rootHeight',colnames(df))))
+				log.df	<- c( paste('frequencies',1:4,sep=''), 'mu', 'alpha', '\\.at', '\\.ac', '\\.cg', '\\.ag', '\\.gt' )
+				log.df	<- lapply( log.df, function(x)
+						{
+							tmp		<- melt( subset(df, select=which(grepl(paste('state|',x,sep=''),colnames(df)))), id='state', value.name=x)
+							tmp[, GENE:= tmp[,substr(variable, 1, 3)]]
+							tmp[, CODON_POS:=tmp[, regmatches(variable, regexpr('CP[1-3]',variable))]]
+							subset(tmp, select=which(colnames(tmp)!='variable'))				
+						})
+				tmp		<- log.df[[1]]
+				for(j in seq_along(log.df)[-1])
+					tmp	<- merge(tmp, log.df[[j]], by=c('state','GENE','CODON_POS'))
+				log.df	<- tmp	
+				log.df	<- merge(log.df, subset(df, select=which(grepl('state|ucld|meanRate|coefficientOfVariation|treeModel.rootHeight',colnames(df)))), by='state')
+				log.df[, FILE:= regmatches(infile, regexpr('pool[0-9]+',infile))]
+				log.df
+			})
+	log.df	<- do.call('rbind',log.df)	
+	setnames(log.df, colnames(log.df), gsub('\\.','',colnames(log.df),fixed=TRUE))
+	setnames(log.df, paste('frequencies',1:4,sep=''), c('a','c','g','t') )
+	log.df	<- subset(log.df, state>tree.id.burnin)
+	#	check mean of relative rates
+	#tmp	<- log.df[, list(mmu=mean(mu), n=length(mu)), by=c('FILE','GENE', 'state')]
+	
+	file	<- paste( substr(infiles[1],1,nchar(infiles[1])-9),'log.R',sep='' )
+	file	<- "PANGEA_SSAfgBwhRc-_140902_n390_log.R"
+	file	<- paste( outdir, '/', file, sep='')
+	cat(paste('\nsave to file', file))
+	save(file=file, log.df)
+	# 
+	tmp		<- copy(log.df)
+	tmp		<- melt(tmp, id=c('state','GENE','CODON_POS','FILE'))
+	ggplot( tmp, aes(x=value, fill=FILE)) + geom_histogram() + facet_grid(GENE+CODON_POS~variable, scales='free')
+	file	<- paste( substr(file,1,nchar(file)-1),'pdf',sep='' )
+	ggsave(file, h=15, w=20)
+}
+##--------------------------------------------------------------------------------------------------------
 ##	get ancestral sequences from BEAST XML
 ##--------------------------------------------------------------------------------------------------------
 project.PANGEA.RootSeqSim.BEAST.SSApg.getancestralseq.from.output<- function()
