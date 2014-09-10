@@ -13,9 +13,9 @@ prog.PANGEA.SeqGen.run<- function()
 {	
 	indir.sg			<- '/Users/Oliver/git/HPTN071sim/tmp140908/SeqGen'
 	infile.prefix		<- '140716_RUN001_'
+	infile.args			<- NA
 	outdir				<- '/Users/Oliver/git/HPTN071sim/tmp140908'
 	with.plot			<- 1	
-	s.seed				<- 42
 	verbose				<- 1
 	label.idx.codonpos	<- 1
 	label.idx.gene		<- 2
@@ -35,6 +35,10 @@ prog.PANGEA.SeqGen.run<- function()
 									infile.sg= return(substr(arg,12,nchar(arg))),NA)	}))
 		if(length(tmp)>0) infile.prefix<- tmp[1]
 		tmp<- na.omit(sapply(argv,function(arg)
+						{	switch(substr(arg,2,12),
+									infile.args= return(substr(arg,14,nchar(arg))),NA)	}))
+		if(length(tmp)>0) infile.args<- tmp[1]				
+		tmp<- na.omit(sapply(argv,function(arg)
 						{	switch(substr(arg,2,7),
 									outdir= return(substr(arg,9,nchar(arg))),NA)	}))
 		if(length(tmp)>0) outdir<- tmp[1]				
@@ -43,8 +47,18 @@ prog.PANGEA.SeqGen.run<- function()
 	{
 		cat('\ninput args\n',paste(indir.sg, infile.prefix, sep='\n'))
 	}
-	
-	set.seed(s.seed)
+	if(!is.na(infile.args))
+	{
+		load(infile.args)	#expect 'pipeline.args'
+	}
+	if(is.null(pipeline.args))
+	{
+		cat('\nCould not find pipeline.args, generating default')
+		pipeline.args	<- rPANGEAHIVsim.pipeline.args()
+	}	
+	stopifnot( all( c('s.seed')%in%pipeline.args[, stat] ) )	
+	set.seed(pipeline.args['s.seed',][,v])
+	#
 	file			<- paste(indir.sg,'/',infile.prefix, 'seqgen.R',sep='')
 	cat(paste('\nLoad seqgen R input file, file=',file))
 	load(file)	#expect df.seqgen, gtr.central, log.df, df.nodestat
@@ -52,8 +66,9 @@ prog.PANGEA.SeqGen.run<- function()
 	tmp			<- log.df[, list(N=length(a)), by=c('GENE','CODON_POS')]
 	stopifnot( tmp[, length(unique(N))==1] )
 	n.samples	<- tmp[1,N] 
-	
+	#
 	#	create SeqGen input files
+	#
 	df.ph.out	<- df.seqgen[,	{
 				#print( table( strsplit(ANCSEQ, ''), useNA='if') )
 				file	<- paste(indir.sg,'/',infile.prefix, IDCLU, '_', GENE, '_', CODON_POS,'.seqgen',sep='')
@@ -93,7 +108,7 @@ prog.PANGEA.SeqGen.run<- function()
 	#
 	tmp		<- df.ph.out[, {	
 								cat(paste('\nProcess', IDCLU, GENE, CODON_POS))
-								cmd	<- cmd.SeqGen(indir.sg, FILE, indir.sg, gsub('seqgen','phy',FILE), prog=PR.SEQGEN, prog.args=paste('-n',Global.gen.n.seq,' -k1 -or -z',Global.rng.seed,sep=''), 
+								cmd	<- cmd.SeqGen(indir.sg, FILE, indir.sg, gsub('seqgen','phy',FILE), prog=PR.SEQGEN, prog.args=paste('-n',1,' -k1 -or -z',pipeline.args['s.seed',][,v],sep=''), 
 										alpha=alpha, gamma=4, invariable=0, scale=mu, freq.A=a, freq.C=c, freq.G=g, freq.T=t,
 										rate.AC=ac, rate.AG=ag, rate.AT=at, rate.CG=cg, rate.CT=1, rate.GT=gt)
 								system(cmd)				
@@ -213,9 +228,7 @@ prog.PANGEA.SeqGen.createInputFile<- function()
 {
 	verbose			<- 1
 	with.plot		<- 1
-	label.sep		<- '|'
-	Global.gen.n.seq<- 1
-	Global.rng.seed	<- 42
+	label.sep		<- '|'	
 	cat(paste('\ncreate sampler of evolutionary rates'))
 	#	create sampler of within host evolutionary rates
 	rER.pol			<- PANGEA.WithinHostEvolutionaryRate.create.sampler.v1()
@@ -235,6 +248,7 @@ prog.PANGEA.SeqGen.createInputFile<- function()
 	infile.epi		<- '140716_RUN001_SAVE.R'	
 	indir.vts		<- '/Users/Oliver/git/HPTN071sim/tmp140908/VirusTreeSimulator'
 	infile.prefix	<- '140716_RUN001_'	
+	infile.args		<- NA
 	outdir.sg		<- '/Users/Oliver/git/HPTN071sim/tmp140908/SeqGen'	
 	if(exists("argv"))
 	{
@@ -255,6 +269,10 @@ prog.PANGEA.SeqGen.createInputFile<- function()
 						{	switch(substr(arg,2,11),
 									infile.vts= return(substr(arg,13,nchar(arg))),NA)	}))
 		if(length(tmp)>0) infile.prefix<- tmp[1]
+		tmp<- na.omit(sapply(argv,function(arg)
+						{	switch(substr(arg,2,12),
+									infile.args= return(substr(arg,14,nchar(arg))),NA)	}))
+		if(length(tmp)>0) infile.args<- tmp[1]		
 		#	args output
 		tmp<- na.omit(sapply(argv,function(arg)
 						{	switch(substr(arg,2,7),
@@ -266,6 +284,16 @@ prog.PANGEA.SeqGen.createInputFile<- function()
 	{
 		cat('\ninput args\n',paste(indir.epi, infile.epi, indir.vts, infile.prefix, outdir.sg, sep='\n'))
 	}	
+	if(!is.na(infile.args))
+	{
+		load(infile.args)	#expect 'pipeline.args'
+	}
+	if(is.null(pipeline.args))
+	{
+		cat('\nCould not find pipeline.args, generating default')
+		pipeline.args	<- rPANGEAHIVsim.pipeline.args()
+	}	
+	stopifnot( all( c('s.seed')%in%pipeline.args[, stat] ) )
 	#
 	#
 	#
@@ -275,7 +303,9 @@ prog.PANGEA.SeqGen.createInputFile<- function()
 	infiles		<- list.files(indir.vts)
 	tmp			<- paste('^',infile.prefix,'.*nex$',sep='')
 	infiles		<- infiles[ grepl(tmp, infiles)  ]	
-	if(!length(infiles))	stop('cannot find files matching criteria')		
+	if(!length(infiles))	stop('cannot find files matching criteria')
+	#
+	set.seed( pipeline.args['s.seed',][,v] )
 	#
 	#	read from VirusTreeSimulator and convert branch lengths in time to branch lengths in subst/site
 	#
@@ -548,14 +578,14 @@ prog.HPTN071.input.parser.v1<- function()
 	if(is.null(pipeline.args))
 	{
 		cat('\nCould not find pipeline.args, generating default')
-		pipeline.args	<- rPANGEAHIVsim.pipeline.args( yr.start=1980, yr.end=2020, seed=42, s.PREV.min=0.01, s.PREV.max=0.25, epi.dt=1/48, epi.import=0.1 )
+		pipeline.args	<- rPANGEAHIVsim.pipeline.args()
 	}
-	
+	stopifnot( all( c('yr.start', 'yr.end', 's.seed', 's.PREV.min', 's.PREV.max', 'epi.dt', 'epi.import')%in%pipeline.args[, stat] ) )
+	#
 	infile.ind	<- paste(indir, '/', infile.ind, sep='')
 	infile.trm	<- paste(indir, '/', infile.trm, sep='')
 	outfile.ind	<- paste(outdir, '/', outfile.ind, sep='')
-	outfile.trm	<- paste(outdir, '/', outfile.trm, sep='')
-	
+	outfile.trm	<- paste(outdir, '/', outfile.trm, sep='')	
 	#	set seed
 	set.seed( pipeline.args['s.seed',][,v] )
 	#
@@ -824,8 +854,10 @@ prog.HPTN071.input.parser.v2<- function()
 	if(is.null(pipeline.args))
 	{
 		cat('\nCould not find pipeline.args, generating default')
-		pipeline.args	<- rPANGEAHIVsim.pipeline.args( yr.start=1980, yr.end=2020, seed=42, s.PREV.min=0.01, s.PREV.max=0.25, epi.dt=1/48, epi.import=0.1 )
+		pipeline.args	<- rPANGEAHIVsim.pipeline.args()
 	}
+	stopifnot( all( c('yr.start', 'yr.end', 's.seed', 's.PREV.min', 's.PREV.max', 'epi.dt', 'epi.import')%in%pipeline.args[, stat] ) )
+	#
 	infile.ind	<- paste(indir, '/', infile.ind, sep='')
 	infile.trm	<- paste(indir, '/', infile.trm, sep='')
 	outfile.ind	<- paste(outdir, '/', outfile.ind, sep='')
