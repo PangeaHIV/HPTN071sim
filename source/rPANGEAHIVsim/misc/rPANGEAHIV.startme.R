@@ -116,12 +116,6 @@ my.dumpframes<- function()
 }
 ###############################################################################
 #	re-load all R files
-require(data.table)
-require(grid)
-require(reshape2)
-require(ggplot2)
-require(gamlss)
-require(hivclust)
 require(rPANGEAHIVsim)
 print(CODE.HOME)
 function.list<-c(list.files(path= paste(CODE.HOME,"R",sep='/'), pattern = ".R$", all.files = FALSE,

@@ -627,8 +627,11 @@ project.PANGEA.RootSeqSim.BEAST.SSApg.getancestralseq.from.output<- function()
 {
 	tree.id.burnin		<- 2e7
 	tree.id.labelsep	<- '|'
+	ancseq.excl.timediff<- 3
+	
 	dir.name			<- '/Users/Oliver/duke/2014_Gates'  	
 	indir				<- paste(dir.name,'methods_comparison_rootseqsim/140902',sep='/')
+	ancseq.label.prefix	<- 'PANGEA_SSApgBwhRc-_140902_n390'
 	outdir				<- indir
 	#	search for BEAST output
 	files				<- list.files(indir)
@@ -636,40 +639,96 @@ project.PANGEA.RootSeqSim.BEAST.SSApg.getancestralseq.from.output<- function()
 	if(!length(files))	stop('cannot find files matching criteria')
 	
 	#	load and process BEAST PARSER output
+	#	sampling times are different for each gene, as they come from different trees
 	anc.seq				<- lapply(files, function(file)
 			{
 				cat(paste('\nProcess file=', file  ))
 				load( paste(indir, file, sep='/') )	#	expect tree, node.stat
 				#	compute gag pol env ancestral sequences		
-				anc.seq	<- PANGEA.RootSeqSim.get.ancestral.seq.pg(tree, node.stat, tree.id.sep='_', tree.id.idx.mcmcit=2, tree.id.burnin=tree.id.burnin, label.sep=tree.id.labelsep, label.idx.ctime=5)				
-				set(anc.seq, NULL, 'LABEL', anc.seq[, paste( substr(file,1,nchar(file)-2), LABEL, sep=tree.id.labelsep )] )				
-				set(anc.seq, NULL, 'TREE_ID', NULL )
-				set(anc.seq, NULL, 'NODE_ID', NULL )
+				anc.seq	<- PANGEA.RootSeqSim.get.ancestral.seq.pg(tree, node.stat, tree.id.sep='_', tree.id.idx.mcmcit=2, tree.id.burnin=tree.id.burnin, label.sep=tree.id.labelsep, label.idx.ctime=5)								
+				anc.seq[, POOL:= regmatches(file, regexpr('pool[0-9]+', file)) ]
 				set(anc.seq, NULL, 'BEAST_MCMC_IT', NULL )
 				anc.seq
 			})
 	anc.seq				<- do.call('rbind',anc.seq)
+	set(anc.seq, NULL, 'POOL', anc.seq[, factor(POOL)])
+	set(anc.seq, NULL, 'GENE', anc.seq[, factor(GENE)])
+	set(anc.seq, NULL, 'TREE_ID', anc.seq[, factor(TREE_ID)])
+	anc.seq[, LABEL:=NULL]
+	#	check we have exactly 3 genes for every inner node	
+	tmp	<- anc.seq[, list(n=length(GENE)), by=c('POOL','TREE_ID','NODE_ID')]
+	stopifnot(tmp[, all(n==3)])
+	#	concatenate sequences in time order (so we don t loose too many sequences)
+	anc.seq.gag			<- subset(anc.seq, GENE=='GAG')
+	setnames(anc.seq.gag, c('SEQ','CALENDAR_TIME','POOL'), c('GAG','GAG_CALENDAR_TIME','GAG_POOL'))	
+	anc.seq.pol			<- subset(anc.seq, GENE=='POL')
+	setnames(anc.seq.pol, c('SEQ','CALENDAR_TIME','POOL'), c('POL','POL_CALENDAR_TIME','POL_POOL'))
+	anc.seq.env			<- subset(anc.seq, GENE=='ENV')
+	setnames(anc.seq.env, c('SEQ','CALENDAR_TIME','POOL'), c('ENV','ENV_CALENDAR_TIME','ENV_POOL'))
+	setkey(anc.seq.gag, GAG_CALENDAR_TIME)
+	setkey(anc.seq.pol, POL_CALENDAR_TIME)	
+	setkey(anc.seq.env, ENV_CALENDAR_TIME)
+	# prelim save
+	file				<- paste( outdir, '/', substr(files[1],1,nchar(files[1])-7), 'AncSeq_Raw.R',sep='' )
+	save(anc.seq.gag, anc.seq.pol, anc.seq.env, file=file)
+	#	
+	anc.seq				<- cbind( subset(anc.seq.gag, select=c(GAG, GAG_CALENDAR_TIME)), subset(anc.seq.pol, select=c(POL, POL_CALENDAR_TIME)) )
+	anc.seq				<- cbind( anc.seq, subset(anc.seq.env, select=c(ENV, ENV_CALENDAR_TIME) ))
+	cat(paste('\nFound starting sequences, n=', nrow(anc.seq)))
+	#	exclude concatenated genes if TIME_SEQ difference too large
+	anc.seq[, d.gp:= abs(GAG_CALENDAR_TIME-POL_CALENDAR_TIME)]
+	anc.seq[, d.ge:= abs(GAG_CALENDAR_TIME-ENV_CALENDAR_TIME)]
+	anc.seq[, d.pe:= abs(POL_CALENDAR_TIME-ENV_CALENDAR_TIME)]
+	anc.seq				<- subset(anc.seq, d.gp<=ancseq.excl.timediff & d.ge<=ancseq.excl.timediff & d.pe<=ancseq.excl.timediff)
+	cat(paste('\nKeep starting sequences with sufficiently close TIME_SEQ, n=', nrow(anc.seq)))
+	anc.seq[, d.gp:=NULL]
+	anc.seq[, d.ge:=NULL]
+	anc.seq[, d.pe:=NULL]
+	#	finalize
+	anc.seq[, CALENDAR_TIME:= (GAG_CALENDAR_TIME+POL_CALENDAR_TIME+ENV_CALENDAR_TIME)/3]
+	anc.seq[, GAG_CALENDAR_TIME:=NULL]
+	anc.seq[, POL_CALENDAR_TIME:=NULL]
+	anc.seq[, ENV_CALENDAR_TIME:=NULL]
+	anc.seq[, LABEL:= paste(ancseq.label.prefix, tree.id.labelsep, 'SEQ_', seq_len(nrow(anc.seq)), tree.id.labelsep, round(CALENDAR_TIME, d=4), sep='')]
+	anc.seq.gag	<- anc.seq.pol	<- anc.seq.env	<- NULL
+	gc()	
 	#
 	#	return DNAbin
 	#
-	anc.seq.gag				<- tolower(do.call('rbind',strsplit(anc.seq[, GAG],'')))
-	rownames(anc.seq.gag)	<- anc.seq[, LABEL]
-	anc.seq.gag				<- as.DNAbin(anc.seq.gag)		
-	anc.seq.pol				<- tolower(do.call('rbind',strsplit(anc.seq[, POL],'')))
-	rownames(anc.seq.pol)	<- anc.seq[, LABEL]
-	anc.seq.pol				<- as.DNAbin(anc.seq.pol)		
-	anc.seq.env				<- tolower(do.call('rbind',strsplit(anc.seq[, ENV],'')))
-	rownames(anc.seq.env)	<- anc.seq[, LABEL]
-	anc.seq.env				<- as.DNAbin(anc.seq.env)	
-	
+	tmp			<- c(seq(1, nrow(anc.seq), 5e4), nrow(anc.seq)+1)
+	anc.seq.gag	<- lapply(seq_along(tmp)[-length(tmp)], function(i)
+			{
+				cat(paste('\nProcess GAG up to',tmp[i+1]-1))
+				anc.seq.gag				<- tolower(do.call('rbind',strsplit(anc.seq[seq.int(tmp[i], tmp[i+1]-1), GAG],'')))
+				rownames(anc.seq.gag)	<- anc.seq[seq.int(tmp[i], tmp[i+1]-1), LABEL]
+				anc.seq.gag				<- as.DNAbin(anc.seq.gag)				
+			})
+	anc.seq.gag	<- do.call('rbind', anc.seq.gag)
+	anc.seq.pol	<- lapply(seq_along(tmp)[-length(tmp)], function(i)
+			{
+				cat(paste('\nProcess POL up to',tmp[i+1]-1))
+				anc.seq.pol				<- tolower(do.call('rbind',strsplit(anc.seq[seq.int(tmp[i], tmp[i+1]-1), POL],'')))
+				rownames(anc.seq.pol)	<- anc.seq[seq.int(tmp[i], tmp[i+1]-1), LABEL]
+				anc.seq.pol				<- as.DNAbin(anc.seq.pol)				
+			})
+	anc.seq.pol	<- do.call('rbind', anc.seq.pol)
+	anc.seq.env	<- lapply(seq_along(tmp)[-length(tmp)], function(i)
+			{
+				cat(paste('\nProcess ENV up to',tmp[i+1]-1))
+				anc.seq.env				<- tolower(do.call('rbind',strsplit(anc.seq[seq.int(tmp[i], tmp[i+1]-1), ENV],'')))
+				rownames(anc.seq.env)	<- anc.seq[seq.int(tmp[i], tmp[i+1]-1), LABEL]
+				anc.seq.env				<- as.DNAbin(anc.seq.env)				
+			})
+	anc.seq.env	<- do.call('rbind', anc.seq.env)
+	#
+	#	return info data.table
+	#
 	set( anc.seq, NULL, 'GAG', NULL )
 	set( anc.seq, NULL, 'POL', NULL )
 	set( anc.seq, NULL, 'ENV', NULL )
-	anc.seq.info			<- anc.seq
-	#anc.seq					<- cbind(anc.seq.gag, anc.seq.pol, anc.seq.env)
-	#
-	outfile				<- paste( substr(files[1],1,nchar(files[1])-7), 'AncSeq.R',sep='' )
-	file				<- paste(outdir, outfile, sep='/')
+	anc.seq.info		<- anc.seq
+	#	save
+	file				<- "/Users/Oliver/duke/2014_Gates/methods_comparison_rootseqsim/140902/PANGEA_SSAfgBwhRc-_140902_n390_AncSeq.R"		
 	cat(paste('\nwrite Ancestral Sequences to ',file))
 	save(file=file, anc.seq.gag, anc.seq.pol, anc.seq.env, anc.seq.info)
 }

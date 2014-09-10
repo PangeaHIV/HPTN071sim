@@ -3,7 +3,7 @@
 \title{Command line generator for \code{prog.PANGEA.SeqGen.createInputFile}}
 \usage{
   cmd.SeqGen.createInputFiles(indir.epi, infile.epi,
-    indir.vts, infile.vts, outdir,
+    indir.vts, infile.vts, infile.args, outdir,
     prog = PR.SEQGEN.FILECREATOR)
 }
 \value{

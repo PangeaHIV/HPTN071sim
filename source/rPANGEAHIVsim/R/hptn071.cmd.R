@@ -83,13 +83,13 @@ cmd.hpccaller<- function(outdir, outfile, cmd)
 #' @return command line string
 #' @example example/ex.seq.sampler.v1.R
 #' @export
-cmd.HPTN071.input.parser.v1<- function(indir, infile.trm, infile.ind, outdir, outfile.trm, outfile.ind, prog=PR.HPTN071.INPUT.PARSER1 )	
+cmd.HPTN071.input.parser.v1<- function(indir, infile.trm, infile.ind, infile.args, outdir, outfile.trm, outfile.ind, prog=PR.HPTN071.INPUT.PARSER1 )	
 {
 	cmd<- "#######################################################
 # start: run HPTN071.input.parser.v1
 #######################################################"
 	cmd		<- paste(cmd, paste("\necho \'run ",prog,"\'\n",sep=''))
-	cmd		<- paste(cmd, paste(prog,' -indir=', indir,' -infile.trm=',infile.trm,' -infile.ind=',infile.ind,' -outdir=',outdir,' -outfile.ind=',outfile.ind,' -outfile.trm=',outfile.trm,' \n', sep=''))
+	cmd		<- paste(cmd, paste(prog,' -indir=', indir,' -infile.trm=',infile.trm,' -infile.ind=',infile.ind,' -infile.args=',infile.args,' -outdir=',outdir,' -outfile.ind=',outfile.ind,' -outfile.trm=',outfile.trm,' \n', sep=''))
 	cmd		<- paste(cmd,paste("echo \'end ",prog,"\'\n",sep=''))
 	cmd		<- paste(cmd,"#######################################################
 # end: run HPTN071.input.parser.v1
@@ -104,13 +104,13 @@ cmd.HPTN071.input.parser.v1<- function(indir, infile.trm, infile.ind, outdir, ou
 #' @return command line string
 #' @example example/ex.seq.sampler.v2.R
 #' @export
-cmd.HPTN071.input.parser.v2<- function(indir, infile.trm, infile.ind, outdir, outfile.trm, outfile.ind, prog=PR.HPTN071.INPUT.PARSER2 )	
+cmd.HPTN071.input.parser.v2<- function(indir, infile.trm, infile.ind, infile.args, outdir, outfile.trm, outfile.ind, prog=PR.HPTN071.INPUT.PARSER2 )	
 {
 	cmd<- "#######################################################
 # start: run HPTN071.input.parser.v2
 #######################################################"
 	cmd		<- paste(cmd, paste("\necho \'run ",prog,"\'\n",sep=''))
-	cmd		<- paste(cmd, paste(prog,' -indir=', indir,' -infile.trm=',infile.trm,' -infile.ind=',infile.ind,' -outdir=',outdir,' -outfile.ind=',outfile.ind,' -outfile.trm=',outfile.trm,' \n', sep=''))
+	cmd		<- paste(cmd, paste(prog,' -indir=', indir,' -infile.trm=',infile.trm,' -infile.ind=',infile.ind,' -infile.args=',infile.args,' -outdir=',outdir,' -outfile.ind=',outfile.ind,' -outfile.trm=',outfile.trm,' \n', sep=''))
 	cmd		<- paste(cmd,paste("echo \'end ",prog,"\'\n",sep=''))
 	cmd		<- paste(cmd,"#######################################################
 # end: run HPTN071.input.parser.v2
@@ -158,13 +158,13 @@ cmd.VirusTreeSimulator<- function(indir, infile.trm, infile.ind, outdir, outfile
 #' @return command line string
 #' @example example/ex.seqgen.inputfilecreator.R
 #' @export
-cmd.SeqGen.createInputFiles<- function(indir.epi, infile.epi, indir.vts, infile.vts, outdir, prog=PR.SEQGEN.FILECREATOR)
+cmd.SeqGen.createInputFiles<- function(indir.epi, infile.epi, indir.vts, infile.vts, infile.args, outdir, prog=PR.SEQGEN.FILECREATOR)
 {
 	cmd<- "#######################################################
 # start: run SeqGen.createInputFile 
 #######################################################"
 	cmd		<- paste(cmd, paste("\necho \'run ",prog,"\'\n",sep=''))
-	cmd		<- paste(cmd, paste(prog,' -indir.epi=', indir.epi,' -infile.epi=',infile.epi,' -indir.vts=', indir.vts,' -infile.vts=',infile.vts,' -outdir=',outdir,' \n', sep=''))
+	cmd		<- paste(cmd, paste(prog,' -indir.epi=', indir.epi,' -infile.epi=',infile.epi,' -indir.vts=', indir.vts,' -infile.vts=',infile.vts,' -infile.args=',infile.args,' -outdir=',outdir,' \n', sep=''))
 	cmd		<- paste(cmd,paste("echo \'end ",prog,"\'\n",sep=''))
 	cmd		<- paste(cmd,"#######################################################
 # end: run SeqGen.createInputFile
@@ -183,13 +183,13 @@ cmd.SeqGen.createInputFiles<- function(indir.epi, infile.epi, indir.vts, infile.
 #' @return command line string
 #' @example example/ex.seqgen.run.R
 #' @export
-cmd.SeqGen.run<- function(indir.sg, infile.sg, outdir, prog=PR.SEQGEN.SIMULATOR)
+cmd.SeqGen.run<- function(indir.sg, infile.sg, infile.args, outdir, prog=PR.SEQGEN.SIMULATOR)
 {
 	cmd<- "#######################################################
 # start: run SeqGen.run 
 #######################################################"
 	cmd		<- paste(cmd, paste("\necho \'run ",prog,"\'\n",sep=''))
-	cmd		<- paste(cmd, paste(prog,' -indir.sg=', indir.sg,' -infile.sg=',infile.sg,' -outdir=',outdir,' \n', sep=''))
+	cmd		<- paste(cmd, paste(prog,' -indir.sg=', indir.sg,' -infile.sg=',infile.sg,' -infile.args=',infile.args,' -outdir=',outdir,' \n', sep=''))
 	cmd		<- paste(cmd,paste("echo \'end ",prog,"\'\n",sep=''))
 	cmd		<- paste(cmd,"#######################################################
 # end: run SeqGen.run

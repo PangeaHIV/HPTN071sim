@@ -2,7 +2,7 @@
 \alias{cmd.SeqGen.run}
 \title{Command line generator for \code{prog.PANGEA.SeqGen.run}}
 \usage{
-  cmd.SeqGen.run(indir.sg, infile.sg, outdir,
+  cmd.SeqGen.run(indir.sg, infile.sg, infile.args, outdir,
     prog = PR.SEQGEN.SIMULATOR)
 }
 \value{

@@ -3,8 +3,8 @@
 \title{Command line generator for \code{HPTN071.input.parser.v1}}
 \usage{
   cmd.HPTN071.input.parser.v1(indir, infile.trm,
-    infile.ind, outdir, outfile.trm, outfile.ind,
-    prog = PR.HPTN071.INPUT.PARSER1)
+    infile.ind, infile.args, outdir, outfile.trm,
+    outfile.ind, prog = PR.HPTN071.INPUT.PARSER1)
 }
 \value{
   command line string

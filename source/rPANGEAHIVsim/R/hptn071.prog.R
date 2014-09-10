@@ -382,20 +382,51 @@ prog.PANGEA.SeqGen.createInputFile<- function()
 	save(df.seqgen, log.df, df.nodestat, file=file)
 }
 ##--------------------------------------------------------------------------------------------------------
+##	olli originally written 10-09-2014
+##--------------------------------------------------------------------------------------------------------
+#' @title Arguments for rPANGEAHIV simulation pipeline
+#' @description Construct table with all input arguments to the rPANGEAHIV simulation pipeline.
+#' @param seed				Random number seed 
+#' @param yr.start			Start year of the epi simulation (default 1980)
+#' @param yr.end			First year after the epi simulation (default 2020)
+#' @param s.INC.recent		Proportion of incident cases sampled (not used)
+#' @param s.INC.recent.len	Number of last year in which an exact proportion of incident cases is sampled (not used) 
+#' @param s.PREV.min		Proportion of infected cases sampled at start of the simulation
+#' @param s.PREV.max		Proportion of infected cases sampled at the end of the simulation
+#' @param epi.dt			Time increment of the epi simulation (default 1/48)
+#' @param epi.import		Proportion of imported cases of all cases (default 0.1)
+#' @param startseq.backdate	Hack to backdate the time of index cases to draw a starting sequence (default 0)
+#' @return data.table
+#' @example example/ex.pipeline.R
+#' @export
+rPANGEAHIVsim.pipeline.args<- function(	yr.start=1980, yr.end=2020, seed=42,
+										s.INC.recent=0.1, s.INC.recent.len=5, s.PREV.min=0.01, s.PREV.max=0.25, 
+										epi.dt=1/48, epi.import=0.1,
+										startseq.backdate=40)
+{
+	pipeline.args	<- data.table(	stat= 	c('yr.start','yr.end','s.INC.recent','s.INC.recent.len', 's.PREV.min', 's.PREV.max', 's.seed', 'epi.dt', 'epi.import','startseq.backdate'), 
+									v	=	c(yr.start, yr.end, s.INC.recent, s.INC.recent.len, s.PREV.min, s.PREV.max, seed, epi.dt, epi.import, startseq.backdate) )
+	setkey(pipeline.args, stat)	
+	pipeline.args
+}
+##--------------------------------------------------------------------------------------------------------
 ##	olli originally written 08-09-2014
 ##--------------------------------------------------------------------------------------------------------
 #' @title rPANGEAHIV simulation pipeline
 #' @description Reads two files \code{infile.ind} and \code{infile.trm} from the epi simulator in directory \code{indir} and produces a UNIX batch
 #' file that contains all the simulation steps in directory \code{outdir}. 
-#' @param indir		Input directory
+#' @param indir				Input directory
 #' @param infile.ind		Input file with individual metavariables
 #' @param infile.trm		Input file with transmission events
+#' @param pipeline.args		Input arguments for the simulation
 #' @return file name of qsub or UNIX batch file
 #' @example example/ex.pipeline.R
 #' @export
-rPANGEAHIVsim.pipeline<- function(indir, infile.ind, infile.trm, outdir)
+rPANGEAHIVsim.pipeline<- function(indir, infile.ind, infile.trm, outdir, pipeline.args=rPANGEAHIVsim.pipeline.args() )
 {
 	verbose			<- 1
+	infile.args		<- paste(outdir,'/',substr(infile.ind, 1, nchar(infile.ind)-7), 'PipeArgs.R',sep='')
+	save(pipeline.args, file=infile.args)
 	#
 	if(verbose)
 	{
@@ -413,11 +444,10 @@ rPANGEAHIVsim.pipeline<- function(indir, infile.ind, infile.trm, outdir)
 #
 #######################################################
 #######################################################
-#######################################################"	
-	cmd				<- paste(cmd,'\nmkdir -p ', outdir,'\n',sep='')	
+#######################################################"		
 	outdir.HPTN071	<- paste(outdir,'/HPTN071parser',sep='')
-	cmd				<- paste(cmd, 'mkdir -p ', outdir.HPTN071,sep='')
-	cmd				<- paste(cmd, cmd.HPTN071.input.parser.v2(indir, infile.trm, infile.ind, outdir.HPTN071,  infile.trm, infile.ind), sep='\n')
+	cmd				<- paste(cmd, '\nmkdir -p ', outdir.HPTN071,sep='')
+	cmd				<- paste(cmd, cmd.HPTN071.input.parser.v2(indir, infile.trm, infile.ind, infile.args, outdir.HPTN071,  infile.trm, infile.ind), sep='\n')
 	##	run virus tree simulator
 	outdir.VTS		<- paste(outdir,'/VirusTreeSimulator',sep='')
 	cmd				<- paste(cmd, 'mkdir -p ', outdir.VTS,sep='')
@@ -429,10 +459,10 @@ rPANGEAHIVsim.pipeline<- function(indir, infile.ind, infile.trm, outdir)
 	cmd				<- paste(cmd, 'mkdir -p ', outdir.SG,sep='')
 	infile.epi		<- paste( substr(infile.ind, 1, nchar(infile.ind)-7),'SAVE.R', sep='' )
 	infile.vts		<- substr(infile.ind, 1, nchar(infile.ind)-7)
-	cmd				<- paste(cmd, cmd.SeqGen.createInputFiles(outdir.HPTN071, infile.epi, outdir.VTS, infile.vts, outdir.SG), sep='\n')
+	cmd				<- paste(cmd, cmd.SeqGen.createInputFiles(outdir.HPTN071, infile.epi, infile.args, outdir.VTS, infile.vts, outdir.SG), sep='\n')
 	##	run SeqGen	
 	outfile			<- substr(infile.ind, 1, nchar(infile.ind)-7)
-	cmd				<- paste(cmd, cmd.SeqGen.run(outdir.SG, outfile, outdir), sep='')
+	cmd				<- paste(cmd, cmd.SeqGen.run(outdir.SG, infile.args, outfile, outdir), sep='')
 	##	clean up
 	cmd				<- paste(cmd,'rm -rf ',outdir.HPTN071,' ', outdir.VTS,' ', outdir.SG,'\n',sep='')
 	cmd				<- paste(cmd,"#######################################################
@@ -464,17 +494,16 @@ prog.HPTN071.input.parser.v1<- function()
 {
 	require(data.table)
 	verbose			<- 1
-	with.plot		<- 1		
+	with.plot		<- 1	
+	pipeline.args	<- NULL
 	indir			<- '/Users/Oliver/git/HPTN071sim/raw_trchain'
 	infile.ind		<- '140716_RUN001_IND.csv'
 	infile.trm		<- '140716_RUN001_TRM.txt'
+	infile.args		<- NA
 	outdir			<- '/Users/Oliver/git/HPTN071sim/sim_trchain'
 	outfile.ind		<- '140716_RUN001_IND.csv'
 	outfile.trm		<- '140716_RUN001_TRM.csv'
-	
-	setup.df<- data.table(stat= c('yr.start','yr.end','s.INC.recent','s.INC.recent.len', 's.PREV.min', 's.PREV.max', 's.seed', 'epi.dt'), v=c(1980, 2020, 0.1, 5, 0.01, 0.25, 42, 1/48) )
-	setkey(setup.df, stat)	
-	
+	#	
 	if(exists("argv"))
 	{
 		#	args input
@@ -490,6 +519,10 @@ prog.HPTN071.input.parser.v1<- function()
 						{	switch(substr(arg,2,11),
 									infile.trm= return(substr(arg,13,nchar(arg))),NA)	}))
 		if(length(tmp)>0) infile.trm<- tmp[1]
+		tmp<- na.omit(sapply(argv,function(arg)
+						{	switch(substr(arg,2,12),
+									infile.args= return(substr(arg,14,nchar(arg))),NA)	}))
+		if(length(tmp)>0) infile.args<- tmp[1]		
 		#	args output
 		tmp<- na.omit(sapply(argv,function(arg)
 						{	switch(substr(arg,2,7),
@@ -508,13 +541,23 @@ prog.HPTN071.input.parser.v1<- function()
 	{
 		cat('\ninput args\n',paste(indir, infile.ind, infile.trm, outdir, outfile.ind, outfile.trm, sep='\n'))
 	}	
+	if(!is.na(infile.args))
+	{
+		load(infile.args)	#expect 'pipeline.args'
+	}
+	if(is.null(pipeline.args))
+	{
+		cat('\nCould not find pipeline.args, generating default')
+		pipeline.args	<- rPANGEAHIVsim.pipeline.args( yr.start=1980, yr.end=2020, seed=42, s.PREV.min=0.01, s.PREV.max=0.25, epi.dt=1/48, epi.import=0.1 )
+	}
+	
 	infile.ind	<- paste(indir, '/', infile.ind, sep='')
 	infile.trm	<- paste(indir, '/', infile.trm, sep='')
 	outfile.ind	<- paste(outdir, '/', outfile.ind, sep='')
 	outfile.trm	<- paste(outdir, '/', outfile.trm, sep='')
 	
 	#	set seed
-	set.seed( setup.df['s.seed',][,v] )
+	set.seed( pipeline.args['s.seed',][,v] )
 	#
 	df.trm	<- as.data.table(read.csv(infile.trm, stringsAsFactors=FALSE, sep=' ', dec='.'))
 	setnames(df.trm, c("IdInfector","IdInfected","TimeOfInfection","IsInfectorAcute"), c('IDTR','IDREC','TIME_TR','TR_ACUTE'))		
@@ -522,15 +565,15 @@ prog.HPTN071.input.parser.v1<- function()
 	#	the epi simulation allocates transmissions in 1/48 of a year, so draw a uniform number if there are more transmission per TIME_TR
 	df.trm	<- df.trm[, {
 				z<- TIME_TR
-				if(TIME_TR>setup.df['yr.start',][,v] & length(IDTR)>1)
-					z<- sort(runif(length(IDTR), z, min(setup.df['yr.end',][,v], z+setup.df['epi.dt',][,v])))
+				if(TIME_TR>pipeline.args['yr.start',][,v] & length(IDTR)>1)
+					z<- sort(runif(length(IDTR), z, min(pipeline.args['yr.end',][,v], z+pipeline.args['epi.dt',][,v])))
 				list(IDTR=IDTR, IDREC=IDREC, TIME_TR.new=z, TR_ACUTE=TR_ACUTE, l=length(IDTR))
 			}, by='TIME_TR']
 	df.trm[, TIME_TR:=NULL]
 	setnames(df.trm, 'TIME_TR.new', 'TIME_TR')
 	set(df.trm, NULL, 'YR', df.trm[, floor(TIME_TR)])
 	#	check that all transmission times except baseline are unique
-	tmp		<- subset(df.trm, TIME_TR>setup.df['yr.start',][,v])
+	tmp		<- subset(df.trm, TIME_TR>pipeline.args['yr.start',][,v])
 	stopifnot( nrow(tmp)==tmp[,length(unique(TIME_TR))] )
 	
 	
@@ -540,7 +583,7 @@ prog.HPTN071.input.parser.v1<- function()
 	set(df.ind, NULL, 'CIRCM', df.ind[, factor(CIRCM)])
 	set(df.ind, NULL, 'GENDER', df.ind[, factor(GENDER)])
 	set(df.ind, NULL, 'RISK', df.ind[, factor(RISK)])	
-	set(df.ind, df.ind[, which(DOD==-1)], 'DOD', setup.df['yr.end',][,v]+1.)		
+	set(df.ind, df.ind[, which(DOD==-1)], 'DOD', pipeline.args['yr.end',][,v]+1.)		
 	tmp			<- subset(df.trm, select=c(IDREC, TIME_TR))
 	setnames(tmp, 'IDREC','IDPOP')
 	df.ind		<- merge(df.ind, tmp, by='IDPOP', all.x=TRUE)
@@ -564,10 +607,10 @@ prog.HPTN071.input.parser.v1<- function()
 	#	suppose exponentially increasing sampling over time
 	#	the number of incident cases sampled is the total sampled in that year * the proportion of incident cases out of all non-sampled cases to date
 	#	TODO this needs to be changed to fix the proportion of sequences sampled from incident
-	df.sample	<- subset( df.epi, YR>= setup.df['yr.start',][,v] & YR<setup.df['yr.end',][,v] )
+	df.sample	<- subset( df.epi, YR>= pipeline.args['yr.start',][,v] & YR<pipeline.args['yr.end',][,v] )
 	#	exponential rate of increasing s.TOTAL (total sampling rate) per year
-	tmp			<- log( 1+setup.df['s.PREV.max',][,v]-setup.df['s.PREV.min',][,v] ) / df.sample[, diff(range(YR))]
-	tmp			<- df.sample[, exp( tmp*(YR-min(YR)) ) - 1 + setup.df['s.PREV.min',][,v] ]
+	tmp			<- log( 1+pipeline.args['s.PREV.max',][,v]-pipeline.args['s.PREV.min',][,v] ) / df.sample[, diff(range(YR))]
+	tmp			<- df.sample[, exp( tmp*(YR-min(YR)) ) - 1 + pipeline.args['s.PREV.min',][,v] ]
 	set(df.sample, NULL, 's.CUMTOTAL', tmp)		
 	set(df.sample, NULL, 's.n.CUMTOTAL', df.sample[, round(PREV*s.CUMTOTAL)])
 	set(df.sample, NULL, 's.n.TOTAL', c(df.sample[1, s.n.CUMTOTAL], df.sample[, diff(s.n.CUMTOTAL)]))	
@@ -727,17 +770,16 @@ prog.HPTN071.input.parser.v2<- function()
 	require(data.table)
 	verbose			<- 1
 	with.plot		<- 1	
+	pipeline.args	<- NULL
 	indir			<- system.file(package="rPANGEAHIVsim", "misc")
 	indir			<- ifelse(indir=='','/Users/Oliver/git/HPTN071sim/raw_trchain',indir)
 	outdir			<- '/Users/Oliver/git/HPTN071sim/tmp140908'
 	infile.ind		<- '140716_RUN001_IND.csv'
 	infile.trm		<- '140716_RUN001_TRM.csv'
+	infile.args		<- NA
 	outfile.ind		<- '140716_RUN001_IND.csv'
 	outfile.trm		<- '140716_RUN001_TRM.csv'
-	
-	setup.df		<- data.table(stat= c('yr.start','yr.end','s.INC.recent','s.INC.recent.len', 's.PREV.min', 's.PREV.max', 's.seed', 'epi.dt', 'epi.import','startseq.backdate'), v=c(1980, 2020, 0.1, 5, 0.01, 0.25, 42, 1/48, 0.1, 40) )
-	setkey(setup.df, stat)	
-	
+	#
 	if(exists("argv"))
 	{
 		#	args input
@@ -753,6 +795,10 @@ prog.HPTN071.input.parser.v2<- function()
 						{	switch(substr(arg,2,11),
 									infile.trm= return(substr(arg,13,nchar(arg))),NA)	}))
 		if(length(tmp)>0) infile.trm<- tmp[1]
+		tmp<- na.omit(sapply(argv,function(arg)
+						{	switch(substr(arg,2,12),
+									infile.args= return(substr(arg,14,nchar(arg))),NA)	}))
+		if(length(tmp)>0) infile.args<- tmp[1]
 		#	args output
 		tmp<- na.omit(sapply(argv,function(arg)
 						{	switch(substr(arg,2,7),
@@ -771,13 +817,22 @@ prog.HPTN071.input.parser.v2<- function()
 	{
 		cat('\ninput args\n',paste(indir, infile.ind, infile.trm, outdir, outfile.ind, outfile.trm, sep='\n'))
 	}	
+	if(!is.na(infile.args))
+	{
+		load(infile.args)	#expect 'pipeline.args'
+	}
+	if(is.null(pipeline.args))
+	{
+		cat('\nCould not find pipeline.args, generating default')
+		pipeline.args	<- rPANGEAHIVsim.pipeline.args( yr.start=1980, yr.end=2020, seed=42, s.PREV.min=0.01, s.PREV.max=0.25, epi.dt=1/48, epi.import=0.1 )
+	}
 	infile.ind	<- paste(indir, '/', infile.ind, sep='')
 	infile.trm	<- paste(indir, '/', infile.trm, sep='')
 	outfile.ind	<- paste(outdir, '/', outfile.ind, sep='')
 	outfile.trm	<- paste(outdir, '/', outfile.trm, sep='')
 	
 	#	set seed
-	set.seed( setup.df['s.seed',][,v] )
+	set.seed( pipeline.args['s.seed',][,v] )
 	#
 	df.trm	<- as.data.table(read.csv(infile.trm, stringsAsFactors=FALSE, sep=' ', dec='.'))
 	setnames(df.trm, c("IdInfector","IdInfected","TimeOfInfection","IsInfectorAcute"), c('IDTR','IDREC','TIME_TR','TR_ACUTE'))		
@@ -785,21 +840,21 @@ prog.HPTN071.input.parser.v2<- function()
 	#	the epi simulation allocates transmissions in 1/48 of a year, so draw a uniform number if there are more transmission per TIME_TR
 	df.trm	<- df.trm[, {
 				z<- TIME_TR
-				if(TIME_TR>setup.df['yr.start',][,v] & length(IDTR)>1)
-					z<- sort(runif(length(IDTR), z, min(setup.df['yr.end',][,v], z+setup.df['epi.dt',][,v])))
+				if(TIME_TR>pipeline.args['yr.start',][,v] & length(IDTR)>1)
+					z<- sort(runif(length(IDTR), z, min(pipeline.args['yr.end',][,v], z+pipeline.args['epi.dt',][,v])))
 				list(IDTR=IDTR, IDREC=IDREC, TIME_TR.new=z, TR_ACUTE=TR_ACUTE, l=length(IDTR))
 			}, by='TIME_TR']
 	df.trm[, TIME_TR:=NULL]
 	setnames(df.trm, 'TIME_TR.new', 'TIME_TR')
 	set(df.trm, NULL, 'YR', df.trm[, floor(TIME_TR)])
 	#	check that all transmission times except baseline are unique
-	tmp		<- subset(df.trm, TIME_TR>setup.df['yr.start',][,v])
+	tmp		<- subset(df.trm, TIME_TR>pipeline.args['yr.start',][,v])
 	stopifnot( nrow(tmp)==tmp[,length(unique(TIME_TR))] )	
 	#	model imports by re-assigning a fraction of infecteds as 'index cases'
 	#	assume there are no imports at the moment, and that we know the time of infection of the imports
 	tmp		<- df.trm[, which(IDTR!='-1')]	  
 	cat(paste('\nFound transmissions within population, n=', length(tmp)))
-	tmp2	<- round(nrow(df.trm)*setup.df['epi.import',][,v]) - ( nrow(df.trm)-length(tmp)-1 )
+	tmp2	<- round(nrow(df.trm)*pipeline.args['epi.import',][,v]) - ( nrow(df.trm)-length(tmp)-1 )
 	cat(paste('\nRe-setting infecteds as index cases after imports, n=', tmp2))
 	stopifnot(length(tmp)>1)
 	stopifnot(length(tmp2)>=0)
@@ -814,7 +869,7 @@ prog.HPTN071.input.parser.v2<- function()
 	set(df.ind, NULL, 'CIRCM', df.ind[, factor(CIRCM)])
 	set(df.ind, NULL, 'GENDER', df.ind[, factor(GENDER)])
 	set(df.ind, NULL, 'RISK', df.ind[, factor(RISK)])	
-	set(df.ind, df.ind[, which(DOD==-1)], 'DOD', setup.df['yr.end',][,v]+1.)
+	set(df.ind, df.ind[, which(DOD==-1)], 'DOD', pipeline.args['yr.end',][,v]+1.)
 	tmp			<- subset(df.trm, select=c(IDREC, TIME_TR))
 	setnames(tmp, 'IDREC','IDPOP')
 	df.ind		<- merge(df.ind, tmp, by='IDPOP', all.x=TRUE)
@@ -839,10 +894,10 @@ prog.HPTN071.input.parser.v2<- function()
 	#	suppose exponentially increasing sampling over time
 	#	the number of incident cases sampled is the total sampled in that year * the proportion of incident cases out of all non-sampled cases to date
 	#	TODO this needs to be changed to fix the proportion of sequences sampled from incident
-	df.sample	<- subset( df.epi, YR>= setup.df['yr.start',][,v] & YR<setup.df['yr.end',][,v] )
+	df.sample	<- subset( df.epi, YR>= pipeline.args['yr.start',][,v] & YR<pipeline.args['yr.end',][,v] )
 	#	exponential rate of increasing s.TOTAL (total sampling rate) per year
-	tmp			<- log( 1+setup.df['s.PREV.max',][,v]-setup.df['s.PREV.min',][,v] ) / df.sample[, diff(range(YR))]
-	tmp			<- df.sample[, exp( tmp*(YR-min(YR)) ) - 1 + setup.df['s.PREV.min',][,v] ]
+	tmp			<- log( 1+pipeline.args['s.PREV.max',][,v]-pipeline.args['s.PREV.min',][,v] ) / df.sample[, diff(range(YR))]
+	tmp			<- df.sample[, exp( tmp*(YR-min(YR)) ) - 1 + pipeline.args['s.PREV.min',][,v] ]
 	set(df.sample, NULL, 's.CUMTOTAL', tmp)		
 	set(df.sample, NULL, 's.n.CUMTOTAL', df.sample[, round(PREV*s.CUMTOTAL)])
 	set(df.sample, NULL, 's.n.TOTAL', c(df.sample[1, s.n.CUMTOTAL], df.sample[, diff(s.n.CUMTOTAL)]))	
@@ -919,7 +974,7 @@ prog.HPTN071.input.parser.v2<- function()
 	#	add transmission time for index case -- this is 40 years back in time so we can sample a starting sequence 
 	#	and then generate a long branch to the transmission chain in the population 
 	tmp			<- subset( df.trms, IDTR<0, select=c(IDTR, TIME_TR) )
-	set(tmp, NULL, 'TIME_TR', tmp[, TIME_TR]-setup.df['startseq.backdate',][,v] )
+	set(tmp, NULL, 'TIME_TR', tmp[, TIME_TR]-pipeline.args['startseq.backdate',][,v] )
 	setnames(tmp, 'IDTR', 'IDPOP')
 	df.inds		<- rbind(df.inds, tmp, useNames=TRUE, fill=TRUE)
 	df.inds		<- subset(df.inds, is.na(V1))
