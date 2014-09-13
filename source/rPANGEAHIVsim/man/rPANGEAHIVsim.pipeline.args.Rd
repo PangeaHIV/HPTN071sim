@@ -5,7 +5,10 @@
   rPANGEAHIVsim.pipeline.args(yr.start = 1980,
     yr.end = 2020, seed = 42, s.INC.recent = 0.1,
     s.INC.recent.len = 5, s.PREV.min = 0.01,
-    s.PREV.max = 0.25, epi.dt = 1/48, epi.import = 0.1,
+    s.PREV.max = 0.25, epi.model = "HPTN071",
+    epi.dt = 1/48, epi.import = 0.1, v.N0tau = 35800,
+    v.r = 2, v.T50 = -1, wher.mu = 0.005, wher.sigma = 0.8,
+    bwerm.mu = 1.5, bwerm.sigma = 0.12,
     startseq.backdate = 40)
 }
 \arguments{
@@ -29,21 +32,52 @@
   \item{s.PREV.max}{Proportion of infected cases sampled at
   the end of the simulation}
 
+  \item{epi.model}{The epi model used to create the epi
+  simulation (default HPTN071, alternatively DSPS)}
+
   \item{epi.dt}{Time increment of the epi simulation
   (default 1/48)}
 
   \item{epi.import}{Proportion of imported cases of all
   cases (default 0.1)}
 
+  \item{v.N0tau}{Parameter of BEAST::LogisticGrowthN0::N0
+  (default 3.58e4)}
+
+  \item{v.r}{Parameter of BEAST::LogisticGrowthN0::r
+  (default 2)}
+
+  \item{v.T50}{Parameter of BEAST::LogisticGrowthN0::T50}
+
+  \item{wher.mu}{Mean within host evolutionary rate of log
+  normal density}
+
+  \item{wher.sigma}{Standard deviation in within host
+  evolutionary rate of log normal density}
+
+  \item{bwerm.mu}{Mean between host evolutionary rate
+  multiplier of log normal density}
+
+  \item{bwerm.sigma}{Standard deviation in between host
+  evolutionary rate multiplier of log normal density}
+
   \item{startseq.backdate}{Hack to backdate the time of
-  index cases to draw a starting sequence (default 0)}
+  index cases to draw a starting sequence (default -1)}
 }
 \value{
   data.table
 }
 \description{
   Construct table with all input arguments to the
-  rPANGEAHIV simulation pipeline.
+  rPANGEAHIV simulation pipeline. The demographic within
+  host coealescent model is
+  N0tau*(1+exp(-r*T50))/(1+exp(-r*(T50-t))). Default
+  parameters are set so that the curve asymptotes at
+  Ne*tau=3e5 and reaches half its asymptotic value 1 year
+  post infection. Branch lengths are multiplied by within
+  host evolutionary rates, and within host branch lengths
+  ending in a transmission event are multiplied in addition
+  with a between-host evolutionary rate multiplier.
 }
 \examples{
 ##--------------------------------------------------------------------------------------------------------

@@ -13,9 +13,6 @@
   requested number of samples is obtained. Internally
   oversample by this multiplier to the sample size, and
   then check if sequences are unique.}
-
-  \item{sample.shift}{Shift query time to find a starting
-  sequence by this value}
 }
 \value{
   list of the sampler \code{rANCSEQ} and its arguments

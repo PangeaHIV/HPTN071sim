@@ -53,6 +53,7 @@ if(length(args))
 					MAKE.RDATA				= "package.generate.rdafiles",					
 					HPTN071.INPUT.PARSER1	= "prog.HPTN071.input.parser.v1",
 					HPTN071.INPUT.PARSER2	= "prog.HPTN071.input.parser.v2",
+					DSPS.INPUT.PARSER2		= "prog.DSPS.input.parser.v2",
 					PR.SEQGEN.FILECREATOR	= "prog.PANGEA.SeqGen.createInputFile",
 					PR.SEQGEN.SIMULATOR		= "prog.PANGEA.SeqGen.run"
 					)
