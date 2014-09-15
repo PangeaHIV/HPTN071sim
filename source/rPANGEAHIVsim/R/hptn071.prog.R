@@ -230,12 +230,12 @@ prog.PANGEA.SeqGen.createInputFile<- function()
 	#
 	#	read I/O
 	#
-	indir.epi		<- '/Users/Oliver/git/HPTN071sim/tmp140908/TrChain'
+	indir.epi		<- '/Users/Oliver/git/HPTN071sim/tmp140914/TrChains'
 	infile.epi		<- '140716_RUN001_SAVE.R'	
-	indir.vts		<- '/Users/Oliver/git/HPTN071sim/tmp140908/VirusTreeSimulator'
+	indir.vts		<- '/Users/Oliver/git/HPTN071sim/tmp140914/VirusTreeSimulator'
 	infile.prefix	<- '140716_RUN001_'	
-	infile.args		<- NA
-	outdir.sg		<- '/Users/Oliver/git/HPTN071sim/tmp140908/SeqGen'	
+	infile.args		<- '/Users/Oliver/git/HPTN071sim/tmp140914/140716_RUN001_PipeArgs.R'
+	outdir.sg		<- '/Users/Oliver/git/HPTN071sim/tmp140914/SeqGen'	
 	if(exists("argv"))
 	{
 		#	args input
@@ -539,10 +539,10 @@ rPANGEAHIVsim.pipeline<- function(indir, infile.ind, infile.trm, outdir, pipelin
 	cmd				<- paste(cmd, 'mkdir -p ', outdir.SG,sep='')
 	infile.epi		<- paste( substr(infile.ind, 1, nchar(infile.ind)-7),'SAVE.R', sep='' )
 	infile.vts		<- substr(infile.ind, 1, nchar(infile.ind)-7)
-	cmd				<- paste(cmd, cmd.SeqGen.createInputFiles(outdir.TrChain, infile.epi, infile.args, outdir.VTS, infile.vts, outdir.SG), sep='\n')
+	cmd				<- paste(cmd, cmd.SeqGen.createInputFiles(outdir.TrChain, infile.epi, outdir.VTS, infile.vts, infile.args, outdir.SG), sep='\n')
 	##	run SeqGen	
 	outfile			<- substr(infile.ind, 1, nchar(infile.ind)-7)
-	cmd				<- paste(cmd, cmd.SeqGen.run(outdir.SG, infile.args, outfile, outdir), sep='')
+	cmd				<- paste(cmd, cmd.SeqGen.run(outdir.SG, outfile, infile.args, outdir), sep='')
 	##	clean up
 	cmd				<- paste(cmd,'rm -rf ',outdir.TrChain,' ', outdir.VTS,' ', outdir.SG,'\n',sep='')
 	cmd				<- paste(cmd,"#######################################################

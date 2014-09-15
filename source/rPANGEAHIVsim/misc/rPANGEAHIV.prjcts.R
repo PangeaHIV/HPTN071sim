@@ -843,23 +843,26 @@ project.PANGEA.RootSeqSim.BEAST.SSAfg.getancestralseq.from.output<- function()
 	save(file=file, anc.seq.gag, anc.seq.pol, anc.seq.env, anc.seq.info)
 }
 ##--------------------------------------------------------------------------------------------------------
-##	check ancestral sequences from BEAST XML, create random draw to check
+##	check simulated sequences: create NJ tree and estimate R2
+##	olli 14.09.14
 ##--------------------------------------------------------------------------------------------------------
-project.PANGEA.SIMU.SSAfg.checksimus<- function()
+project.PANGEA.TEST.SSApg.NJR2<- function()
 {
 	require(phytools)
 	tree.id.labelsep		<- '|'
 	tree.id.label.idx.ctime	<- 4 
-	dir.name	<- '/Users/Oliver/git/HPTN071sim/tmp140827'  
-	outdir		<- '/Users/Oliver/git/HPTN071sim/data_HPTN071epimodel_output'
-	indir		<- paste(dir.name,'Simu',sep='/')
-	infile		<- '140716_RUN001_SIMULATED_INTERNAL.R'
+	indir		<- '/Users/Oliver/git/HPTN071sim/tmp140910/140716_RUN001_INTERNAL'  
+	outdir		<- '/Users/Oliver/git/HPTN071sim/tmp140910/140716_RUN001_INTERNAL'
+	infile		<- list.files(indir, '.*INTERNAL.R$', full.names=FALSE)
+	stopifnot(length(infile)==1)
 	#	load simulated data
-	file			<- paste(indir, '/', infile, sep='')	
+	file			<- paste(indir, '/', infile, sep='')
+	cat(paste('\nLoading file', file))
 	load(file)		#expect "df.epi"    "df.trms"   "df.inds"   "df.sample" "df.seq"
-	#	load aligned HXB2 as outgroup
-	load('/Users/Oliver/git/HPTN071sim/data_rootseq/PANGEA_SSAfg_140806_HXB2outgroup.R')	#expect "outgroup.seq.gag" "outgroup.seq.pol" "outgroup.seq.env"
-	
+	#	load outgroup sequences
+	file			<- system.file(package="rPANGEAHIVsim", "misc",'PANGEA_SSAfg_HXB2outgroup.R')
+	cat(paste('\nLoading outgroup seq from file', file))
+	load(file)		#expect "outgroup.seq.gag" "outgroup.seq.pol" "outgroup.seq.env"
 	
 	tmp				<- tolower(do.call('rbind',strsplit(df.seq[, GAG],'')))
 	rownames(tmp)	<- df.seq[, LABEL]
@@ -870,17 +873,18 @@ project.PANGEA.SIMU.SSAfg.checksimus<- function()
 	tmp				<- tolower(do.call('rbind',strsplit(df.seq[, ENV],'')))
 	rownames(tmp)	<- df.seq[, LABEL]
 	df.seq.env		<- as.DNAbin(tmp)
-	
-	#get R2 for df.seq.pol
-	df.seq			<- df.seq.pol
-	df.seq			<- rbind(df.seq, outgroup.seq.pol[, seq_len(ncol(df.seq))])
+	#
+	#	get R2 for df.seq.pol
+	#
+	seq				<- df.seq.pol
+	seq				<- rbind(seq, outgroup.seq.pol[, seq_len(ncol(seq))])
 	#	get NJ tree	
-	tmp				<- dist.dna(df.seq)
+	tmp				<- dist.dna(seq)
 	nj				<- nj(tmp)
 	tmp				<- which(nj$tip.label=="HXB2")
 	nj				<- reroot(nj, tmp, nj$edge.length[which(nj$edge[,2]==tmp)])
 	nj				<- ladderize(nj)		
-	file			<- paste( outdir, '/', substr(infile,1,nchar(infile)-20),'INFO_simu_NJ.pdf', sep='' )	
+	file			<- paste( outdir, '/', substr(infile,1,nchar(infile)-20),'INFO_simu_NJpol.pdf', sep='' )	
 	pdf(file=file, w=10, h=150)
 	plot(nj, show.tip=TRUE, cex=0.5)
 	add.scale.bar()
@@ -895,12 +899,112 @@ project.PANGEA.SIMU.SSAfg.checksimus<- function()
 	tmp2			<- c( R2=round(summary(tmp)$r.squared,d=3), SLOPE= as.numeric(round(coef(tmp)['CALENDAR_TIME'],d=4)), TMRCA=as.numeric(round( -coef(tmp)['(Intercept)']/coef(tmp)['CALENDAR_TIME'], d=1 )) )
 	ggplot(nj.info, aes(x=CALENDAR_TIME, y=ROOT2TIP)) + geom_point(alpha=0.5) + geom_line(aes(y=ROOT2TIP_LM)) +
 			#scale_x_continuous(breaks=seq(1980,2020,2)) +						
-			labs(x='Sequence sampling date', y='root-to-tip divergence') +
+			labs(x='Sequence sampling date', y='root-to-tip divergence\n(HIV-1 pol sequences)') +
 			annotate("text", x=nj.info[, min(CALENDAR_TIME)], y=nj.info[, 0.9*max(ROOT2TIP)], label=paste("R2=", tmp2['R2'],'\nSlope=',tmp2['SLOPE'],'\nTMRCA=',tmp2['TMRCA'], sep=''), hjust = 0, size = 4) +
 			theme(legend.position=c(0,1), legend.justification=c(0,1))		
-	file			<- paste( outdir, '/', substr(infile,1,nchar(infile)-20),'INFO_simu_R2.pdf', sep='' )
+	file			<- paste( outdir, '/', substr(infile,1,nchar(infile)-20),'INFO_simu_NJpolR2.pdf', sep='' )
 	ggsave(file=file, w=10, h=6)
+	#
+	#	get R2 for concatenated genome
+	#
+	seq				<- cbind(df.seq.gag,df.seq.pol,df.seq.env)
+	tmp				<- cbind(outgroup.seq.gag[,1:ncol(df.seq.gag)], outgroup.seq.pol, outgroup.seq.env)
+	seq				<- rbind(seq,tmp)
+	#	get NJ tree	
+	tmp				<- dist.dna(seq)
+	nj				<- nj(tmp)
+	tmp				<- which(nj$tip.label=="HXB2")
+	nj				<- reroot(nj, tmp, nj$edge.length[which(nj$edge[,2]==tmp)])
+	nj				<- ladderize(nj)		
+	file			<- paste( outdir, '/', substr(infile,1,nchar(infile)-20),'INFO_simu_NJ.pdf', sep='' )	
+	pdf(file=file, w=10, h=150)
+	plot(nj, show.tip=TRUE, cex=0.5)
+	add.scale.bar()
+	dev.off()		
+	#	get root to tip divergence
+	nj				<- drop.tip(nj,'HXB2')
+	tmp				<- node.depth.edgelength(nj)
+	nj.info			<- data.table(LABEL=nj$tip.label, ROOT2TIP=tmp[seq_len(Ntip(nj))] )
+	set(nj.info, NULL, 'CALENDAR_TIME', nj.info[, as.numeric(sapply(strsplit(LABEL, tree.id.labelsep, fixed=TRUE),'[[',tree.id.label.idx.ctime))] )
+	tmp				<- lm(ROOT2TIP~CALENDAR_TIME, data=nj.info)		 
+	set( nj.info, NULL, 'ROOT2TIP_LM', predict(tmp, type='response') ) 	
+	tmp2			<- c( R2=round(summary(tmp)$r.squared,d=3), SLOPE= as.numeric(round(coef(tmp)['CALENDAR_TIME'],d=4)), TMRCA=as.numeric(round( -coef(tmp)['(Intercept)']/coef(tmp)['CALENDAR_TIME'], d=1 )) )
+	ggplot(nj.info, aes(x=CALENDAR_TIME, y=ROOT2TIP)) + geom_point(alpha=0.5) + geom_line(aes(y=ROOT2TIP_LM)) +
+			#scale_x_continuous(breaks=seq(1980,2020,2)) +						
+			labs(x='Sequence sampling date', y='root-to-tip divergence\n(HIV-1 concatenated sequences)') +
+			annotate("text", x=nj.info[, min(CALENDAR_TIME)], y=nj.info[, 0.9*max(ROOT2TIP)], label=paste("R2=", tmp2['R2'],'\nSlope=',tmp2['SLOPE'],'\nTMRCA=',tmp2['TMRCA'], sep=''), hjust = 0, size = 4) +
+			theme(legend.position=c(0,1), legend.justification=c(0,1))		
+	file			<- paste( outdir, '/', substr(infile,1,nchar(infile)-20),'INFO_simu_NJR2.pdf', sep='' )
+	ggsave(file=file, w=10, h=6)
+}
+##--------------------------------------------------------------------------------------------------------
+##	check simulated sequences: create ExaML tree and estimate R2
+##	olli 14.09.14
+##--------------------------------------------------------------------------------------------------------
+project.PANGEA.TEST.SSApg.ExaMLR2<- function()
+{
+	require(phytools)
+	require(hivclust)
+	tree.id.labelsep		<- '|'
+	tree.id.label.idx.ctime	<- 4 
+	indir		<- '/Users/Oliver/git/HPTN071sim/tmp140910/140716_RUN001_INTERNAL'  
+	outdir		<- '/Users/Oliver/git/HPTN071sim/tmp140910/140716_RUN001_INTERNAL'
+	infiles		<- list.files(indir, '.*INTERNAL.R$', full.names=FALSE)
+	stopifnot(length(infiles)==1)
+	#
+	#	run ExaML 
+	#
+	for(i in seq_along(infiles))
+	{
+		infile		<- infiles[i]
+		#	load simulated data
+		file			<- paste(indir, '/', infile, sep='')
+		cat(paste('\nLoading file', file))
+		load(file)		#expect "df.epi"    "df.trms"   "df.inds"   "df.sample" "df.seq"
+		#	load outgroup sequences
+		file			<- system.file(package="rPANGEAHIVsim", "misc",'PANGEA_SSAfg_HXB2outgroup.R')
+		cat(paste('\nLoading outgroup seq from file', file))
+		load(file)		#expect "outgroup.seq.gag" "outgroup.seq.pol" "outgroup.seq.env"
 		
+		tmp				<- tolower(do.call('rbind',strsplit(df.seq[, GAG],'')))
+		rownames(tmp)	<- df.seq[, LABEL]
+		df.seq.gag		<- as.DNAbin(tmp)
+		tmp				<- tolower(do.call('rbind',strsplit(df.seq[, POL],'')))
+		rownames(tmp)	<- df.seq[, LABEL]
+		df.seq.pol		<- as.DNAbin(tmp)	
+		tmp				<- tolower(do.call('rbind',strsplit(df.seq[, ENV],'')))
+		rownames(tmp)	<- df.seq[, LABEL]
+		df.seq.env		<- as.DNAbin(tmp)
+		#
+		#	run ExaML on pol
+		#
+		seq				<- df.seq.pol
+		seq				<- rbind(seq, outgroup.seq.pol[, seq_len(ncol(seq))])
+		infile.seq.sig	<- "Sun_Sep_14_12:59:06_2013"
+		infile.seq		<- paste(substr(infile,1,nchar(infile)-20),'INFO_simu_polseq',sep='')
+		file			<- paste( outdir, '/', infile.seq,'_',gsub('/',':',infile.seq.sig),'.R', sep='' )
+		save(seq, file=file)
+		#	run ExaML
+		cmd				<- hivc.cmd.examl.bootstrap.on.one.machine(indir, infile.seq, infile.seq.sig, infile.seq.sig, bs.from=0, bs.to=0, verbose=1)
+		cmd				<- hivc.cmd.hpcwrapper(cmd, hpc.walltime=24, hpc.q= NA, hpc.mem="450mb", hpc.nproc=1)
+		cmd.hpccaller(outdir, paste("exa",paste(strsplit(date(),split=' ')[[1]],collapse='_',sep=''),sep='.'), cmd)
+		Sys.sleep(1)	
+		#
+		#	run ExaML on concatenated
+		#
+		seq				<- cbind(df.seq.gag,df.seq.pol,df.seq.env)
+		tmp				<- cbind(outgroup.seq.gag[,1:ncol(df.seq.gag)], outgroup.seq.pol, outgroup.seq.env)
+		seq				<- rbind(seq,tmp)
+		infile.seq.sig	<- "Sun_Sep_14_12:59:06_2013"
+		infile.seq		<- paste(substr(infile,1,nchar(infile)-20),'INFO_simu_concseq',sep='')
+		file			<- paste( outdir, '/', infile.seq,'_',gsub('/',':',infile.seq.sig),'.R', sep='' )
+		save(seq, file=file)
+		#	run ExaML
+		cmd				<- hivc.cmd.examl.bootstrap.on.one.machine(indir, infile.seq, infile.seq.sig, infile.seq.sig, bs.from=0, bs.to=0, verbose=1)
+		cmd				<- hivc.cmd.hpcwrapper(cmd, hpc.walltime=24, hpc.q= NA, hpc.mem="450mb", hpc.nproc=1)
+		cmd.hpccaller(outdir, paste("exa",paste(strsplit(date(),split=' ')[[1]],collapse='_',sep=''),sep='.'), cmd)
+		Sys.sleep(1)	
+	}		
 }
 ##--------------------------------------------------------------------------------------------------------
 ##	check ancestral sequences from BEAST XML, create random draw to check

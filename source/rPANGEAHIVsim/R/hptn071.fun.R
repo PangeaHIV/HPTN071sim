@@ -738,7 +738,11 @@ PANGEA.RootSeq.create.sampler.v1<- function(root.ctime.grace= 0.5, sample.grace=
 		tmp		<- lapply(seq_along(root.ctime), function(i)
 				{
 					tmp	<- subset(rANCSEQ.args$anc.seq.info, CALENDAR_TIME+rANCSEQ.args$sample.shift>root.ctime[i]-rANCSEQ.args$root.ctime.grace &  CALENDAR_TIME+rANCSEQ.args$sample.shift<=root.ctime[i]+rANCSEQ.args$root.ctime.grace)
-					stopifnot(nrow(tmp)>rANCSEQ.args$sample.grace*100)
+					if(nrow(tmp)<=rANCSEQ.args$sample.grace*100)
+					{
+						print(c(nrow, rANCSEQ.args$sample.grace*100))
+						stop()
+					}
 					data.table( LABEL= tmp[, sample( LABEL, rANCSEQ.args$sample.grace ) ], CALENDAR_TIME=root.ctime[i], DRAW=i )
 				})
 		tmp		<- do.call('rbind',tmp)
