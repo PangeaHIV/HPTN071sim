@@ -1,6 +1,7 @@
 ##--------------------------------------------------------------------------------------------------------
 ##	example pipeline to simulate sequences for a given DSPS epi simulation  
 ##--------------------------------------------------------------------------------------------------------
+\dontrun{
 indir			<- system.file(package="rPANGEAHIVsim", "misc")
 #	re-name the following:
 tmpdir			<- '/Users/Oliver/git/HPTN071sim/tmp140912'
@@ -19,3 +20,4 @@ save(pipeline.args, file=infile.args)
 #
 file			<- rPANGEAHIVsim.pipeline(indir, infile.ind, infile.trm, tmpdir, pipeline.args=pipeline.args)
 cat(file)
+}

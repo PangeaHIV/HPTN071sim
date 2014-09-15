@@ -7,6 +7,7 @@
 ##	The infected of a broken transmission chain is considered a new index case of a transmission chain within the 
 ##	simulated population
 ##--------------------------------------------------------------------------------------------------------
+\dontrun{
 indir			<- system.file(package="rPANGEAHIVsim", "misc")
 #	re-name the following:
 tmpdir			<- '/Users/Oliver/git/HPTN071sim/tmp140914'
@@ -25,3 +26,4 @@ cmd				<- cmd.HPTN071.input.parser.v2(indir, infile.trm, infile.ind, infile.args
 argv			<<- unlist(strsplit(cmd,' '))
 #	run the parser
 prog.HPTN071.input.parser.v2()
+}

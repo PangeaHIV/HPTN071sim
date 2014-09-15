@@ -222,7 +222,7 @@ hivc.beast2out.read.nodeidtree <- function(bstr, method.node.stat='any.node')
 	dummy.tree	<- paste(dummy.tree, collapse=':',sep='')
 	dummy.tree	<- regmatches(dummy.tree, regexpr('\\(.*',dummy.tree))
 	dummy.tree	<- paste(dummy.tree, ';', sep='')	
-	ph<-  seq.read.newick(text=dummy.tree)
+	ph			<-  seq.read.newick(text=dummy.tree)
 	ph
 }
 ##--------------------------------------------------------------------------------------------------------
@@ -349,7 +349,7 @@ hivc.beast2out.read.nexus.and.stats<- function(file, tree.id=NA, method.node.sta
 }
 ##--------------------------------------------------------------------------------------------------------
 #	return distribution of GTR parameters	
-#	olli originally written 10-09-2014
+#	olli originally written 14-09-2014
 ##--------------------------------------------------------------------------------------------------------
 #' @title Create data.table of GTR parameters
 #' @description Returns a data.table of GTR parameters. 
@@ -357,12 +357,35 @@ hivc.beast2out.read.nexus.and.stats<- function(file, tree.id=NA, method.node.sta
 #' @export
 PANGEA.GTR.params<- function()
 {		
+	file		<- system.file(package="rPANGEAHIVsim", "misc",'PANGEA_SSAfgBwhRc-_140907_n390_BEASTlog.R')	
+	cat(paste('\nreading GTR parameters from file',file))
+	load(file)	# expect log.df
+	#	exclude odd BEAST runs
+	log.df		<- subset(log.df, !(GENE=='ENV' & FILE=='pool3'))
+	#	exclude cols
+	log.df[, ucld.mean:=NULL]
+	log.df[, ucld.stdev:=NULL]
+	log.df[, coefficientOfVariation:=NULL]
+	log.df[, treeModel.rootHeight:=NULL]
+	#	set mean meanRate and put all variation into the mu's
+	tmp		<- log.df[, mean(meanRate)]
+	set(log.df, NULL, 'mu', log.df[, mu * meanRate / tmp])
+	set(log.df, NULL, 'meanRate', tmp)
+	log.df
+}
+##--------------------------------------------------------------------------------------------------------
+#	return distribution of GTR parameters	
+#	olli originally written 10-09-2014
+##--------------------------------------------------------------------------------------------------------
+PANGEA.GTR.params.v2<- function()
+{		
 	file		<- system.file(package="rPANGEAHIVsim", "misc",'PANGEA_SSAfgBwhRc-_140902_n390_BEASTlog.R')	
 	cat(paste('\nreading GTR parameters from file',file))
 	load(file)	# expect log.df
 	#	exclude odd BEAST runs
 	log.df		<- subset(log.df, !(GENE=='GAG' & FILE=='pool1'))
 	log.df		<- subset(log.df, !(GENE=='POL' & FILE=='pool2'))
+	#	all ENV are a bit odd ... 
 	#	exclude cols
 	log.df[, ucld.mean:=NULL]
 	log.df[, ucld.stdev:=NULL]
@@ -400,7 +423,7 @@ PANGEA.ImportSimulator.SimulateStartingTimeOfIndexCase<- function(df.ind, df.trm
 	#	and then generate a long branch to the transmission chain in the population. No hack. :-)
 	tmp			<- subset( df.trm, IDTR<0, select=IDTR )
 	tmp2		<- rnorm(2*nrow(tmp), 1960, 7)
-	tmp2		<- tmp2[ tmp2>1940 & tmp2<1980]
+	tmp2		<- tmp2[ tmp2>1950 & tmp2<1980]
 	stopifnot( nrow(tmp)<=length(tmp2) )
 	length(tmp2)<- nrow(tmp)	
 	set(tmp, NULL, 'IDTR_TIME_INFECTED.new', tmp2 )
@@ -661,7 +684,7 @@ PANGEA.Seqsampler<- function(df.ind, df.trm, pipeline.args, outfile.ind, outfile
 }
 ##--------------------------------------------------------------------------------------------------------
 #	return ancestral sequence sampler	
-#	olli originally written 10-09-2014
+#	olli originally written 14-09-2014
 ##--------------------------------------------------------------------------------------------------------
 #' @title Create starting sequence sampler
 #' @description Returns a function and function arguments to draw ancestral sequences. 
@@ -669,27 +692,66 @@ PANGEA.Seqsampler<- function(df.ind, df.trm, pipeline.args, outfile.ind, outfile
 #' @param sample.grace		Internal parameter to make sure the requested number of samples is obtained. Internally oversample by this multiplier to the sample size, and then check if sequences are unique.
 #' @return list of the sampler \code{rANCSEQ} and its arguments \code{rANCSEQ.args}
 #' @export
-PANGEA.RootSeq.create.sampler.v1<- function(root.ctime.grace= 0.5, sample.grace= 3)
+PANGEA.RootSeq.create.sampler<- function(root.ctime.grace= 0.5, sample.grace= 3)
 {	
-	print('Hi')
-	#tree.id.labelsep		<- '|'
-	#tree.id.labelidx.ctime	<- 4
-	file			<- system.file(package="rPANGEAHIVsim", "misc",'PANGEA_SSAfgBwhRc-_140902_n390_AncSeq.R')
+	file			<- system.file(package="rPANGEAHIVsim", "misc",'PANGEA_SSAfgBwhRc-_140907_n390_AncSeq.R')
 	cat(paste('\nLoading starting sequences from file', file))
 	load(file)		#expect "anc.seq.gag"  "anc.seq.pol"  "anc.seq.env"  "anc.seq.info"
 	setkey(anc.seq.info, CALENDAR_TIME)
-	rANCSEQ.args	<<- list(	root.ctime.grace=root.ctime.grace, sample.grace=sample.grace, anc.seq.info=anc.seq.info, anc.seq.gag=anc.seq.gag, anc.seq.pol=anc.seq.pol, anc.seq.env=anc.seq.env)	
+	rANCSEQ.args	<- list(	root.ctime.grace=root.ctime.grace, sample.grace=sample.grace, anc.seq.info=anc.seq.info, anc.seq.gag=anc.seq.gag, anc.seq.pol=anc.seq.pol, anc.seq.env=anc.seq.env)	
 	
 	rANCSEQ<- function(root.ctime, rANCSEQ.args)
 	{		
 		tmp		<- lapply(seq_along(root.ctime), function(i)
 				{
 					tmp	<- subset(rANCSEQ.args$anc.seq.info, CALENDAR_TIME>root.ctime[i]-rANCSEQ.args$root.ctime.grace &  CALENDAR_TIME<=root.ctime[i]+rANCSEQ.args$root.ctime.grace)
-					#if(nrow(tmp)<rANCSEQ.args$sample.grace*100)
-					#{
-					#	warning( paste('\n',nrow(tmp),'\t',rANCSEQ.args$sample.grace*100) )
-					#}
-					print( paste('\n',nrow(tmp),'\t',rANCSEQ.args$sample.grace*100) )
+					if(nrow(tmp)<rANCSEQ.args$sample.grace*100)
+					{
+						warning( paste('\nFor root',i,': number of samples is n=',nrow(tmp),'. safe pool size is n=',rANCSEQ.args$sample.grace*100) )
+					}					
+					data.table( LABEL= tmp[, sample( LABEL, rANCSEQ.args$sample.grace ) ], CALENDAR_TIME=root.ctime[i], DRAW=i )
+				})
+		tmp		<- do.call('rbind',tmp)
+		#	get unique seqs
+		setkey(tmp, LABEL)
+		tmp				<- unique(tmp)	
+		anc.seq.draw	<- do.call( 'cbind', list( rANCSEQ.args$anc.seq.gag[tmp[, LABEL], ], rANCSEQ.args$anc.seq.pol[tmp[, LABEL], ], rANCSEQ.args$anc.seq.env[tmp[, LABEL], ] ) ) 
+		anc.seq.draw	<- seq.unique(anc.seq.draw)
+		#	check if at least one seq for each draw
+		tmp				<- merge( data.table(LABEL=rownames(anc.seq.draw)), tmp, by='LABEL' )	
+		stopifnot( !length(setdiff( seq_along(root.ctime), tmp[, unique(DRAW)] )) )
+		#	take first seq for each draw	
+		tmp				<- tmp[, list(LABEL= LABEL[1]), by='DRAW']
+		setkey(tmp, DRAW)
+		anc.seq.draw	<- anc.seq.draw[ tmp[, LABEL], ]
+		anc.seq.draw
+	}
+	list(rANCSEQ=rANCSEQ, rANCSEQ.args=rANCSEQ.args)
+}
+##--------------------------------------------------------------------------------------------------------
+#	return ancestral sequence sampler	
+#	olli originally written 10-09-2014
+##--------------------------------------------------------------------------------------------------------
+PANGEA.RootSeq.create.sampler.v2<- function(root.ctime.grace= 0.5, sample.grace= 3)
+{	
+	#tree.id.labelsep		<- '|'
+	#tree.id.labelidx.ctime	<- 4
+	file			<- system.file(package="rPANGEAHIVsim", "misc",'PANGEA_SSAfgBwhRc-_140902_n390_AncSeq.R')
+	cat(paste('\nLoading starting sequences from file', file))
+	load(file)		#expect "anc.seq.gag"  "anc.seq.pol"  "anc.seq.env"  "anc.seq.info"
+	setkey(anc.seq.info, CALENDAR_TIME)
+	rANCSEQ.args	<- list(	root.ctime.grace=root.ctime.grace, sample.grace=sample.grace, anc.seq.info=anc.seq.info, anc.seq.gag=anc.seq.gag, anc.seq.pol=anc.seq.pol, anc.seq.env=anc.seq.env)	
+	
+	rANCSEQ<- function(root.ctime, rANCSEQ.args)
+	{		
+		tmp		<- lapply(seq_along(root.ctime), function(i)
+				{
+					tmp	<- subset(rANCSEQ.args$anc.seq.info, CALENDAR_TIME>root.ctime[i]-rANCSEQ.args$root.ctime.grace &  CALENDAR_TIME<=root.ctime[i]+rANCSEQ.args$root.ctime.grace)
+					if(nrow(tmp)<rANCSEQ.args$sample.grace*100)
+					{
+						warning( paste('\nFor root',i,': number of samples is n=',nrow(tmp),'. safe pool size is n=',rANCSEQ.args$sample.grace*100) )
+					}
+					#print( paste('\n',nrow(tmp),'\t',rANCSEQ.args$sample.grace*100) )
 					data.table( LABEL= tmp[, sample( LABEL, rANCSEQ.args$sample.grace ) ], CALENDAR_TIME=root.ctime[i], DRAW=i )
 				})
 		tmp		<- do.call('rbind',tmp)
@@ -717,8 +779,7 @@ PANGEA.RootSeq.create.sampler.v1<- function(root.ctime.grace= 0.5, sample.grace=
 		#rownames(anc.seq.draw)		<- tmp[ rownames(anc.seq.draw), ][, LABEL_NEW]		
 		anc.seq.draw
 	}
-	#list(rANCSEQ=rANCSEQ, rANCSEQ.args=rANCSEQ.args)
-	rANCSEQ
+	list(rANCSEQ=rANCSEQ, rANCSEQ.args=rANCSEQ.args)
 }
 ##--------------------------------------------------------------------------------------------------------
 #	return ancestral sequence sampler	
@@ -822,8 +883,9 @@ PANGEA.WithinHostEvolutionaryRate.create.sampler.v1<- function(wher.mu=0.005, wh
 		df.er	<- data.table(ER= 10^c(-1.85, -2.2, -2.5, -2.7, -2.72, -3.2), GENE='POL')		
 		tmp		<- gamlss(ER~1, data=df.er, family=LOGNO)
 		x		<- seq(0.0005, 0.02, 0.0001)
-		plot(x, dLOGNO(x, mu=coef(tmp, what='mu'), sigma=exp(coef(tmp, what='sigma'))), type='l')
-		lines(x, dLOGNO(x, mu=log(0.005), sigma=0.8), col='blue')		
+		tmp		<- data.table(x=x, y5=dLOGNO(x, mu=log(0.005), sigma=0.8), y4=dLOGNO(x, mu=log(0.004), sigma=0.7), y3=dLOGNO(x, mu=log(0.003), sigma=0.6))
+		tmp		<- melt(tmp, id.var='x')
+		ggplot(tmp, aes(x=x, y=value, group=variable, colour=variable)) + geom_line() + scale_x_continuous(breaks=seq(0,0.02,0.002))		
 	}	
 	rER.pol<- function(n)
 				{		

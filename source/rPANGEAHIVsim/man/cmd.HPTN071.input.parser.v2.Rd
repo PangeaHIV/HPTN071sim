@@ -23,17 +23,16 @@
 ##	simulated population
 ##--------------------------------------------------------------------------------------------------------
 indir			<- system.file(package="rPANGEAHIVsim", "misc")
-indir			<- ifelse(indir=='','/Users/Oliver/git/HPTN071sim/raw_trchain',indir)
 #	re-name the following:
-tmpdir			<- '/Users/Oliver/git/HPTN071sim/tmp140910'
+tmpdir			<- '/Users/Oliver/git/HPTN071sim/tmp140914'
 dir.create(tmpdir, showWarnings=FALSE)
-tmpdir.HPTN071	<- paste(tmpdir,'/HPTN071parser',sep='')
+tmpdir.HPTN071	<- paste(tmpdir,'/TrChains',sep='')
 dir.create(tmpdir.HPTN071, showWarnings=FALSE)
 #	simulation input files from the epi-simulator
 infile.ind		<- '140716_RUN001_IND.csv'
 infile.trm		<- '140716_RUN001_TRM.csv'
 #	input arguments for the pipeline
-pipeline.args	<- rPANGEAHIVsim.pipeline.args( yr.start=1980, yr.end=2020, seed=42, s.PREV.min=0.01, s.PREV.max=0.2, epi.dt=1/48, epi.import=0.1)
+pipeline.args	<- rPANGEAHIVsim.pipeline.args( yr.start=1980, yr.end=2020, seed=42, s.PREV.min=0.01, s.PREV.max=0.20, epi.dt=1/48, epi.import=0.1)
 infile.args		<- paste(tmpdir,'/',substr(infile.ind, 1, nchar(infile.ind)-7), 'PipeArgs.R',sep='')
 save(pipeline.args, file=infile.args)
 #	get input into 'argv'. this is needed because the input parser is usually called from the command line, and 'argv' mimics the way input is provided when the parser is called from the command line

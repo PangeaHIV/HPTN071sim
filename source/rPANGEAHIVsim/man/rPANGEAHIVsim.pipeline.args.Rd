@@ -9,16 +9,16 @@
     epi.dt = 1/48, epi.import = 0.1, v.N0tau = 35800,
     v.r = 2, v.T50 = -1, wher.mu = 0.005, wher.sigma = 0.8,
     bwerm.mu = 1.5, bwerm.sigma = 0.12,
-    startseq.backdate = 40)
+    startseq.backdate = NA)
 }
 \arguments{
-  \item{seed}{Random number seed}
-
   \item{yr.start}{Start year of the epi simulation (default
   1980)}
 
   \item{yr.end}{First year after the epi simulation
   (default 2020)}
+
+  \item{seed}{Random number seed}
 
   \item{s.INC.recent}{Proportion of incident cases sampled
   (not used)}
@@ -86,13 +86,13 @@
 indir			<- system.file(package="rPANGEAHIVsim", "misc")
 indir			<- ifelse(indir=='','/Users/Oliver/git/HPTN071sim/raw_trchain',indir)
 #	re-name the following:
-tmpdir			<- '/Users/Oliver/git/HPTN071sim/tmp140909'
+tmpdir			<- '/Users/Oliver/git/HPTN071sim/tmp140914'
 dir.create(tmpdir, showWarnings=FALSE)
 #	simulation input files from the epi-simulator
 infile.ind		<- '140716_RUN001_IND.csv'
 infile.trm		<- '140716_RUN001_TRM.csv'
 #	input arguments for the pipeline
-pipeline.args	<- rPANGEAHIVsim.pipeline.args( yr.start=1980, yr.end=2020, seed=42, s.PREV.min=0.01, s.PREV.max=0.25, epi.dt=1/48, epi.import=0.1 )	
+pipeline.args	<- rPANGEAHIVsim.pipeline.args( yr.start=1980, yr.end=2020, seed=42, s.PREV.min=0.01, s.PREV.max=0.2, epi.dt=1/48, epi.import=0.1 )	
 #	
 #	call simulation pipeline
 #	this generates a UNIX batch file if no HPC system is detected, or
@@ -106,13 +106,13 @@ cat(file)
 ##--------------------------------------------------------------------------------------------------------
 indir			<- system.file(package="rPANGEAHIVsim", "misc")
 #	re-name the following:
-tmpdir			<- '/Users/Oliver/git/HPTN071sim/tmp140911'
+tmpdir			<- '/Users/Oliver/git/HPTN071sim/tmp140912'
 dir.create(tmpdir, showWarnings=FALSE)
 #	simulation input files from the epi-simulator
-infile.trm		<- '140911_DSPS_RUN001_TRM.csv'
+infile.trm		<- '140911_DSPS_RUN002_TRM.csv'
 infile.ind		<- NULL
 #	input arguments for the pipeline
-pipeline.args	<- rPANGEAHIVsim.pipeline.args( yr.start=1980, yr.end=2020, seed=42, s.PREV.min=0.01, s.PREV.max=0.25, epi.model='DSPS', epi.dt=1/48, epi.import=0.1 )	
+pipeline.args	<- rPANGEAHIVsim.pipeline.args( yr.start=1980, yr.end=2020, seed=42, s.PREV.min=0.01, s.PREV.max=0.70, epi.model='DSPS', epi.dt=1/48, epi.import=0.1 )	
 infile.args		<- paste(tmpdir,'/',substr(infile.trm, 1, nchar(infile.trm)-7), 'PipeArgs.R',sep='')
 save(pipeline.args, file=infile.args)
 #	

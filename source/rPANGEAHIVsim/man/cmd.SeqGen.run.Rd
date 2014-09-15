@@ -2,7 +2,8 @@
 \alias{cmd.SeqGen.run}
 \title{Command line generator for \code{prog.PANGEA.SeqGen.run}}
 \usage{
-  cmd.SeqGen.run(indir.sg, infile.sg, infile.args, outdir,
+  cmd.SeqGen.run(indir.epi, infile.epi, indir.sg,
+    infile.sg, infile.args, outdir,
     prog = PR.SEQGEN.SIMULATOR)
 }
 \value{
@@ -81,7 +82,7 @@ prog.PANGEA.SeqGen.createInputFile()
 #	step: run Seq-Gen and clean up
 #
 outfile			<- substr(infile.ind, 1, nchar(infile.ind)-7)
-cmd				<- cmd.SeqGen.run(tmpdir.SG, outfile, tmpdir)
+cmd				<- cmd.SeqGen.run(tmpdir.HPTN071, infile.epi, tmpdir.SG, outfile, tmpdir)
 argv			<<- unlist(strsplit(cmd,' '))
 prog.PANGEA.SeqGen.run()
 }

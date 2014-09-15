@@ -1,6 +1,7 @@
 ##--------------------------------------------------------------------------------------------------------
 ##	example pipeline to simulate sequences for a given HPTN071 epi simulation  
 ##--------------------------------------------------------------------------------------------------------
+\dontrun{
 indir			<- system.file(package="rPANGEAHIVsim", "misc")
 indir			<- ifelse(indir=='','/Users/Oliver/git/HPTN071sim/raw_trchain',indir)
 #	re-name the following:
@@ -18,4 +19,4 @@ pipeline.args	<- rPANGEAHIVsim.pipeline.args( yr.start=1980, yr.end=2020, seed=4
 #
 file			<- rPANGEAHIVsim.pipeline(indir, infile.ind, infile.trm, tmpdir, pipeline.args=pipeline.args)
 cat(file)
-
+}

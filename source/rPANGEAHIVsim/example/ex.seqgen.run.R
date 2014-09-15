@@ -14,6 +14,7 @@
 ##	4)
 ##	Call SeqGen and clean up
 ##--------------------------------------------------------------------------------------------------------
+\dontrun{
 indir			<- system.file(package="rPANGEAHIVsim", "misc")
 indir			<- ifelse(indir=='','/Users/Oliver/git/HPTN071sim/raw_trchain',indir)
 #	re-name the following:
@@ -61,6 +62,7 @@ prog.PANGEA.SeqGen.createInputFile()
 #	step: run Seq-Gen and clean up
 #
 outfile			<- substr(infile.ind, 1, nchar(infile.ind)-7)
-cmd				<- cmd.SeqGen.run(tmpdir.SG, outfile, tmpdir)
+cmd				<- cmd.SeqGen.run(tmpdir.HPTN071, infile.epi, tmpdir.SG, outfile, tmpdir)
 argv			<<- unlist(strsplit(cmd,' '))
 prog.PANGEA.SeqGen.run()
+}

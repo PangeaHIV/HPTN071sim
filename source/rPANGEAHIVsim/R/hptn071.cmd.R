@@ -205,13 +205,13 @@ cmd.SeqGen.createInputFiles<- function(indir.epi, infile.epi, indir.vts, infile.
 #' @return command line string
 #' @example example/ex.seqgen.run.R
 #' @export
-cmd.SeqGen.run<- function(indir.sg, infile.sg, infile.args, outdir, prog=PR.SEQGEN.SIMULATOR)
+cmd.SeqGen.run<- function(indir.epi, infile.epi, indir.sg, infile.sg, infile.args, outdir, prog=PR.SEQGEN.SIMULATOR)
 {
 	cmd<- "#######################################################
 # start: run SeqGen.run 
 #######################################################"
 	cmd		<- paste(cmd, paste("\necho \'run ",prog,"\'\n",sep=''))
-	cmd		<- paste(cmd, paste(prog,' -indir.sg=', indir.sg,' -infile.sg=',infile.sg,' -infile.args=',infile.args,' -outdir=',outdir,' \n', sep=''))
+	cmd		<- paste(cmd, paste(prog,' -indir.epi=', indir.epi,' -infile.epi=',infile.epi, ' -indir.sg=', indir.sg,' -infile.sg=',infile.sg,' -infile.args=',infile.args,' -outdir=',outdir,' \n', sep=''))
 	cmd		<- paste(cmd,paste("echo \'end ",prog,"\'\n",sep=''))
 	cmd		<- paste(cmd,"#######################################################
 # end: run SeqGen.run

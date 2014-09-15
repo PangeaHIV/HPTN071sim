@@ -11,6 +11,8 @@
 #' @export
 prog.PANGEA.SeqGen.run<- function()
 {	
+	indir.epi			<- '/Users/Oliver/git/HPTN071sim/tmp140914/TrChains'
+	infile.epi			<- '140716_RUN001_SAVE.R'		
 	indir.sg			<- '/Users/Oliver/git/HPTN071sim/tmp140908/SeqGen'
 	infile.prefix		<- '140716_RUN001_'
 	infile.args			<- NA
@@ -26,6 +28,14 @@ prog.PANGEA.SeqGen.run<- function()
 	if(exists("argv"))
 	{
 		#	args input
+		tmp<- na.omit(sapply(argv,function(arg)
+						{	switch(substr(arg,2,10),
+									indir.epi= return(substr(arg,12,nchar(arg))),NA)	}))
+		if(length(tmp)>0) indir.epi<- tmp[1]		
+		tmp<- na.omit(sapply(argv,function(arg)
+						{	switch(substr(arg,2,11),
+									infile.epi= return(substr(arg,13,nchar(arg))),NA)	}))
+		if(length(tmp)>0) infile.epi<- tmp[1]				
 		tmp<- na.omit(sapply(argv,function(arg)
 						{	switch(substr(arg,2,9),
 									indir.sg= return(substr(arg,11,nchar(arg))),NA)	}))
@@ -58,6 +68,9 @@ prog.PANGEA.SeqGen.run<- function()
 	}	
 	stopifnot( all( c('s.seed')%in%pipeline.args[, stat] ) )	
 	set.seed(pipeline.args['s.seed',][, as.numeric(v)])
+	#
+	file		<- paste(indir.epi, '/', infile.epi, sep='')
+	load(file)	#expect "df.epi"    "df.trms"   "df.inds"   "df.sample"
 	#
 	file			<- paste(indir.sg,'/',infile.prefix, 'seqgen.R',sep='')
 	cat(paste('\nLoad seqgen R input file, file=',file))
@@ -171,7 +184,10 @@ prog.PANGEA.SeqGen.run<- function()
 	#
 	#	save simulated data -- to be shared
 	#	
-	tmp				<- subset( df.inds, !is.na(TIME_SEQ), select=c(IDPOP, GENDER, CIRCM, DOB, DOD, TIME_SEQ ) )
+	if(pipeline.args['epi.model'][,v]=='HPTN071')
+		tmp			<- subset( df.inds, !is.na(TIME_SEQ), select=c(IDPOP, GENDER, CIRCM, DOB, DOD, TIME_SEQ ) )
+	if(pipeline.args['epi.model'][,v]=='DSPS')
+		tmp			<- subset( df.inds, !is.na(TIME_SEQ), select=c(IDPOP, GENDER, TIME_SEQ ) )
 	file			<- paste(outdir, '/', infile.prefix, 'SIMULATED_metadata.csv', sep='')
 	cat(paste('\nwrite to file', file))
 	write.csv(tmp, file)		
@@ -290,10 +306,9 @@ prog.PANGEA.SeqGen.createInputFile<- function()
 	rER.bwm			<- PANGEA.BetweenHostEvolutionaryRateModifier.create.sampler.v1(bwerm.mu=pipeline.args['bwerm.mu',][, as.numeric(v)], bwerm.sigma=pipeline.args['bwerm.sigma',][, as.numeric(v)])
 	#	create sampler of ancestral sequences
 	cat(paste('\ncreate sampler of ancestral sequences'))
-	#tmp				<- PANGEA.RootSeq.create.sampler.v1(root.ctime.grace= 0.5, sample.grace= 3)
-	#rANCSEQ			<- tmp$rANCSEQ
-	#rANCSEQ.args	<- tmp$rANCSEQ.args
-	rANCSEQ			<- PANGEA.RootSeq.create.sampler.v1(root.ctime.grace= 0.5, sample.grace= 3)	
+	tmp				<- PANGEA.RootSeq.create.sampler(root.ctime.grace= 0.5, sample.grace= 3)
+	rANCSEQ			<- tmp$rANCSEQ
+	rANCSEQ.args	<- tmp$rANCSEQ.args 	
 	#	read GTR parameters
 	log.df			<- PANGEA.GTR.params()	
 	#
@@ -315,6 +330,7 @@ prog.PANGEA.SeqGen.createInputFile<- function()
 	df.nodestat		<- vector('list', length(infiles))	
 	for(i in seq_along(infiles))
 	{				
+		#i<- 11
 		infile			<- infiles[i]
 		cat(paste('\nprocess file',i,infile))
 		file			<- paste(indir.vts, '/', infile, sep='')
@@ -443,10 +459,10 @@ prog.PANGEA.SeqGen.createInputFile<- function()
 #' The demographic within host coealescent model is N0tau*(1+exp(-r*T50))/(1+exp(-r*(T50-t))). Default parameters are set
 #' so that the curve asymptotes at Ne*tau=3e5 and reaches half its asymptotic value 1 year post infection. Branch lengths are 
 #' multiplied by within host evolutionary rates, and within host branch lengths ending in a transmission event are multiplied
-#' in addition with a between-host evolutionary rate multiplier.
-#' @param seed				Random number seed 
+#' in addition with a between-host evolutionary rate multiplier. 
 #' @param yr.start			Start year of the epi simulation (default 1980)
 #' @param yr.end			First year after the epi simulation (default 2020)
+#' @param seed				Random number seed
 #' @param s.INC.recent		Proportion of incident cases sampled (not used)
 #' @param s.INC.recent.len	Number of last year in which an exact proportion of incident cases is sampled (not used) 
 #' @param s.PREV.min		Proportion of infected cases sampled at start of the simulation
@@ -472,7 +488,7 @@ rPANGEAHIVsim.pipeline.args<- function(	yr.start=1980, yr.end=2020, seed=42,
 										v.N0tau=3.58e4, v.r=2, v.T50=-1,
 										wher.mu=0.005, wher.sigma=0.8,
 										bwerm.mu=1.5, bwerm.sigma=0.12,
-										startseq.backdate=40)
+										startseq.backdate=NA)
 {
 	#explore within host Neff*tau model
 	if(0)
@@ -549,9 +565,9 @@ rPANGEAHIVsim.pipeline<- function(indir, infile.ind, infile.trm, outdir, pipelin
 	cmd				<- paste(cmd, cmd.SeqGen.createInputFiles(outdir.TrChain, infile.epi, outdir.VTS, infile.vts, infile.args, outdir.SG), sep='\n')
 	##	run SeqGen	
 	outfile			<- substr(infile.ind, 1, nchar(infile.ind)-7)
-	cmd				<- paste(cmd, cmd.SeqGen.run(outdir.SG, outfile, infile.args, outdir), sep='')
+	cmd				<- paste(cmd, cmd.SeqGen.run(outdir.TrChain, infile.epi, outdir.SG, outfile, infile.args, outdir), sep='')
 	##	clean up
-	cmd				<- paste(cmd,'rm -rf ',outdir.TrChain,' ', outdir.VTS,' ', outdir.SG,'\n',sep='')
+	#cmd				<- paste(cmd,'rm -rf ',outdir.TrChain,' ', outdir.VTS,' ', outdir.SG,'\n',sep='')
 	cmd				<- paste(cmd,"#######################################################
 #######################################################
 #######################################################

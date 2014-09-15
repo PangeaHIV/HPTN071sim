@@ -625,11 +625,36 @@ project.PANGEA.RootSeqSim.BEAST.SSAfg.getGTR<- function()
 ##--------------------------------------------------------------------------------------------------------
 project.PANGEA.RootSeqSim.BEAST.SSApg.getGTR<- function()
 {
+	require(XML)
 	tree.id.burnin		<- 2e7
 	tree.id.labelsep	<- '|'
 	dir.name			<- '/Users/Oliver/duke/2014_Gates'  	
-	indir				<- paste(dir.name,'methods_comparison_rootseqsim/140902',sep='/')
+	indir				<- paste(dir.name,'methods_comparison_rootseqsim/140907',sep='/')
 	outdir				<- indir
+	#	compute frequencies from BEAST xml
+	infiles				<- list.files(indir)
+	infiles				<- infiles[ sapply(infiles, function(x) grepl('pool[0-9].xml$',x) ) ]
+	freq	<- lapply(seq_along(infiles), function(i)
+			{
+				infile	<- infiles[i]
+				cat(paste('\nprocess file', infile))
+				file	<- paste(indir, '/', infile, sep='')
+				bxml		<- xmlTreeParse(file, useInternalNodes=TRUE, addFinalizer = TRUE)
+				bseq		<- hivc.beast.get.sequences(bxml, verbose=1)					
+				tmp			<- tolower(do.call('rbind',strsplit(bseq[, SEQ],'')))
+				bseq.CP1	<- as.DNAbin( tmp[, seq.int(1, ncol(tmp), by=3)] )
+				bseq.CP2	<- as.DNAbin( tmp[, seq.int(2, ncol(tmp), by=3)] )
+				bseq.CP3	<- as.DNAbin( tmp[, seq.int(3, ncol(tmp), by=3)] )
+				bseq[1, substr(ALIGNMENT_ID,1,3)]				
+				tmp			<- list(	data.table(FREQ=c('a','c','g','t'), VALUE=base.freq( bseq.CP1 ), CODON_POS='CP1', GENE=bseq[1, substr(ALIGNMENT_ID,1,3)]),
+									 	data.table(FREQ=c('a','c','g','t'), VALUE=base.freq( bseq.CP2 ), CODON_POS='CP2', GENE=bseq[1, substr(ALIGNMENT_ID,1,3)]),
+										data.table(FREQ=c('a','c','g','t'), VALUE=base.freq( bseq.CP3 ), CODON_POS='CP3', GENE=bseq[1, substr(ALIGNMENT_ID,1,3)])	)
+				tmp			<- do.call('rbind', tmp)
+				tmp[, FILE:=regmatches(infile, regexpr('pool[0-9]+',infile))]
+				tmp
+			})
+	freq				<- do.call('rbind', freq)
+	freq				<- dcast.data.table(freq, CODON_POS+GENE+FILE~FREQ, value.var='VALUE')
 	#	search for BEAST output
 	infiles				<- list.files(indir)
 	infiles				<- infiles[ sapply(infiles, function(x) grepl('pool[0-9].log$',x) ) ]
@@ -642,7 +667,8 @@ project.PANGEA.RootSeqSim.BEAST.SSApg.getGTR<- function()
 				df		<- as.data.table(read.delim(file, comment.char='#'))
 				cat(paste('\nignore logs for\n',paste(colnames(df)[ !grepl('state|POL|GAG|ENV|ucld|meanRate|coefficientOfVariation|treeModel.rootHeight',colnames(df)) ], collapse=', ') ))	
 				df		<- subset(df, select=which(grepl('state|POL|GAG|ENV|ucld|meanRate|coefficientOfVariation|treeModel.rootHeight',colnames(df))))
-				log.df	<- c( paste('frequencies',1:4,sep=''), 'mu', 'alpha', '\\.at', '\\.ac', '\\.cg', '\\.ag', '\\.gt' )
+				#log.df	<- c( paste('frequencies',1:4,sep=''), 'mu', 'alpha', '\\.at', '\\.ac', '\\.cg', '\\.ag', '\\.gt' )
+				log.df	<- c( 'mu', 'alpha', '\\.at', '\\.ac', '\\.cg', '\\.ag', '\\.gt' )
 				log.df	<- lapply( log.df, function(x)
 						{
 							tmp		<- melt( subset(df, select=which(grepl(paste('state|',x,sep=''),colnames(df)))), id='state', value.name=x)
@@ -660,13 +686,20 @@ project.PANGEA.RootSeqSim.BEAST.SSApg.getGTR<- function()
 			})
 	log.df	<- do.call('rbind',log.df)	
 	setnames(log.df, colnames(log.df), gsub('\\.','',colnames(log.df),fixed=TRUE))
-	setnames(log.df, paste('frequencies',1:4,sep=''), c('a','c','g','t') )
+	#	handle empirical freq
+	if(any(grepl('frequencies',colnames(log.df))))
+		setnames(log.df, paste('frequencies',1:4,sep=''), c('a','c','g','t') )
+	if(all(!grepl('frequencies',colnames(log.df))))
+	{
+		log.df	<- merge(log.df, freq, by=c('GENE','CODON_POS','FILE'))
+	}
 	log.df	<- subset(log.df, state>tree.id.burnin)
 	#	check mean of relative rates
-	#tmp	<- log.df[, list(mmu=mean(mu), n=length(mu)), by=c('FILE','GENE', 'state')]
-	
+	tmp	<- log.df[, list(mmu=mean(mu), n=length(mu)), by=c('FILE','GENE', 'state')]
+	stopifnot( nrow(subset(tmp, abs(mmu-1)>2*EPS))==0 )
+	#
 	file	<- paste( substr(infiles[1],1,nchar(infiles[1])-9),'log.R',sep='' )
-	file	<- "PANGEA_SSAfgBwhRc-_140902_n390_log.R"
+	file	<- "PANGEA_SSAfgBwhRc-_140907_n390_log.R"
 	file	<- paste( outdir, '/', file, sep='')
 	cat(paste('\nsave to file', file))
 	save(file=file, log.df)
@@ -687,8 +720,8 @@ project.PANGEA.RootSeqSim.BEAST.SSApg.getancestralseq.from.output<- function()
 	ancseq.excl.timediff<- 3
 	
 	dir.name			<- '/Users/Oliver/duke/2014_Gates'  	
-	indir				<- paste(dir.name,'methods_comparison_rootseqsim/140902',sep='/')
-	ancseq.label.prefix	<- 'PANGEA_SSApgBwhRc-_140902_n390'
+	indir				<- paste(dir.name,'methods_comparison_rootseqsim/140907',sep='/')
+	ancseq.label.prefix	<- 'PANGEA_SSApgBwhRc-_140907_n390'
 	outdir				<- indir
 	#	search for BEAST output
 	files				<- list.files(indir)
@@ -715,6 +748,9 @@ project.PANGEA.RootSeqSim.BEAST.SSApg.getancestralseq.from.output<- function()
 	#	check we have exactly 3 genes for every inner node	
 	tmp	<- anc.seq[, list(n=length(GENE)), by=c('POOL','TREE_ID','NODE_ID')]
 	stopifnot(tmp[, all(n==3)])
+	# prelim save
+	file				<- paste( outdir, '/', substr(files[1],1,nchar(files[1])-7), 'AncSeq_Raw.R',sep='' )
+	save(anc.seq, file=file)	
 	#	concatenate sequences in time order (so we don t loose too many sequences)
 	anc.seq.gag			<- subset(anc.seq, GENE=='GAG')
 	setnames(anc.seq.gag, c('SEQ','CALENDAR_TIME','POOL'), c('GAG','GAG_CALENDAR_TIME','GAG_POOL'))	
@@ -725,9 +761,6 @@ project.PANGEA.RootSeqSim.BEAST.SSApg.getancestralseq.from.output<- function()
 	setkey(anc.seq.gag, GAG_CALENDAR_TIME)
 	setkey(anc.seq.pol, POL_CALENDAR_TIME)	
 	setkey(anc.seq.env, ENV_CALENDAR_TIME)
-	# prelim save
-	file				<- paste( outdir, '/', substr(files[1],1,nchar(files[1])-7), 'AncSeq_Raw.R',sep='' )
-	save(anc.seq.gag, anc.seq.pol, anc.seq.env, file=file)
 	#	
 	anc.seq				<- cbind( subset(anc.seq.gag, select=c(GAG, GAG_CALENDAR_TIME)), subset(anc.seq.pol, select=c(POL, POL_CALENDAR_TIME)) )
 	anc.seq				<- cbind( anc.seq, subset(anc.seq.env, select=c(ENV, ENV_CALENDAR_TIME) ))
@@ -747,8 +780,16 @@ project.PANGEA.RootSeqSim.BEAST.SSApg.getancestralseq.from.output<- function()
 	anc.seq[, POL_CALENDAR_TIME:=NULL]
 	anc.seq[, ENV_CALENDAR_TIME:=NULL]
 	anc.seq[, LABEL:= paste(ancseq.label.prefix, tree.id.labelsep, 'SEQ_', seq_len(nrow(anc.seq)), tree.id.labelsep, round(CALENDAR_TIME, d=4), sep='')]
+	anc.seq		<- subset(anc.seq, CALENDAR_TIME>1935)
 	anc.seq.gag	<- anc.seq.pol	<- anc.seq.env	<- NULL
 	gc()	
+	#
+	#	plot distribution of node times
+	#
+	tmp			<- subset(anc.seq, select=c(CALENDAR_TIME))
+	ggplot(tmp, aes(x=CALENDAR_TIME)) + geom_histogram(binwidth=1) + scale_x_continuous(breaks=seq(1900,2020, 5), name='estimated inner node time\n(year)')
+	file		<- paste( outdir, '/', substr(files[1],1,nchar(files[1])-7), 'AncSeq_Times.pdf',sep='' )
+	ggsave(file=file, w=10, h=6)	
 	#
 	#	return DNAbin
 	#
@@ -785,7 +826,7 @@ project.PANGEA.RootSeqSim.BEAST.SSApg.getancestralseq.from.output<- function()
 	set( anc.seq, NULL, 'ENV', NULL )
 	anc.seq.info		<- anc.seq
 	#	save
-	file				<- "/Users/Oliver/duke/2014_Gates/methods_comparison_rootseqsim/140902/PANGEA_SSAfgBwhRc-_140902_n390_AncSeq.R"		
+	file				<- "/Users/Oliver/duke/2014_Gates/methods_comparison_rootseqsim/140907/PANGEA_SSAfgBwhRc-_140907_n390_AncSeq.R"		
 	cat(paste('\nwrite Ancestral Sequences to ',file))
 	save(file=file, anc.seq.gag, anc.seq.pol, anc.seq.env, anc.seq.info)
 }
@@ -851,8 +892,11 @@ project.PANGEA.TEST.SSApg.NJR2<- function()
 	require(phytools)
 	tree.id.labelsep		<- '|'
 	tree.id.label.idx.ctime	<- 4 
-	indir		<- '/Users/Oliver/git/HPTN071sim/tmp140910/140716_RUN001_INTERNAL'  
-	outdir		<- '/Users/Oliver/git/HPTN071sim/tmp140910/140716_RUN001_INTERNAL'
+	indir		<- '/Users/Oliver/git/HPTN071sim/tmp140914/140716_RUN001_INTERNAL'  
+	outdir		<- '/Users/Oliver/git/HPTN071sim/tmp140914/140716_RUN001_INTERNAL'
+	#indir		<- '/Users/Oliver/git/HPTN071sim/tmp140912/140911_DSPS_RUN002_INTERNAL'  
+	#outdir		<- '/Users/Oliver/git/HPTN071sim/tmp140912/140911_DSPS_RUN002_INTERNAL'
+	
 	infile		<- list.files(indir, '.*INTERNAL.R$', full.names=FALSE)
 	stopifnot(length(infile)==1)
 	#	load simulated data
@@ -941,6 +985,149 @@ project.PANGEA.TEST.SSApg.NJR2<- function()
 ##	check simulated sequences: create ExaML tree and estimate R2
 ##	olli 14.09.14
 ##--------------------------------------------------------------------------------------------------------
+project.PANGEA.TEST.pipeline<- function()
+{	
+	indir			<- system.file(package="rPANGEAHIVsim", "misc")
+	indir			<- ifelse(indir=='','/Users/Oliver/git/HPTN071sim/raw_trchain',indir)
+	infile.ind		<- '140716_RUN001'
+	infile.trm		<- '140716_RUN001'	
+	
+	pipeline.args	<- rPANGEAHIVsim.pipeline.args( yr.start=1980, yr.end=2020, seed=42,
+													s.INC.recent=0.1, s.INC.recent.len=5, s.PREV.min=0.01, s.PREV.max=0.2, 
+													epi.model='HPTN071', epi.dt=1/48, epi.import=0.1,
+													v.N0tau=3.58e4, v.r=2, v.T50=-1,
+													wher.mu=NA, wher.sigma=NA,
+													bwerm.mu=1.5, bwerm.sigma=0.12,
+													startseq.backdate=NA )	
+	pipeline.vary	<- data.table(wher.mu=c(0.005, 0.004, 0.003), wher.sigma=c(0.8, 0.7, 0.6), label=c('-5','-4','-3'))				
+	
+	dummy			<- pipeline.vary[, {				
+											set(pipeline.args, which( pipeline.args$stat=='wher.mu' ), 'v', as.character(wher.mu))
+											set(pipeline.args, which( pipeline.args$stat=='wher.sigma' ), 'v', as.character(wher.sigma))
+											print(pipeline.args)
+											#	re-name the following:
+											tmpdir			<- '/Users/Oliver/git/HPTN071sim/tmp140914'
+											tmpdir			<- paste(tmpdir,label,sep='')
+											dir.create(tmpdir, showWarnings=FALSE)						
+											#						
+											file.copy(paste(indir,'/',infile.ind,'_IND.csv',sep=''), paste(tmpdir,'/',infile.ind,label,'_IND.csv',sep=''))
+											file.copy(paste(indir,'/',infile.trm,'_TRM.csv',sep=''), paste(tmpdir,'/',infile.trm,label,'_TRM.csv',sep=''))
+											file			<- rPANGEAHIVsim.pipeline(tmpdir, paste(infile.ind,label,'_IND.csv',sep=''), paste(infile.trm,label,'_TRM.csv',sep=''), tmpdir, pipeline.args=pipeline.args)
+											system(file)
+										}, by='label']										
+	
+}
+##--------------------------------------------------------------------------------------------------------
+##	check simulated sequences: create ExaML tree and estimate R2
+##	olli 14.09.14
+##--------------------------------------------------------------------------------------------------------
+project.PANGEA.TEST.SSApg.BEAST<- function()
+{
+	require(phytools)
+	require(hivclust)
+	tree.id.labelsep		<- '|'
+	tree.id.label.idx.ctime	<- 4 
+	indir		<- '/Users/Oliver/git/HPTN071sim/tmp140914/140716_RUN001_INTERNAL'  
+	outdir		<- '/Users/Oliver/git/HPTN071sim/tmp140914/140716_RUN001_INTERNAL'
+	infiles		<- list.files(indir, '.*INTERNAL.R$', full.names=FALSE)
+	stopifnot(length(infiles)==1)
+	#	read BEAST template files
+	infile.beast.gag	<- '/Users/Oliver/git/HPTN071sim/data_rootseq/BEAST_template_v10gag.xml'
+	infile.beast.pol	<- system.file(package="rPANGEAHIVsim", "misc",'BEAST_template_vTESTpol.xml')
+	infile.beast.env	<- '/Users/Oliver/git/HPTN071sim/data_rootseq/BEAST_template_v10env.xml'
+	bxml.template.gag	<- xmlTreeParse(infile.beast.gag, useInternalNodes=TRUE, addFinalizer = TRUE)
+	bxml.template.pol	<- xmlTreeParse(infile.beast.pol, useInternalNodes=TRUE, addFinalizer = TRUE)
+	bxml.template.env	<- xmlTreeParse(infile.beast.env, useInternalNodes=TRUE, addFinalizer = TRUE)	
+	#
+	#	run ExaML 
+	#
+	for(i in seq_along(infiles))
+	{
+		infile		<- infiles[i]
+		#	load simulated data
+		file			<- paste(indir, '/', infile, sep='')
+		cat(paste('\nLoading file', file))
+		load(file)		#expect "df.epi"    "df.trms"   "df.inds"   "df.sample" "df.seq"
+		#	load outgroup sequences
+		file			<- system.file(package="rPANGEAHIVsim", "misc",'PANGEA_SSAfg_HXB2outgroup.R')
+		cat(paste('\nLoading outgroup seq from file', file))
+		load(file)		#expect "outgroup.seq.gag" "outgroup.seq.pol" "outgroup.seq.env"
+		#	concatenate sequences
+		tmp				<- tolower(do.call('rbind',strsplit(df.seq[, GAG],'')))
+		rownames(tmp)	<- df.seq[, LABEL]
+		df.seq.gag		<- as.DNAbin(tmp)
+		tmp				<- tolower(do.call('rbind',strsplit(df.seq[, POL],'')))
+		rownames(tmp)	<- df.seq[, LABEL]
+		df.seq.pol		<- as.DNAbin(tmp)	
+		tmp				<- tolower(do.call('rbind',strsplit(df.seq[, ENV],'')))
+		rownames(tmp)	<- df.seq[, LABEL]
+		df.seq.env		<- as.DNAbin(tmp)
+		seq				<- cbind(df.seq.gag,df.seq.pol,df.seq.env)
+		tmp				<- cbind(outgroup.seq.gag[,1:ncol(df.seq.gag)], outgroup.seq.pol, outgroup.seq.env)
+		seq				<- rbind(seq,tmp)
+		#	get 100 'divergent' sequences from different clusters
+		tmp				<- dist.dna( seq )
+		seq.ph			<- nj(tmp)				
+		tmp				<- hivc.clu.brdist.stats(seq.ph, eval.dist.btw="leaf", stat.fun=hivc.clu.min.transmission.cascade)
+		thresh.brl		<- 0.045
+		clustering		<- hivc.clu.clusterbythresh(seq.ph, thresh.brl=thresh.brl, dist.brl=tmp, retval="all")
+		cat(paste('\nFound clusters, n=', length(clustering$clu.idx)))
+		#	Take 1 sequence from each cluster
+		seq.select		<- data.table( PH_NODE_ID=seq_len(Ntip(seq.ph)), CLU_ID=clustering$clu.mem[ seq_len(Ntip(seq.ph)) ] )
+		seq.select		<- subset(seq.select, !is.na(CLU_ID))[, list(LABEL= seq.ph$tip.label[PH_NODE_ID[1]]), by='CLU_ID']
+		seq.select		<- merge(df.seq, seq.select, by='LABEL')
+		#
+		#	create BEAST XML
+		#
+		#
+		#	POL
+		#
+		cat(paste('\ncreate POL BEAST XML file for seqs=',paste( seq.select[,LABEL], collapse=' ')))
+		pool.infile		<- paste(  substr(infile,1,nchar(infile)-21),'_TEST_pol', sep='' )
+		#	write XML file with new sequences
+		bxml			<- newXMLDoc(addFinalizer=T)
+		bxml.beast		<- newXMLNode("beast", doc=bxml, addFinalizer=T)
+		tmp				<- newXMLCommentNode(text=paste("Generated by HIVCLUST from template",infile.beast.pol), parent=bxml.beast, doc=bxml, addFinalizer=T)
+		#	add new set of GAG sequences into GAG alignment
+		tmp				<- tolower(do.call('rbind',strsplit(seq.select[, POL],'')))
+		rownames(tmp)	<- seq.select[, LABEL]
+		tmp				<- as.DNAbin(tmp)
+		bxml			<- hivc.beast.add.seq(bxml, tmp, df=NULL, beast.label.datepos= 5, beast.label.sep= '|', beast.date.direction= "forwards", beast.date.units= "years", beast.alignment.id="POL.alignment", beast.alignment.dataType= "nucleotide", verbose=1)
+		#	copy from template	
+		bt.beast		<- getNodeSet(bxml.template.pol, "//beast")[[1]]
+		dummy			<- sapply(seq.int( 1, xmlSize(bt.beast) ), function(i)
+				{
+					if( class(bt.beast[[i]])[1]=="XMLInternalCommentNode" )
+						dummy<- newXMLCommentNode(text=xmlValue(bt.beast[[i]]), parent=bxml.beast, doc=bxml, addFinalizer=T)
+					else
+						dummy<- addChildren( bxml.beast, xmlClone( bt.beast[[i]], addFinalizer=T, doc=bxml ) )
+				})
+		#	change gmrf dimensions	
+		tmp			<- getNodeSet(bxml, "//*[@id='skyride.logPopSize']")
+		if(length(tmp)!=1)	stop("unexpected number of *[@id='skyride.logPopSize'")
+		tmp			<- tmp[[1]]
+		xmlAttrs(tmp)["dimension"]	<-	nrow(seq.select)-1  
+		tmp			<- getNodeSet(bxml, "//*[@id='skyride.groupSize']")
+		if(length(tmp)!=1)	stop("unexpected number of *[@id='skyride.groupSize'")
+		tmp			<- tmp[[1]]
+		xmlAttrs(tmp)["dimension"]	<-	nrow(seq.select)-1			
+		#	change outfile name 
+		bxml.onodes	<- getNodeSet(bxml, "//*[@fileName]")
+		tmp			<- sapply(bxml.onodes, function(x) xmlGetAttr(x,"fileName"))
+		tmp			<- gsub("(time).","time",tmp,fixed=1)
+		tmp			<- gsub("(subst).","subst",tmp,fixed=1)	
+		tmp			<- sapply(strsplit(tmp,'.',fixed=1), function(x)	paste(pool.infile, '.', tail(x,1), sep=''))
+		dummy		<- sapply(seq_along(bxml.onodes), function(i){		xmlAttrs(bxml.onodes[[i]])["fileName"]<- tmp[i]		})
+		#	write to file
+		file		<- paste(indir,'/',pool.infile,".xml", sep='')
+		cat(paste("\nwrite xml file to",file))
+		saveXML(bxml, file=file)
+	}
+}
+##--------------------------------------------------------------------------------------------------------
+##	check simulated sequences: create ExaML tree and estimate R2
+##	olli 14.09.14
+##--------------------------------------------------------------------------------------------------------
 project.PANGEA.TEST.SSApg.ExaMLR2<- function()
 {
 	require(phytools)
@@ -1006,13 +1193,37 @@ project.PANGEA.TEST.SSApg.ExaMLR2<- function()
 		Sys.sleep(1)	
 	}	
 	#
-	#	evaluate R2
+	#	evaluate R2 for pol
 	#
-	infiles		<- list.files(indir, '^ExaML_result.*finaltree.000$', full.names=FALSE)
-	i			<- 1
-	infile		<- infiles[i]
-	file		<- paste(indir,'/',infile,sep='')
-	ph			<- read.tree(file)
+	infiles			<- list.files(indir, '^ExaML_result.*polseq.*finaltree.000$', full.names=FALSE)
+	i				<- 1
+	infile			<- infiles[i]
+	file			<- paste(indir,'/',infile,sep='')
+	ph				<- read.tree(file)
+	
+	tmp				<- which(ph$tip.label=="HXB2")
+	ph				<- reroot(ph, tmp, ph$edge.length[which(ph$edge[,2]==tmp)])
+	ph				<- ladderize(ph)		
+	file			<- paste( outdir, '/', substr(infile,1,nchar(infile)-20),'INFO_simu_ExaMLpol.pdf', sep='' )	
+	pdf(file=file, w=10, h=150)
+	plot(ph, show.tip=TRUE, cex=0.5)
+	add.scale.bar()
+	dev.off()			
+	#	get root to tip divergence
+	ph				<- drop.tip(ph,'HXB2')
+	tmp				<- node.depth.edgelength(ph)
+	ph.info			<- data.table(LABEL=ph$tip.label, ROOT2TIP=tmp[seq_len(Ntip(ph))] )
+	set(ph.info, NULL, 'CALENDAR_TIME', ph.info[, as.numeric(sapply(strsplit(LABEL, tree.id.labelsep, fixed=TRUE),'[[',tree.id.label.idx.ctime))] )
+	tmp				<- lm(ROOT2TIP~CALENDAR_TIME, data=ph.info)		 
+	set( ph.info, NULL, 'ROOT2TIP_LM', predict(tmp, type='response') ) 	
+	tmp2			<- c( R2=round(summary(tmp)$r.squared,d=3), SLOPE= as.numeric(round(coef(tmp)['CALENDAR_TIME'],d=4)), TMRCA=as.numeric(round( -coef(tmp)['(Intercept)']/coef(tmp)['CALENDAR_TIME'], d=1 )) )
+	ggplot(ph.info, aes(x=CALENDAR_TIME, y=ROOT2TIP)) + geom_point(alpha=0.5) + geom_line(aes(y=ROOT2TIP_LM)) +
+			#scale_x_continuous(breaks=seq(1980,2020,2)) +						
+			labs(x='Sequence sampling date', y='root-to-tip divergence\n(HIV-1 pol sequences)') +
+			annotate("text", x=ph.info[, min(CALENDAR_TIME)], y=ph.info[, 0.9*max(ROOT2TIP)], label=paste("R2=", tmp2['R2'],'\nSlope=',tmp2['SLOPE'],'\nTMRCA=',tmp2['TMRCA'], sep=''), hjust = 0, size = 4) +
+			theme(legend.position=c(0,1), legend.justification=c(0,1))		
+	file			<- paste( outdir, '/', substr(infile,1,nchar(infile)-20),'INFO_simu_ExaMLpolR2.pdf', sep='' )
+	ggsave(file=file, w=10, h=6)
 	
 	
 }

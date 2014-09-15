@@ -8,6 +8,7 @@
 ##	simulated population
 ##	Then call virus tree simulator with input args as below
 ##--------------------------------------------------------------------------------------------------------
+\dontrun{
 indir			<- system.file(package="rPANGEAHIVsim", "misc")
 indir			<- ifelse(indir=='','/Users/Oliver/git/HPTN071sim/raw_trchain',indir)
 #	re-name the following:
@@ -41,3 +42,4 @@ outfile			<- substr(infile.ind, 1, nchar(infile.ind)-7)
 prog.args		<- paste('-demoModel Logistic -N0 ',pipeline.args['v.N0tau',][,v] ,' -growthRate ', pipeline.args['v.r',][,v],' -t50 ',pipeline.args['v.T50',][,v], sep='')
 cmd				<- cmd.VirusTreeSimulator(tmpdir.HPTN071, infile.trm, infile.ind, tmpdir.VTS, outfile, prog.args=prog.args)	
 cat(cmd)
+}

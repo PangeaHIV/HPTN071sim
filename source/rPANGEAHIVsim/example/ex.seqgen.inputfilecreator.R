@@ -12,6 +12,7 @@
 ##	3)
 ##	Call SeqGen input file creator
 ##--------------------------------------------------------------------------------------------------------
+\dontrun{
 indir			<- system.file(package="rPANGEAHIVsim", "misc")
 indir			<- ifelse(indir=='','/Users/Oliver/git/HPTN071sim/raw_trchain',indir)
 #	re-name the following:
@@ -55,4 +56,4 @@ infile.vts		<- substr(infile.ind, 1, nchar(infile.ind)-7)
 cmd				<- cmd.SeqGen.createInputFiles(tmpdir.HPTN071, infile.epi, tmpdir.VTS, infile.vts, infile.args, tmpdir.SG)
 argv			<<- unlist(strsplit(cmd,' '))
 prog.PANGEA.SeqGen.createInputFile()
-
+}
