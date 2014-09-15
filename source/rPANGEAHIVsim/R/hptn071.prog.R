@@ -290,9 +290,10 @@ prog.PANGEA.SeqGen.createInputFile<- function()
 	rER.bwm			<- PANGEA.BetweenHostEvolutionaryRateModifier.create.sampler.v1(bwerm.mu=pipeline.args['bwerm.mu',][, as.numeric(v)], bwerm.sigma=pipeline.args['bwerm.sigma',][, as.numeric(v)])
 	#	create sampler of ancestral sequences
 	cat(paste('\ncreate sampler of ancestral sequences'))
-	tmp				<- PANGEA.RootSeq.create.sampler.v1(root.ctime.grace= 0.5, sample.grace= 3)
-	rANCSEQ			<- tmp$rANCSEQ
-	rANCSEQ.args	<- tmp$rANCSEQ.args
+	#tmp				<- PANGEA.RootSeq.create.sampler.v1(root.ctime.grace= 0.5, sample.grace= 3)
+	#rANCSEQ			<- tmp$rANCSEQ
+	#rANCSEQ.args	<- tmp$rANCSEQ.args
+	rANCSEQ			<- PANGEA.RootSeq.create.sampler.v1(root.ctime.grace= 0.5, sample.grace= 3)	
 	#	read GTR parameters
 	log.df			<- PANGEA.GTR.params()	
 	#
@@ -346,12 +347,15 @@ prog.PANGEA.SeqGen.createInputFile<- function()
 		tmp				<- node.stat[, which(NODE_ID==tmp)]		
 		set(node.stat, tmp, 'ER', log.df[1,meanRate] )
 		stopifnot( node.stat[tmp, BWM]==1)
-		#	get calendar time of root so we can draw ancestral seq
+		#	check calendar time of root in simulated phylogeny for consistency
 		tmp				<- seq.collapse.singles(ph)
 		tmp2			<- regmatches(tmp$tip.label[1], regexpr('ID_[0-9]+',tmp$tip.label[1]))
 		tmp2			<- as.numeric(substr(tmp2, 4, nchar(tmp2)))
 		tmp2			<- subset(node.stat, IDPOP==tmp2)[1, TIME_SEQ]
-		root.ctime		<- ifelse(Nnode(tmp), tmp2 - (node.depth.edgelength(tmp)[1] + tmp$root.edge), tmp2-tmp$root.edge)	
+		root.ctime		<- ifelse(Nnode(tmp), tmp2 - (node.depth.edgelength(tmp)[1] + tmp$root.edge), tmp2-tmp$root.edge)		
+		tmp				<- subset(node.stat, IDPOP<0)[, unique(IDPOP)]
+		stopifnot(length(tmp)==1)
+		stopifnot(subset(df.trms, IDTR==tmp)[, round(IDTR_TIME_INFECTED, d=1)]==round(root.ctime, d=1))
 		#	set expected numbers of substitutions per branch within individual IDPOP
 		setkey(node.stat, NODE_ID)
 		ph$edge.length	<- ph$edge.length * node.stat[ ph$edge[, 2], ][, ER / BWM]
@@ -360,7 +364,10 @@ prog.PANGEA.SeqGen.createInputFile<- function()
 		#	once expected number of substitutions / site are simulated, can collapse singleton nodes
 		ph				<- seq.collapse.singles(ph)	
 		#	set tip label so that IDPOP can be checked for consistency	
-		node.stat[, LABEL:= node.stat[, paste('IDPOP_',IDPOP,label.sep,GENDER,label.sep,'DOB_',round(DOB,d=3),label.sep,round(TIME_SEQ,d=3),sep='')]]
+		if(pipeline.args['epi.model',][,v]=='HPTN071')
+			node.stat[, LABEL:= node.stat[, paste('IDPOP_',IDPOP,label.sep,GENDER,label.sep,'DOB_',round(DOB,d=3),label.sep,round(TIME_SEQ,d=3),sep='')]]
+		if(pipeline.args['epi.model',][,v]=='DSPS')
+			node.stat[, LABEL:= node.stat[, paste('IDPOP_',IDPOP,label.sep,GENDER,label.sep,'DOB_',NA,label.sep,round(TIME_SEQ,d=3),sep='')]]		
 		setkey(node.stat, NODE_ID)
 		ph$tip.label	<- node.stat[seq_len(Ntip(ph)), ][, LABEL]
 		#

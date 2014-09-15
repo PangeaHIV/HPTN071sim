@@ -671,24 +671,25 @@ PANGEA.Seqsampler<- function(df.ind, df.trm, pipeline.args, outfile.ind, outfile
 #' @export
 PANGEA.RootSeq.create.sampler.v1<- function(root.ctime.grace= 0.5, sample.grace= 3)
 {	
+	print('Hi')
 	#tree.id.labelsep		<- '|'
 	#tree.id.labelidx.ctime	<- 4
 	file			<- system.file(package="rPANGEAHIVsim", "misc",'PANGEA_SSAfgBwhRc-_140902_n390_AncSeq.R')
 	cat(paste('\nLoading starting sequences from file', file))
 	load(file)		#expect "anc.seq.gag"  "anc.seq.pol"  "anc.seq.env"  "anc.seq.info"
 	setkey(anc.seq.info, CALENDAR_TIME)
-	rANCSEQ.args<- list(	root.ctime.grace=root.ctime.grace, sample.grace=sample.grace, anc.seq.info=anc.seq.info, anc.seq.gag=anc.seq.gag, anc.seq.pol=anc.seq.pol, anc.seq.env=anc.seq.env)	
+	rANCSEQ.args	<<- list(	root.ctime.grace=root.ctime.grace, sample.grace=sample.grace, anc.seq.info=anc.seq.info, anc.seq.gag=anc.seq.gag, anc.seq.pol=anc.seq.pol, anc.seq.env=anc.seq.env)	
 	
 	rANCSEQ<- function(root.ctime, rANCSEQ.args)
 	{		
 		tmp		<- lapply(seq_along(root.ctime), function(i)
 				{
 					tmp	<- subset(rANCSEQ.args$anc.seq.info, CALENDAR_TIME>root.ctime[i]-rANCSEQ.args$root.ctime.grace &  CALENDAR_TIME<=root.ctime[i]+rANCSEQ.args$root.ctime.grace)
-					if(nrow(tmp)<rANCSEQ.args$sample.grace*100)
-					{
-						cat(paste('\n',nrow(tmp),'\t',rANCSEQ.args$sample.grace*100))
-						stop()
-					}
+					#if(nrow(tmp)<rANCSEQ.args$sample.grace*100)
+					#{
+					#	warning( paste('\n',nrow(tmp),'\t',rANCSEQ.args$sample.grace*100) )
+					#}
+					print( paste('\n',nrow(tmp),'\t',rANCSEQ.args$sample.grace*100) )
 					data.table( LABEL= tmp[, sample( LABEL, rANCSEQ.args$sample.grace ) ], CALENDAR_TIME=root.ctime[i], DRAW=i )
 				})
 		tmp		<- do.call('rbind',tmp)
@@ -716,7 +717,8 @@ PANGEA.RootSeq.create.sampler.v1<- function(root.ctime.grace= 0.5, sample.grace=
 		#rownames(anc.seq.draw)		<- tmp[ rownames(anc.seq.draw), ][, LABEL_NEW]		
 		anc.seq.draw
 	}
-	list(rANCSEQ=rANCSEQ, rANCSEQ.args=rANCSEQ.args)
+	#list(rANCSEQ=rANCSEQ, rANCSEQ.args=rANCSEQ.args)
+	rANCSEQ
 }
 ##--------------------------------------------------------------------------------------------------------
 #	return ancestral sequence sampler	

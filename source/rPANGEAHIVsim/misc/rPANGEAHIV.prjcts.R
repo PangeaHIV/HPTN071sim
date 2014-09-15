@@ -986,7 +986,7 @@ project.PANGEA.TEST.SSApg.ExaMLR2<- function()
 		save(seq, file=file)
 		#	run ExaML
 		cmd				<- hivc.cmd.examl.bootstrap.on.one.machine(indir, infile.seq, infile.seq.sig, infile.seq.sig, bs.from=0, bs.to=0, verbose=1)
-		cmd				<- hivc.cmd.hpcwrapper(cmd, hpc.walltime=24, hpc.q= NA, hpc.mem="450mb", hpc.nproc=1)
+		cmd				<- hivc.cmd.hpcwrapper(cmd, hpc.walltime=21, hpc.q= NA, hpc.mem="450mb", hpc.nproc=1)
 		cmd.hpccaller(outdir, paste("exa",paste(strsplit(date(),split=' ')[[1]],collapse='_',sep=''),sep='.'), cmd)
 		Sys.sleep(1)	
 		#
@@ -1001,10 +1001,20 @@ project.PANGEA.TEST.SSApg.ExaMLR2<- function()
 		save(seq, file=file)
 		#	run ExaML
 		cmd				<- hivc.cmd.examl.bootstrap.on.one.machine(indir, infile.seq, infile.seq.sig, infile.seq.sig, bs.from=0, bs.to=0, verbose=1)
-		cmd				<- hivc.cmd.hpcwrapper(cmd, hpc.walltime=24, hpc.q= NA, hpc.mem="450mb", hpc.nproc=1)
+		cmd				<- hivc.cmd.hpcwrapper(cmd, hpc.walltime=21, hpc.q= NA, hpc.mem="450mb", hpc.nproc=1)
 		cmd.hpccaller(outdir, paste("exa",paste(strsplit(date(),split=' ')[[1]],collapse='_',sep=''),sep='.'), cmd)
 		Sys.sleep(1)	
-	}		
+	}	
+	#
+	#	evaluate R2
+	#
+	infiles		<- list.files(indir, '^ExaML_result.*finaltree.000$', full.names=FALSE)
+	i			<- 1
+	infile		<- infiles[i]
+	file		<- paste(indir,'/',infile,sep='')
+	ph			<- read.tree(file)
+	
+	
 }
 ##--------------------------------------------------------------------------------------------------------
 ##	check ancestral sequences from BEAST XML, create random draw to check
