@@ -72,39 +72,25 @@ prog.PANGEA.SeqGen.run<- function()
 	file		<- paste(indir.epi, '/', infile.epi, sep='')
 	load(file)	#expect "df.epi"    "df.trms"   "df.inds"   "df.sample"
 	#
-	file			<- paste(indir.sg,'/',infile.prefix, 'seqgen.R',sep='')
+	file		<- paste(indir.sg,'/',infile.prefix, 'seqgen.R',sep='')
 	cat(paste('\nLoad seqgen R input file, file=',file))
 	load(file)	#expect df.seqgen, gtr.central, log.df, df.nodestat
 	#
 	log.df[, IDX:= seq_len(nrow(log.df))]
 	log.df[, FILE:=NULL]	 
-	#
-	#	create SeqGen input files
-	#
-	df.ph.out	<- df.seqgen[,	{
-				#print( table( strsplit(ANCSEQ, ''), useNA='if') )
-				file	<- paste(indir.sg,'/',infile.prefix, IDCLU, '_', GENE, '_', CODON_POS,'.seqgen',sep='')
-				cat(paste('\nwrite to file',file))
-				txt		<- paste('1\t',nchar(ANCSEQ),'\n',sep='')
-				txt		<- paste(txt, 'ANCSEQ\t',toupper(ANCSEQ),'\n',sep='')					
-				txt		<- paste(txt, '1\n',sep='')
-				txt		<- paste(txt, NEWICK, '\n',sep='')
-				cat(txt, file=file)
-				list(FILE= paste(infile.prefix, IDCLU, '_', GENE, '_', CODON_POS,'.seqgen',sep='') )
-				# ./seq-gen -mHKY -t3.0 -f0.3,0.2,0.2,0.3 -n1 -k1 -on < /Users/Oliver/git/HPTN071sim/tmp/SeqGen/140716_RUN001_50.seqgen > example.nex
-			}, by=c('GENE','CODON_POS','IDCLU')]
-	df.ph.out	<- df.ph.out[, 	{
+	#	sample GTR parameters from posterior
+	tmp			<- df.seqgen[, {
 									tmp	<- log.df[['IDX']][ which( log.df[['GENE']]==GENE & log.df[['CODON_POS']]==CODON_POS ) ]
 									stopifnot(length(tmp)>1)
-									list( FILE=FILE, IDCLU=IDCLU, IDX=sample(tmp, length(FILE), replace=FALSE) )
+									list( IDCLU=IDCLU, IDX=sample(tmp, length(IDCLU), replace=FALSE) )	
 								}, by=c('GENE','CODON_POS')]
-	#	sample GTR parameters from posterior
-	df.ph.out	<- merge(df.ph.out, log.df, by=c('GENE', 'CODON_POS', 'IDX'))
+	tmp			<- merge(tmp, log.df, by=c('GENE', 'CODON_POS', 'IDX'))
+	df.seqgen	<- merge(df.seqgen, tmp, by=c('GENE','CODON_POS','IDCLU'))
 	#
 	if(with.plot)
 	{
 		tmp			<- subset(df.nodestat, ER!=log.df$meanRate[1], select=c(IDPOP, ER, BWM, IDCLU))
-		tmp			<- merge(tmp, subset(df.ph.out, select=c(GENE, CODON_POS, IDCLU, mu)), by='IDCLU', allow.cartesian=TRUE)
+		tmp			<- merge(tmp, subset(df.seqgen, select=c(GENE, CODON_POS, IDCLU, mu)), by='IDCLU', allow.cartesian=TRUE)
 		set(tmp, NULL, 'ER', tmp[, ER*mu])		
 		
 		ggplot(tmp, aes(x=CODON_POS, y=ER, colour=CODON_POS, group=CODON_POS)) + geom_boxplot() +				
@@ -113,18 +99,18 @@ prog.PANGEA.SeqGen.run<- function()
 				scale_y_continuous(breaks= seq(0, 0.05, 0.002)) + labs(linetype='Gene', y='simulated within-host evolutionary rate', x='codon position')
 		file		<- paste(indir.sg,'/',infile.prefix, 'ER_by_gene.pdf',sep='')
 		ggsave(file=file, w=6, h=6)						
-	}	
+	}		
+	
 	#
-	#	call SeqGen command line
+	#	run SeqGen 
 	#
-	tmp		<- df.ph.out[, {	
-								cat(paste('\nProcess', IDCLU, GENE, CODON_POS))
-								cmd	<- cmd.SeqGen(indir.sg, FILE, indir.sg, gsub('seqgen','phy',FILE), prog=PR.SEQGEN, prog.args=paste('-n',1,' -k1 -or -z',pipeline.args['s.seed',][, as.numeric(v)],sep=''), 
-										alpha=alpha, gamma=4, invariable=0, scale=mu, freq.A=a, freq.C=c, freq.G=g, freq.T=t,
-										rate.AC=ac, rate.AG=ag, rate.AT=at, rate.CG=cg, rate.CT=1, rate.GT=gt)
-								system(cmd)				
-								list(CMD=cmd)							
-							}, by='FILE']
+	df.ph.out	<- df.seqgen[,	{									
+									file	<- paste(indir.sg,'/',infile.prefix, IDCLU, '_', GENE, '_', CODON_POS,'.phy',sep='')
+									cat(paste('\nwrite to file',file))
+									opts	<- paste('-n1 -k1 -or -mGTR -a',alpha,' -g4 -i0 -s',mu,' -f',a,',',c,',',g,',',t,' -r',ac,',',ag,',',at,',',cg,',',1,',',gt,sep='')
+									input 	<- c(paste(" 1 ", nchar(ANCSEQ), sep=''), paste('ANCSEQ\t', toupper(ANCSEQ), sep = ''), 1, NEWICK)
+									z		<- seqgen(opts, input=input, temp.file=file)				
+								}, by=c('GENE','CODON_POS','IDCLU')]
 	#
 	#	process SeqGen runs
 	#
@@ -168,6 +154,221 @@ prog.PANGEA.SeqGen.run<- function()
 								pol		<- paste(as.vector(tmp), collapse='')
 								list(GAG=gag, POL=pol, ENV=env, IDCLU=IDCLU)
 							}, by=c('LABEL')]
+	#	check that we have indeed seq for all sampled individuals
+	df.seq		<- subset( df.seq, !grepl('NOEXIST',LABEL) )	
+	tmp			<- df.seq[, sapply( strsplit(LABEL, treelabel.idx.sep, fixed=TRUE), '[[', treelabel.idx.idpop )]
+	df.seq[, IDPOP:=as.integer(substr(tmp,7,nchar(tmp)))]	
+	stopifnot( setequal( subset( df.inds, !is.na(TIME_SEQ) )[, IDPOP], df.seq[,IDPOP]) )
+	#	merge simulated data
+	simu.df		<- merge(subset(df.seq, select=c(IDPOP, GAG, POL, ENV)), subset( df.inds, !is.na(TIME_SEQ) ), by='IDPOP', all.x=TRUE)
+	#
+	#	save simulated data -- internal
+	#
+	file			<- paste(outdir, '/', infile.prefix, 'SIMULATED_INTERNAL.R', sep='')
+	cat(paste('\nwrite to file', file))
+	save(df.epi, df.trms, df.inds, df.sample, df.seq, file=file)
+	#
+	#	save simulated data -- to be shared
+	#	
+	if(pipeline.args['epi.model'][,v]=='HPTN071')
+		tmp			<- subset( df.inds, !is.na(TIME_SEQ), select=c(IDPOP, GENDER, CIRCM, DOB, DOD, TIME_SEQ ) )
+	if(pipeline.args['epi.model'][,v]=='DSPS')
+		tmp			<- subset( df.inds, !is.na(TIME_SEQ), select=c(IDPOP, GENDER, TIME_SEQ ) )
+	file			<- paste(outdir, '/', infile.prefix, 'SIMULATED_metadata.csv', sep='')
+	cat(paste('\nwrite to file', file))
+	write.csv(tmp, file)		
+	tmp				<- tolower(do.call('rbind',strsplit(df.seq[, GAG],'')))
+	rownames(tmp)	<- df.seq[, LABEL]
+	tmp				<- as.DNAbin(tmp)
+	file			<- paste(outdir, '/', infile.prefix, 'SIMULATED_gag.fa', sep='')
+	write.dna(tmp, file, format = "fasta")	
+	tmp				<- tolower(do.call('rbind',strsplit(df.seq[, POL],'')))
+	rownames(tmp)	<- df.seq[, LABEL]
+	tmp				<- as.DNAbin(tmp)
+	file			<- paste(outdir, '/', infile.prefix, 'SIMULATED_pol.fa', sep='')
+	write.dna(tmp, file, format = "fasta")	
+	tmp				<- tolower(do.call('rbind',strsplit(df.seq[, ENV],'')))
+	rownames(tmp)	<- df.seq[, LABEL]
+	tmp				<- as.DNAbin(tmp)
+	file			<- paste(outdir, '/', infile.prefix, 'SIMULATED_env.fa', sep='')
+	write.dna(tmp, file, format = "fasta")
+	#
+	#	zip simulated files
+	#
+	tmp				<- c( paste(outdir, '/', infile.prefix, 'SIMULATED_metadata.csv', sep=''), paste(outdir, '/', infile.prefix, 'SIMULATED_env.fa', sep=''), paste(outdir, '/', infile.prefix, 'SIMULATED_pol.fa', sep=''), paste(outdir, '/', infile.prefix, 'SIMULATED_gag.fa', sep='') )
+	zip( paste(outdir, '/', infile.prefix, 'SIMULATED.zip', sep=''), tmp, flags = "-FSr9XTj")
+	dummy			<- file.remove(tmp)
+	#
+	#	zip internal files
+	#
+	tmp				<- list.files(outdir, pattern='*pdf$', recursive=TRUE, full.names=TRUE) 
+	file.copy(tmp, outdir, overwrite=TRUE)	 
+	tmp				<- c( paste(outdir, '/', infile.prefix, 'SIMULATED_INTERNAL.R', sep=''), list.files(outdir, pattern='*pdf$', recursive=FALSE, full.names=TRUE) ) 	
+	zip( paste(outdir, '/', infile.prefix, 'INTERNAL.zip', sep=''), tmp, flags = "-FSr9XTj")
+	dummy			<- file.remove(tmp)
+	
+	return(1)
+}
+
+prog.PANGEA.SeqGen.run.v1<- function()
+{	
+	indir.epi			<- '/Users/Oliver/git/HPTN071sim/tmp140914/TrChains'
+	infile.epi			<- '140716_RUN001_SAVE.R'		
+	indir.sg			<- '/Users/Oliver/git/HPTN071sim/tmp140908/SeqGen'
+	infile.prefix		<- '140716_RUN001_'
+	infile.args			<- NA
+	outdir				<- '/Users/Oliver/git/HPTN071sim/tmp140908'
+	with.plot			<- 1	
+	verbose				<- 1
+	label.idx.codonpos	<- 1
+	label.idx.gene		<- 2
+	label.idx.clu		<- 3
+	treelabel.idx.idpop	<- 1
+	treelabel.idx.sep	<- '|'	
+	#
+	if(exists("argv"))
+	{
+		#	args input
+		tmp<- na.omit(sapply(argv,function(arg)
+						{	switch(substr(arg,2,10),
+									indir.epi= return(substr(arg,12,nchar(arg))),NA)	}))
+		if(length(tmp)>0) indir.epi<- tmp[1]		
+		tmp<- na.omit(sapply(argv,function(arg)
+						{	switch(substr(arg,2,11),
+									infile.epi= return(substr(arg,13,nchar(arg))),NA)	}))
+		if(length(tmp)>0) infile.epi<- tmp[1]				
+		tmp<- na.omit(sapply(argv,function(arg)
+						{	switch(substr(arg,2,9),
+									indir.sg= return(substr(arg,11,nchar(arg))),NA)	}))
+		if(length(tmp)>0) indir.sg<- tmp[1]		
+		tmp<- na.omit(sapply(argv,function(arg)
+						{	switch(substr(arg,2,10),
+									infile.sg= return(substr(arg,12,nchar(arg))),NA)	}))
+		if(length(tmp)>0) infile.prefix<- tmp[1]
+		tmp<- na.omit(sapply(argv,function(arg)
+						{	switch(substr(arg,2,12),
+									infile.args= return(substr(arg,14,nchar(arg))),NA)	}))
+		if(length(tmp)>0) infile.args<- tmp[1]				
+		tmp<- na.omit(sapply(argv,function(arg)
+						{	switch(substr(arg,2,7),
+									outdir= return(substr(arg,9,nchar(arg))),NA)	}))
+		if(length(tmp)>0) outdir<- tmp[1]				
+	}
+	if(verbose)
+	{
+		cat('\ninput args\n',paste(indir.sg, infile.prefix, sep='\n'))
+	}
+	if(!is.na(infile.args))
+	{
+		load(infile.args)	#expect 'pipeline.args'
+	}
+	if(is.null(pipeline.args))
+	{
+		cat('\nCould not find pipeline.args, generating default')
+		pipeline.args	<- rPANGEAHIVsim.pipeline.args()
+	}	
+	stopifnot( all( c('s.seed')%in%pipeline.args[, stat] ) )	
+	set.seed(pipeline.args['s.seed',][, as.numeric(v)])
+	#
+	file		<- paste(indir.epi, '/', infile.epi, sep='')
+	load(file)	#expect "df.epi"    "df.trms"   "df.inds"   "df.sample"
+	#
+	file			<- paste(indir.sg,'/',infile.prefix, 'seqgen.R',sep='')
+	cat(paste('\nLoad seqgen R input file, file=',file))
+	load(file)	#expect df.seqgen, gtr.central, log.df, df.nodestat
+	#
+	log.df[, IDX:= seq_len(nrow(log.df))]
+	log.df[, FILE:=NULL]	 
+	#
+	#	create SeqGen input files
+	#
+	df.ph.out	<- df.seqgen[,	{
+				#print( table( strsplit(ANCSEQ, ''), useNA='if') )
+				file	<- paste(indir.sg,'/',infile.prefix, IDCLU, '_', GENE, '_', CODON_POS,'.seqgen',sep='')
+				cat(paste('\nwrite to file',file))
+				txt		<- paste('1\t',nchar(ANCSEQ),'\n',sep='')
+				txt		<- paste(txt, 'ANCSEQ\t',toupper(ANCSEQ),'\n',sep='')					
+				txt		<- paste(txt, '1\n',sep='')
+				txt		<- paste(txt, NEWICK, '\n',sep='')
+				cat(txt, file=file)
+				list(FILE= paste(infile.prefix, IDCLU, '_', GENE, '_', CODON_POS,'.seqgen',sep='') )
+				# ./seq-gen -mHKY -t3.0 -f0.3,0.2,0.2,0.3 -n1 -k1 -on < /Users/Oliver/git/HPTN071sim/tmp/SeqGen/140716_RUN001_50.seqgen > example.nex
+			}, by=c('GENE','CODON_POS','IDCLU')]
+	df.ph.out	<- df.ph.out[, 	{
+				tmp	<- log.df[['IDX']][ which( log.df[['GENE']]==GENE & log.df[['CODON_POS']]==CODON_POS ) ]
+				stopifnot(length(tmp)>1)
+				list( FILE=FILE, IDCLU=IDCLU, IDX=sample(tmp, length(FILE), replace=FALSE) )
+			}, by=c('GENE','CODON_POS')]
+	#	sample GTR parameters from posterior
+	df.ph.out	<- merge(df.ph.out, log.df, by=c('GENE', 'CODON_POS', 'IDX'))
+	#
+	if(with.plot)
+	{
+		tmp			<- subset(df.nodestat, ER!=log.df$meanRate[1], select=c(IDPOP, ER, BWM, IDCLU))
+		tmp			<- merge(tmp, subset(df.ph.out, select=c(GENE, CODON_POS, IDCLU, mu)), by='IDCLU', allow.cartesian=TRUE)
+		set(tmp, NULL, 'ER', tmp[, ER*mu])		
+		
+		ggplot(tmp, aes(x=CODON_POS, y=ER, colour=CODON_POS, group=CODON_POS)) + geom_boxplot() +				
+				facet_grid(.~GENE, scales='free_y') +
+				scale_colour_discrete(guide=FALSE) +
+				scale_y_continuous(breaks= seq(0, 0.05, 0.002)) + labs(linetype='Gene', y='simulated within-host evolutionary rate', x='codon position')
+		file		<- paste(indir.sg,'/',infile.prefix, 'ER_by_gene.pdf',sep='')
+		ggsave(file=file, w=6, h=6)						
+	}	
+	#
+	#	call SeqGen command line
+	#
+	tmp		<- df.ph.out[, {	
+				cat(paste('\nProcess', IDCLU, GENE, CODON_POS))
+				cmd	<- cmd.SeqGen(indir.sg, FILE, indir.sg, gsub('seqgen','phy',FILE), prog=PR.SEQGEN, prog.args=paste('-n',1,' -k1 -or -z',pipeline.args['s.seed',][, as.numeric(v)],sep=''), 
+						alpha=alpha, gamma=4, invariable=0, scale=mu, freq.A=a, freq.C=c, freq.G=g, freq.T=t,
+						rate.AC=ac, rate.AG=ag, rate.AT=at, rate.CG=cg, rate.CT=1, rate.GT=gt)
+				system(cmd)				
+				list(CMD=cmd)							
+			}, by='FILE']
+	#
+	#	process SeqGen runs
+	#
+	#	collect simulated sequences
+	infiles		<- list.files(indir.sg)
+	infiles		<- infiles[ grepl('*phy$', infiles)  ]	
+	if(!length(infiles))	stop('cannot find files matching criteria')		
+	infile.df	<- data.table(FILE=infiles)
+	tmp			<- infile.df[, strsplit(FILE, '_') ]
+	infile.df[, CODON_POS:= sapply(tmp, function(x) rev(x)[label.idx.codonpos])]
+	infile.df[, GENE:= sapply(tmp, function(x) rev(x)[label.idx.gene])]
+	infile.df[, IDCLU:= sapply(tmp, function(x) rev(x)[label.idx.clu])]
+	set(infile.df, NULL, 'CODON_POS', infile.df[, substr(CODON_POS,1,3)])
+	cat(paste('\nFound sequences for clusters, nclu=', infile.df[, length(unique(IDCLU))]))
+	#
+	#	read simulated sequences
+	#
+	df.seq		<- infile.df[,	{
+				cat(paste('\nread seq in file',FILE))
+				file	<- paste(indir.sg,'/',FILE,sep='')
+				tmp		<- as.character(read.dna(file, format='sequential'))
+				list( SEQ=apply(tmp,1,function(x) paste(x, collapse='')), LABEL=rownames(tmp) )				
+			}, by='FILE']
+	df.seq		<- merge(df.seq, infile.df, by='FILE')
+	#
+	#	reconstruct genes from codon positions
+	#
+	df.seq[, STAT:=paste(GENE,CODON_POS,sep='.')]		
+	df.seq		<- dcast.data.table(df.seq, IDCLU + LABEL ~ STAT, value.var="SEQ")
+	#	check that seq of correct size
+	stopifnot( df.seq[, all( nchar(GAG.CP1)==nchar(GAG.CP2) & nchar(GAG.CP1)==nchar(GAG.CP3) )] )
+	stopifnot( df.seq[, all( nchar(POL.CP1)==nchar(POL.CP2) & nchar(POL.CP1)==nchar(POL.CP3) )] )
+	stopifnot( df.seq[, all( nchar(ENV.CP1)==nchar(ENV.CP2) & nchar(ENV.CP1)==nchar(ENV.CP3) )] )
+	#
+	df.seq		<- df.seq[, {
+				tmp		<- do.call('rbind',sapply(list(ENV.CP1,ENV.CP2,ENV.CP3), strsplit, ''))
+				env		<- paste(as.vector(tmp), collapse='')
+				tmp		<- do.call('rbind',sapply(list(GAG.CP1,GAG.CP2,GAG.CP3), strsplit, ''))
+				gag		<- paste(as.vector(tmp), collapse='')
+				tmp		<- do.call('rbind',sapply(list(POL.CP1,POL.CP2,POL.CP3), strsplit, ''))
+				pol		<- paste(as.vector(tmp), collapse='')
+				list(GAG=gag, POL=pol, ENV=env, IDCLU=IDCLU)
+			}, by=c('LABEL')]
 	#	check that we have indeed seq for all sampled individuals
 	df.seq		<- subset( df.seq, !grepl('NOEXIST',LABEL) )	
 	tmp			<- df.seq[, sapply( strsplit(LABEL, treelabel.idx.sep, fixed=TRUE), '[[', treelabel.idx.idpop )]

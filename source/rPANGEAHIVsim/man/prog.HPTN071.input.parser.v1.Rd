@@ -22,6 +22,7 @@
 ##	1\% is sampled in 1980
 ##	25\% is sampled in 2020
 ##--------------------------------------------------------------------------------------------------------
+\dontrun{
 indir			<- system.file(package="rPANGEAHIVsim", "misc")
 indir			<- ifelse(indir=='','/Users/Oliver/git/HPTN071sim/raw_trchain',indir)
 #	re-name the following:
@@ -41,5 +42,6 @@ cmd				<- cmd.HPTN071.input.parser.v1(indir, infile.trm, infile.ind, infile.args
 argv			<<- unlist(strsplit(cmd,' '))
 #	run the parser
 prog.HPTN071.input.parser.v1()
+}
 }
 

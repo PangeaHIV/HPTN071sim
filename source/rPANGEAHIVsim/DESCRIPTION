@@ -13,7 +13,8 @@ Depends:
     RColorBrewer,
     grid,
     ggplot2,
-    igraph
+    igraph,
+    phyclust
 Description: R scripts for the PANGEA-HIV methods comparison exercise.
 License: GPL (>=2)
 LazyLoad: yes

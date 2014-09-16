@@ -4,44 +4,6 @@
 prog.hello<- function()	
 {
 	print('hello')
-	
-	require(phyclust)
-	opts		<- "-n1 -k1 -on -mGTR -a1 -g4 -i0 -s1 -f0.25,0.25,0.25,0.25 -r1,1,1,1,1,1"
-	newick.tree	<- '(IDPOP_19095|M|DOB_1981.62|2015.997:0.119004022684398,NOEXIST_NA|NA|DOB_NA|1955.43651343192:0):0;'
-	seq			<- 'TACTTGGACTCAAAAGCGAGGTCACAAATTAAAACATGAAAGAAAGAAATATTCAAAGTTAATAATTAAGTATAAAAATATCCATAATGGTGTACAATTATTCTATAAAAAGAAGTCAGTAAGAGAAAAAAAAAATTAAGGGAAATAATGTATATCTAATCAAGGCTTGGAAAATCGACTAATACTGGTAAAAACAAGAAGAAAGAAGTGGTATTATTATACCGATTACCATTACTAAAGTATATTGTAGAGAAAAAACGTCGAACAGCTGAATAAATCTATGTCGTAATCAAAGATAAAAGGAAATAGAGATCAACGATGAACATTGGGTACTTCAGAAGTAGGAAGTCGTCTTAGGAGAAACGATGTCAGTAAGAGTACTGGCAAAACAAAGTAAAAAAGAGCGATAAAAATAATTCAAACAATAAGAGGTCAGATATCAAACATGAAAGTAAGGTCCTTTAAGAAGAGAAACGACAAAGAGTTATAACCAAAAGGAGGACTGACCGTTGGGTTTCTCAAAAGCGGGAACAAAAATCTATAATTGATAAAAAGTTTCAAGGATTTATAAATGGTAAAATGATGGTAAAAACAAACAGTAAACTAAAATGTAAGATTAAAAGAAAGAGCCGAGAAATAATAATAAATAAATTACGAGGTATAATGTAAGTAATCCTGAAGTTGTTGACAAAAAAATCTTATGAAGACGTAAACTTAGAGAATTATAAAACCGAACTACTCCAAAGTCAAAAAAAAACTAAAAAAAGACAAATACTCTTCCTTATGACTGGATCAGATATCCTCATGAAAACGTAAAGACAGGAATATGCTGAAAAGAACTCTTAAAGGTGGCTAGAAAACAAAACAATAAAAAATAATATTGTTCACCACTTGAAACAACGATAGAAAAATCTCAGAAAGGAAACTGCTAAGGATTTTGATAGTGTG'
-	temp.file	<- '/Users/Oliver/git/HPTN071sim/tmp140914-3/SeqGen/140716_RUN001-3_911_POL_CP3.phy' 
-	input 		<- c(paste(" 1 ", nchar(seq), sep=''), paste('ANCSEQ', '  ', seq, sep = ''), 1, newick.tree)
-	z			<- seqgen(opts, input=input, temp.file=temp.file)
-	
-	
-	
-	paste(1,nchar(seq),"\nANCSEQ\n")
-	seq	<- strsplit(seq,'')[[1]]
-	L <- length(seq)
-	mu <- paste(nid2code(seq, lower.case = FALSE), collapse = "")
-	seqname <- paste("ANCSEQ  ", collapse = "")
-	
-	
-	
-	
-	file	<- '/Users/Oliver/Library/R/2.15/library/rPANGEAHIVsim/libs/x86_64/rPANGEAHIVsim.so'
-	dyn.load(file)
-	is.loaded('seqgen')
-	argv	<- "-n1 -k1 -on -z42 -mGTR -a1 -g4 -i0 -s1 -f0.25,0.25,0.25,0.25 -r1,1,1,1,1,1 </Users/Oliver/git/HPTN071sim/tmp140914-3/SeqGen/140716_RUN001-3_911_POL_CP3.phy> /Users/Oliver/git/HPTN071sim/tmp140914-3/SeqGen/140716_RUN001-3_911_POL_CP3.seqgen"
-	z		<- strsplit(argv, ' ')[[1]]
-	z2		<- as.integer(length(z))
-	.C('seqgen', z2, z)
-	
-	indir	<- '/Users/Oliver/git/HPTN071sim/tmp140914-3/SeqGen'
-	infile	<- '140716_RUN001-3_911_POL_CP3.phy'
-	outdir	<- indir
-	outfile	<- '140716_RUN001-3_911_POL_CP3.seqgen'
-	cmd.SeqGen(indir, infile, outdir, outfile,  prog.args='-n1 -k1 -on -z42', alpha=1, gamma=4, invariable=0, scale=1, 
-			freq.A=0.25, freq.C=0.25, freq.G=0.25, freq.T=0.25,
-			rate.AC=1, rate.AG=1, rate.AT=1, rate.CG=1, rate.CT=1, rate.GT=1)
-		
-	
-	
 }
 ##--------------------------------------------------------------------------------------------------------
 ##	select between host sequences

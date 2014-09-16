@@ -58,7 +58,7 @@ cmd.hpccaller<- function(outdir, outfile, cmd)
 {
 	if( nchar( Sys.which("qsub") ) )
 	{
-		file	<- paste(outdir,'/',outfile,'.qsub',sep='')
+		file	<- paste(outdir,'/',gsub(':','',outfile),'.qsub',sep='')
 		cat(paste("\nwrite HPC script to",file,"\n"))
 		cat(cmd,file=file)
 		cmd		<- paste("qsub",file)
@@ -68,7 +68,7 @@ cmd.hpccaller<- function(outdir, outfile, cmd)
 	}
 	else
 	{
-		file	<- paste(outdir,'/',outfile,'.sh',sep='')
+		file	<- paste(outdir,'/',gsub(':','',outfile),'.sh',sep='')
 		cat(paste("\nwrite Shell script to\n",file,"\nStart this shell file manually\n"))
 		cat(cmd,file=file)
 		Sys.chmod(file, mode = "777")	

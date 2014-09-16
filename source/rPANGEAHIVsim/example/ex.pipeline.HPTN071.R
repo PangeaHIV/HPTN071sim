@@ -3,9 +3,8 @@
 ##--------------------------------------------------------------------------------------------------------
 \dontrun{
 indir			<- system.file(package="rPANGEAHIVsim", "misc")
-indir			<- ifelse(indir=='','/Users/Oliver/git/HPTN071sim/raw_trchain',indir)
 #	re-name the following:
-tmpdir			<- '/Users/Oliver/git/HPTN071sim/tmp140914'
+tmpdir			<- '/Users/Oliver/git/HPTN071sim/tmp140915'
 dir.create(tmpdir, showWarnings=FALSE)
 #	simulation input files from the epi-simulator
 infile.ind		<- '140716_RUN001_IND.csv'
