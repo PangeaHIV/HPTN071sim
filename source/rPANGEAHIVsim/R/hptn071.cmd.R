@@ -233,7 +233,8 @@ cmd.SeqGen<- function(indir, infile, outdir, outfile, prog=PR.SEQGEN, prog.args=
 	cmd		<- paste(cmd, paste(prog,' ',prog.args,' ',sep=''),sep='')
 	#	add substitution model
 	#cmd		<- paste(cmd, paste("-mHKY -t3.0 -f0.3,0.2,0.2,0.3",sep=''),sep='')
-	cmd		<- paste(cmd, paste('-mGTR -a',alpha,' -g',gamma,' -i',invariable, ' -s', scale,
+	tmp		<- ifelse(!is.na(gamma) & gamma>0, paste(' -g',gamma,' -a',alpha,' -i',invariable,sep=''),'')
+	cmd		<- paste(cmd, paste('-mGTR',tmp,' -s', scale,
 									' -f',freq.A,',',freq.C,',',freq.G,',',freq.T,
 									' -r',rate.AC, ',', rate.AG, ',', rate.AT, ',', rate.CG, ',', rate.CT, ',', rate.GT, sep=''),sep='')
 	#	add I/O

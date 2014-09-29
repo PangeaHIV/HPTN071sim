@@ -8,6 +8,7 @@ Depends:
     R (>= 2.15),
     gamlss,
     ape,
+    phytools,
     reshape2,
     data.table,
     RColorBrewer,

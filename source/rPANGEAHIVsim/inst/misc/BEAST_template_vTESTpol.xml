@@ -330,7 +330,7 @@
     </uniformIntegerOperator>
   </operators>
   <!-- Define MCMC                                                             -->
-  <mcmc id="mcmc" chainLength="100000000" autoOptimize="true" operatorAnalysis="POL.alignment.n97.rlx.gmrf_Sun_Jul_27_09-00-00_2014.ops">
+  <mcmc id="mcmc" chainLength="20000000" autoOptimize="true" operatorAnalysis="POL.alignment.n97.rlx.gmrf_Sun_Jul_27_09-00-00_2014.ops">
     <posterior id="posterior">
       <prior id="prior">
         <uniformPrior lower="0.0" upper="1.5">
@@ -396,7 +396,7 @@
         <exponentialPrior mean="0.5" offset="0.0">
           <parameter idref="POL.n100.rlx.gmrf.CP3.alpha"/>
         </exponentialPrior>
-        <exponentialPrior mean="0.3333333333333333" offset="0.0">
+        <exponentialPrior mean="0.1" offset="0.0">
           <parameter idref="ucld.stdev"/>
         </exponentialPrior>
         <uniformPrior lower="0.0001" upper="0.006">
@@ -439,7 +439,7 @@
       </column>
     </log>
     <!-- write log to file                                                       -->
-    <log id="fileLog" logEvery="25000" fileName="POL.alignment.n97.rlx.gmrf_Sun_Jul_27_09-00-00_2014.log" overwrite="false">
+    <log id="fileLog" logEvery="10000" fileName="POL.alignment.n97.rlx.gmrf_Sun_Jul_27_09-00-00_2014.log" overwrite="false">
       <posterior idref="posterior"/>
       <prior idref="prior"/>
       <likelihood idref="likelihood"/>
@@ -477,14 +477,14 @@
       <gmrfSkyrideLikelihood idref="skyride"/>
     </log>
     <!-- write tree log to file                                                  -->
-    <logTree id="treeFileLog" logEvery="100000" nexusFormat="true" fileName="POL.alignment.n97.rlx.gmrf_Sun_Jul_27_09-00-00_2014.timetrees" sortTranslationTable="true">
+    <logTree id="treeFileLog" logEvery="10000" nexusFormat="true" fileName="POL.alignment.n97.rlx.gmrf_Sun_Jul_27_09-00-00_2014.timetrees" sortTranslationTable="true">
       <treeModel idref="treeModel"/>
       <trait name="rate" tag="rate">
         <discretizedBranchRates idref="branchRates"/>
       </trait>
       <posterior idref="posterior"/>
     </logTree>
-    <logTree id="substTreeFileLog" logEvery="100000" nexusFormat="true" fileName="POL.alignment.n97.rlx.gmrf_Sun_Jul_27_09-00-00_2014.substtrees" branchLengths="substitutions">
+    <logTree id="substTreeFileLog" logEvery="10000" nexusFormat="true" fileName="POL.alignment.n97.rlx.gmrf_Sun_Jul_27_09-00-00_2014.substtrees" branchLengths="substitutions">
       <treeModel idref="treeModel"/>
       <discretizedBranchRates idref="branchRates"/>
       <trait name="rate" tag="rate">

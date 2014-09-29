@@ -22,7 +22,7 @@
 ##	1\% is sampled in 1980
 ##	25\% is sampled in 2020
 ##--------------------------------------------------------------------------------------------------------
-\dontrun{
+\\dontrun{
 indir			<- system.file(package="rPANGEAHIVsim", "misc")
 indir			<- ifelse(indir=='','/Users/Oliver/git/HPTN071sim/raw_trchain',indir)
 #	re-name the following:

@@ -40,7 +40,7 @@
 ##	3)
 ##	Call SeqGen input file creator
 ##--------------------------------------------------------------------------------------------------------
-\dontrun{
+\\dontrun{
 indir			<- system.file(package="rPANGEAHIVsim", "misc")
 indir			<- ifelse(indir=='','/Users/Oliver/git/HPTN071sim/raw_trchain',indir)
 #	re-name the following:

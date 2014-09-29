@@ -35,7 +35,7 @@
 ##	4)
 ##	Call SeqGen and clean up
 ##--------------------------------------------------------------------------------------------------------
-\dontrun{
+\\dontrun{
 indir			<- system.file(package="rPANGEAHIVsim", "misc")
 indir			<- ifelse(indir=='','/Users/Oliver/git/HPTN071sim/raw_trchain',indir)
 #	re-name the following:
@@ -88,3 +88,4 @@ argv			<<- unlist(strsplit(cmd,' '))
 prog.PANGEA.SeqGen.run()
 }
 }
+

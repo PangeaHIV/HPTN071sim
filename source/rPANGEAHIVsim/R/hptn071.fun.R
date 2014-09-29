@@ -349,7 +349,7 @@ hivc.beast2out.read.nexus.and.stats<- function(file, tree.id=NA, method.node.sta
 }
 ##--------------------------------------------------------------------------------------------------------
 #	return distribution of GTR parameters	
-#	olli originally written 14-09-2014
+#	olli originally written 20-09-2014
 ##--------------------------------------------------------------------------------------------------------
 #' @title Create data.table of GTR parameters
 #' @description Returns a data.table of GTR parameters. 
@@ -367,8 +367,38 @@ PANGEA.GTR.params<- function()
 	log.df[, ucld.stdev:=NULL]
 	log.df[, coefficientOfVariation:=NULL]
 	log.df[, treeModel.rootHeight:=NULL]
+	#	check that relative rates have mean 1
+	stopifnot( log.df[, list(CHECK=sum(mu)), by=c('FILE','GENE','state')][, !any(abs(CHECK-3)>2*1e-12)] )
+	#	get mean rate. need to be a bit careful here: rate is per site, so length of gene does not matter
+	#	but we may have different numbers of samples for each gene
+	tmp		<- log.df[, list(meanRate=mean(meanRate)), by='GENE'][, mean(meanRate)]	
+	#	ignore variation in meanRate by gene, keep variation across codon_pos for each state
+	log.df	<- merge(log.df, log.df[, list(mu.gene= mean(meanRate)/tmp), by='GENE'], by='GENE')	
+	set(log.df, NULL, 'mu', log.df[, mu*mu.gene])
+	set(log.df, NULL, 'meanRate', tmp)
+	set(log.df, NULL, 'mu.gene', NULL)
+	log.df
+}
+##--------------------------------------------------------------------------------------------------------
+#	return distribution of GTR parameters	
+#	olli originally written 14-09-2014
+##--------------------------------------------------------------------------------------------------------
+PANGEA.GTR.params.v3<- function()
+{		
+	file		<- system.file(package="rPANGEAHIVsim", "misc",'PANGEA_SSAfgBwhRc-_140907_n390_BEASTlog.R')	
+	cat(paste('\nreading GTR parameters from file',file))
+	load(file)	# expect log.df
+	#	exclude odd BEAST runs
+	log.df		<- subset(log.df, !(GENE=='ENV' & FILE=='pool3'))
+	#	exclude cols
+	log.df[, ucld.mean:=NULL]
+	log.df[, ucld.stdev:=NULL]
+	log.df[, coefficientOfVariation:=NULL]
+	log.df[, treeModel.rootHeight:=NULL]
+	#	get mean rate. need to be a bit careful here: rate is per site, so length of gene does not matter
+	#	but we may have different numbers of samples for each gene
+	tmp		<- log.df[, list(meanRate=mean(meanRate)), by='GENE'][, mean(meanRate)]	
 	#	set mean meanRate and put all variation into the mu's
-	tmp		<- log.df[, mean(meanRate)]
 	set(log.df, NULL, 'mu', log.df[, mu * meanRate / tmp])
 	set(log.df, NULL, 'meanRate', tmp)
 	log.df
@@ -417,16 +447,33 @@ PANGEA.GTR.params.v1<- function()
 #	simulate imports during the epidemic	
 #	olli originally written 13-09-2014
 ##--------------------------------------------------------------------------------------------------------
-PANGEA.ImportSimulator.SimulateStartingTimeOfIndexCase<- function(df.ind, df.trm)
+PANGEA.ImportSimulator.SimulateStartingTimeOfIndexCase<- function(df.ind, df.trm, index.starttime.mode='normal')
 {
+	stopifnot(index.starttime.mode%in%c('normal','fix','fix45','shift'))
 	#	add transmission time for index case -- this is 40 years back in time so we can sample a starting sequence 
 	#	and then generate a long branch to the transmission chain in the population. No hack. :-)
-	tmp			<- subset( df.trm, IDTR<0, select=IDTR )
-	tmp2		<- rnorm(2*nrow(tmp), 1960, 7)
-	tmp2		<- tmp2[ tmp2>1950 & tmp2<1980]
-	stopifnot( nrow(tmp)<=length(tmp2) )
-	length(tmp2)<- nrow(tmp)	
-	set(tmp, NULL, 'IDTR_TIME_INFECTED.new', tmp2 )
+	tmp			<- subset( df.trm, IDTR<0, select=IDTR )	
+	if( index.starttime.mode == 'normal' )
+	{
+		cat(paste('\nUsing index.starttime.mode rnorm(n, 1955, 7)'))
+		tmp2		<- rnorm(2*nrow(tmp), 1955, 7)
+		tmp2		<- tmp2[ tmp2>1946 & tmp2<1980]
+		stopifnot( nrow(tmp)<=length(tmp2) )
+		length(tmp2)<- nrow(tmp)			
+		set(tmp, NULL, 'IDTR_TIME_INFECTED.new', tmp2 )
+	}
+	if( index.starttime.mode == 'fix' || index.starttime.mode == 'shift')
+	{
+		cat(paste('\nUsing index.starttime.mode runif( n, 1954.75, 1955.25 )'))
+		tmp2		<- runif( nrow(tmp), 1954.75, 1955.25 )
+		set(tmp, NULL, 'IDTR_TIME_INFECTED.new', tmp2 )
+	}
+	if( index.starttime.mode == 'fix45')
+	{
+		cat(paste('\nUsing index.starttime.mode runif( n, 1945, 1945.5 )'))
+		tmp2		<- runif( nrow(tmp), 1945, 1945.5 )
+		set(tmp, NULL, 'IDTR_TIME_INFECTED.new', tmp2 )
+	}
 	#
 	df.trm		<- merge( df.trm, tmp, by='IDTR', all.x=TRUE )
 	tmp2		<- df.trm[, which(!is.na(IDTR_TIME_INFECTED.new) & IDTR_TIME_INFECTED<IDTR_TIME_INFECTED.new)]
@@ -467,6 +514,8 @@ PANGEA.ImportSimulator.SimulateIndexCase<- function(df.ind, df.trm, epi.import)
 	#	update df.trm
 	setkey(df.trm, TIME_TR)
 	set(df.trm, tmp2, 'IDTR', df.trm[, min(IDTR)]-rev(seq_along(tmp2)) )
+	if('TR_ACUTE'%in%colnames(df.trm))
+		set(df.trm, df.trm[, which(IDTR<0)], 'TR_ACUTE', NA_character_)
 	#	update df.ind
 	tmp		<- subset(df.trm, select=c(IDTR, IDTR_TIME_INFECTED))
 	setnames(tmp, c('IDTR', 'IDTR_TIME_INFECTED'), c('IDPOP', 'TIME_TR'))
@@ -490,17 +539,20 @@ PANGEA.Seqsampler<- function(df.ind, df.trm, pipeline.args, outfile.ind, outfile
 	#	TODO is IDTR integer?
 	# 	compute prevalence and incidence by year
 	#	sampling model
+	epi.adult	<- 13
 	suppressWarnings( df.trm[, YR:= df.trm[, floor(TIME_TR)]] )
-	df.epi		<- df.trm[, list(INC=length(IDREC), IMPORT=length(which(IDTR<0))), by='YR']
+	df.epi		<- df.trm[, list(INC=length(IDREC), INC_ACUTE=length(which(TR_ACUTE=='Yes')),IMPORT=length(which(IDTR<0))), by='YR']
 	tmp			<- df.epi[, 	{
-				alive		<- which( floor(df.ind[['DOB']])<=YR  &  ceiling(df.ind[['DOD']])>YR )
-				infected	<- which( floor(df.ind[['DOB']])<=YR  &  ceiling(df.ind[['DOD']])>YR  &  floor(df.ind[['TIME_TR']])<=YR )
-				list(POP=length(alive), PREV=length(infected))				
-			},by='YR']
+									sexactive	<- which( floor(df.ind[['DOB']]+epi.adult)<=YR  &  ceiling(df.ind[['DOD']])>YR )
+									infected	<- which( floor(df.ind[['DOB']])<=YR  &  floor(df.ind[['DOD']])>YR  &  floor(df.ind[['TIME_TR']])<=YR )
+									infdead		<- which( floor(df.ind[['DOD']])==YR  &  floor(df.ind[['TIME_TR']])<=YR )
+									list(POP=length(sexactive), PREV=length(infected), PREVDIED=length(infdead))				
+								},by='YR']
 	df.epi		<- merge( tmp, df.epi, by='YR' )	
-	set(df.epi, NULL, 'PREVp', df.epi[, PREV/POP])	
-	set(df.epi, NULL, 'INCp', df.epi[, INC/POP])
+	set(df.epi, NULL, 'PREVp', df.epi[, PREV/(POP-PREV)])	
+	set(df.epi, NULL, 'INCp', df.epi[, INC/(POP-PREV)])
 	set(df.epi, NULL, 'IMPORTp', df.epi[, IMPORT/INC])
+	set(df.epi, NULL, 'ACUTEp', df.epi[, INC_ACUTE/INC])
 	# 	SAMPLING PROBABILITIES and TOTALS PER YEAR
 	#
 	#	Can we detect a 25% or 50% reduction in HIV incidence in the most recent 2 or 3 years 
@@ -509,15 +561,19 @@ PANGEA.Seqsampler<- function(df.ind, df.trm, pipeline.args, outfile.ind, outfile
 	#	suppose exponentially increasing sampling over time
 	#	the number of incident cases sampled is the total sampled in that year * the proportion of incident cases out of all non-sampled cases to date
 	#	TODO this needs to be changed to fix the proportion of sequences sampled from incident
+	s.PREV.base	<- exp(1)
 	df.sample	<- subset( df.epi, YR>= pipeline.args['yr.start',][, as.numeric(v)] & YR<pipeline.args['yr.end',][, as.numeric(v)] )
 	#	exponential rate of increasing s.TOTAL (total sampling rate) per year
-	tmp			<- log( 1+pipeline.args['s.PREV.max',][, as.numeric(v)]-pipeline.args['s.PREV.min',][, as.numeric(v)] ) / df.sample[, diff(range(YR))]
-	tmp			<- df.sample[, exp( tmp*(YR-min(YR)) ) - 1 + pipeline.args['s.PREV.min',][, as.numeric(v)] ]
+	tmp			<- log( pipeline.args['s.PREV.max',][, as.numeric(v)]/pipeline.args['s.PREV.min',][, as.numeric(v)], base=s.PREV.base ) / df.sample[, diff(range(YR))]
+	tmp			<- df.sample[, s.PREV.base^( tmp*(YR-min(YR)) ) * pipeline.args['s.PREV.min',][, as.numeric(v)] ]	
+	#tmp			<- log( 1+pipeline.args['s.PREV.max',][, as.numeric(v)]-pipeline.args['s.PREV.min',][, as.numeric(v)], base=s.PREV.base ) / df.sample[, diff(range(YR))]
+	#tmp			<- df.sample[, s.PREV.base^( tmp*(YR-min(YR)) ) - 1 + pipeline.args['s.PREV.min',][, as.numeric(v)] ]
 	set(df.sample, NULL, 's.CUMTOTAL', tmp)		
 	set(df.sample, NULL, 's.n.CUMTOTAL', df.sample[, round(PREV*s.CUMTOTAL)])
 	set(df.sample, NULL, 's.n.TOTAL', c(df.sample[1, s.n.CUMTOTAL], df.sample[, diff(s.n.CUMTOTAL)]))	
 	set(df.sample, NULL, 's.n.INC', df.sample[, round(INC/(PREV-s.n.CUMTOTAL) * s.n.TOTAL)])
-	set(df.sample, NULL, 's.n.notINC', df.sample[, round(s.n.TOTAL-s.n.INC)])	
+	set(df.sample, NULL, 's.n.notINC', df.sample[, round(s.n.TOTAL-s.n.INC)])
+	stopifnot(df.sample[, all(s.n.TOTAL>0)])
 	cat(paste('\n total number of sequences sampled=', df.sample[, sum( s.n.TOTAL )]))
 	cat(paste('\n prop of sequences sampled among HIV+=', df.sample[, sum( s.n.TOTAL )] / df.sample[, rev(PREV)[1]]))		
 	cat(paste('\n total number of incident sequences to sample=', df.sample[, sum( s.n.INC )]))
@@ -543,7 +599,10 @@ PANGEA.Seqsampler<- function(df.ind, df.trm, pipeline.args, outfile.ind, outfile
 		cat(paste('\nadd non-incident samples in year',yr))
 		tmp		<- subset(df.inds, is.na(TIME_SEQ) & floor(DOB)<=yr & ceiling(DOD)>yr & floor(TIME_TR)<yr)
 		cat(paste('\navailable non-sampled non-incident cases in year=',nrow(tmp)))
+		tmp		<- subset(tmp, T1_SEQ-0.5<=yr & T1_SEQ+0.5>yr & T1_SEQ-0.5-TIME_TR>1)
+		cat(paste('\navailable with T1_SEQ +- 6mo, n=',nrow(tmp)))
 		tmp2	<- df.sample[['s.n.notINC']][ which(df.sample[['YR']]==yr) ]
+		stopifnot(tmp2<=nrow(tmp))
 		tmp2	<- sample(seq_len(nrow(tmp)), tmp2)
 		#	set variables in df.inds
 		tmp		<- data.table(IDPOP= tmp[tmp2, IDPOP], TIME_SEQ=runif(length(tmp2), min=yr, max=yr+1), INCIDENT_SEQ=rep('N',length(tmp2) ))
@@ -601,16 +660,16 @@ PANGEA.Seqsampler<- function(df.ind, df.trm, pipeline.args, outfile.ind, outfile
 		set(df.sample, NULL, 'POP', df.sample[, as.real(POP)])
 		set(df.sample, NULL, 'PREV', df.sample[, as.real(PREV)])
 		set(df.sample, NULL, 'INC', df.sample[, as.real(INC)])
-		tmp	<- data.table(	stat=c('POP','PREV','INC','IMPORTp','s.n.TOTAL','s.n.INC','s.n.notINC'), 
-				stat.long=c('population size','HIV infected', 'HIV incident', 'Proportion incident\nimported', 'Total\nsequenced', 'Total\nincident\nsequenced', 'Total\nnon-incident\nsequenced'))
-		tmp	<- merge(	melt(df.sample, id.vars='YR', measure.vars=c('POP','PREV','INC','IMPORTp','s.n.TOTAL','s.n.INC','s.n.notINC'), variable.name='stat', value.name='v'),
+		tmp	<- data.table(	stat=c('POP','PREV','INC','ACUTEp','IMPORTp','s.n.TOTAL','s.n.INC','s.n.notINC'), 
+				stat.long=c('population size','HIV infected', 'HIV incident', 'Proportion incident\nfrom acute in study', 'Proportion incident\nimported', 'Total\nsequenced', 'Total\nincident\nsequenced', 'Total\nnon-incident\nsequenced'))
+		tmp	<- merge(	melt(df.sample, id.vars='YR', measure.vars=c('POP','PREV','INC','ACUTEp','IMPORTp','s.n.TOTAL','s.n.INC','s.n.notINC'), variable.name='stat', value.name='v'),
 				tmp, by='stat' )
 		ggplot(tmp, aes(x=YR, y=v, group=stat.long)) + geom_point() +
 				scale_x_continuous(name='year', breaks=seq(1980,2020,2)) + scale_y_continuous(name='total')	+
 				facet_grid(stat.long ~ ., scales='free_y', margins=FALSE)
 		file<- paste(substr(outfile.ind, 1, nchar(outfile.ind)-7),'INFO_Totals.pdf',sep='')
 		cat(paste('\nPlotting to file',file))
-		ggsave(file=file, w=16, h=8)
+		ggsave(file=file, w=16, h=10)		 
 		#	plot distribution between transmission time and sequencing time
 		tmp	<- subset(df.inds, !is.na(TIME_SEQ))
 		set(tmp, NULL, 'TIME_TO_SEQ', tmp[, TIME_SEQ-TIME_TR])
@@ -626,7 +685,7 @@ PANGEA.Seqsampler<- function(df.ind, df.trm, pipeline.args, outfile.ind, outfile
 		file<- paste(substr(outfile.ind, 1, nchar(outfile.ind)-7),'INFO_RecSource.pdf',sep='')
 		ggsave(file=file, w=8, h=8)
 		#	plot time to death for infected
-		tmp	<- subset(df.inds, !is.na(TIME_TR) & IDPOP>0, select=c(TIME_TR, DOD))
+		tmp	<- subset(df.inds, !is.na(TIME_TR) & IDPOP>0 & DOD<max(DOD, na.rm=1), select=c(TIME_TR, DOD))
 		ggplot(tmp, aes(x=DOD-TIME_TR)) + geom_histogram(binwidth=1, aes(y= ..density..)) +
 				scale_x_continuous(name='time to death for HIV+\n(years)', breaks=seq(1,100,2))
 		file<- paste(substr(outfile.ind, 1, nchar(outfile.ind)-7),'INFO_T2DeathForInf.pdf',sep='')
@@ -684,7 +743,7 @@ PANGEA.Seqsampler<- function(df.ind, df.trm, pipeline.args, outfile.ind, outfile
 }
 ##--------------------------------------------------------------------------------------------------------
 #	return ancestral sequence sampler	
-#	olli originally written 14-09-2014
+#	olli originally written 20-09-2014
 ##--------------------------------------------------------------------------------------------------------
 #' @title Create starting sequence sampler
 #' @description Returns a function and function arguments to draw ancestral sequences. 
@@ -693,6 +752,46 @@ PANGEA.Seqsampler<- function(df.ind, df.trm, pipeline.args, outfile.ind, outfile
 #' @return list of the sampler \code{rANCSEQ} and its arguments \code{rANCSEQ.args}
 #' @export
 PANGEA.RootSeq.create.sampler<- function(root.ctime.grace= 0.5, sample.grace= 3)
+{	
+	file			<- system.file(package="rPANGEAHIVsim", "misc",'PANGEA_SSAfgBwhRc-_140907_n390_AncSeq.R')
+	cat(paste('\nLoading starting sequences from file', file))
+	load(file)		#expect "anc.seq.gag"  "anc.seq.pol"  "anc.seq.env"  "anc.seq.info"
+	setkey(anc.seq.info, CALENDAR_TIME)
+	rANCSEQ.args	<- list(	root.ctime.grace=root.ctime.grace, sample.grace=sample.grace, anc.seq.info=anc.seq.info, anc.seq.gag=anc.seq.gag, anc.seq.pol=anc.seq.pol, anc.seq.env=anc.seq.env)	
+	
+	rANCSEQ<- function(root.ctime, rANCSEQ.args)
+	{		
+		tmp				<- lapply(seq_along(root.ctime), function(i)
+						{
+							tmp	<- subset(rANCSEQ.args$anc.seq.info, 	CALENDAR_TIME>root.ctime[i]-rANCSEQ.args$root.ctime.grace &  CALENDAR_TIME<=root.ctime[i]+rANCSEQ.args$root.ctime.grace 	)
+							if(nrow(tmp)<rANCSEQ.args$sample.grace*100)
+							{
+								warning( paste('\nFor root',i,': number of samples is n=',nrow(tmp),'. safe pool size is n=',rANCSEQ.args$sample.grace*100) )
+							}					
+							data.table( LABEL= tmp[, sample( LABEL, rANCSEQ.args$sample.grace ) ], CALENDAR_TIME=root.ctime[i], DRAW=i )
+						})
+		tmp		<- do.call('rbind',tmp)
+		#	get unique seqs
+		setkey(tmp, LABEL)
+		tmp				<- unique(tmp)	
+		anc.seq.draw	<- do.call( 'cbind', list( rANCSEQ.args$anc.seq.gag[tmp[, LABEL], ], rANCSEQ.args$anc.seq.pol[tmp[, LABEL], ], rANCSEQ.args$anc.seq.env[tmp[, LABEL], ] ) ) 
+		anc.seq.draw	<- seq.unique(anc.seq.draw)
+		#	check if at least one seq for each draw
+		tmp				<- merge( data.table(LABEL=rownames(anc.seq.draw)), tmp, by='LABEL' )	
+		stopifnot( !length(setdiff( seq_along(root.ctime), tmp[, unique(DRAW)] )) )
+		#	take first seq for each draw	
+		tmp				<- tmp[, list(LABEL= LABEL[1]), by='DRAW']
+		setkey(tmp, DRAW)
+		anc.seq.draw	<- anc.seq.draw[ tmp[, LABEL], ]
+		anc.seq.draw
+	}
+	list(rANCSEQ=rANCSEQ, rANCSEQ.args=rANCSEQ.args)
+}
+##--------------------------------------------------------------------------------------------------------
+#	return ancestral sequence sampler	
+#	olli originally written 14-09-2014
+##--------------------------------------------------------------------------------------------------------
+PANGEA.RootSeq.create.sampler.v3<- function(root.ctime.grace= 0.5, sample.grace= 3)
 {	
 	file			<- system.file(package="rPANGEAHIVsim", "misc",'PANGEA_SSAfgBwhRc-_140907_n390_AncSeq.R')
 	cat(paste('\nLoading starting sequences from file', file))
@@ -797,7 +896,7 @@ PANGEA.RootSeq.create.sampler.v1<- function(root.ctime.grace= 0.5, sample.grace=
 			anc.seq.info=anc.seq.info, anc.seq.gag=anc.seq.gag, anc.seq.pol=anc.seq.pol, anc.seq.env=anc.seq.env)	
 	
 	rANCSEQ<- function(root.ctime, rANCSEQ.args)
-	{		
+	{				
 		tmp		<- lapply(seq_along(root.ctime), function(i)
 				{
 					tmp	<- subset(rANCSEQ.args$anc.seq.info, CALENDAR_TIME+rANCSEQ.args$sample.shift>root.ctime[i]-rANCSEQ.args$root.ctime.grace &  CALENDAR_TIME+rANCSEQ.args$sample.shift<=root.ctime[i]+rANCSEQ.args$root.ctime.grace)
@@ -836,26 +935,96 @@ PANGEA.RootSeq.create.sampler.v1<- function(root.ctime.grace= 0.5, sample.grace=
 	list(rANCSEQ=rANCSEQ, rANCSEQ.args=rANCSEQ.args)
 }
 ##--------------------------------------------------------------------------------------------------------
-#	return within host evolutionary rate sampler	
-#	olli originally written 21-08-2014
+#	return evolutionary rate sampler for transmission edges	
+#	olli originally written 16-09-2014
 ##--------------------------------------------------------------------------------------------------------
-#' @title Create sampler of the Between Host Evolutionary Rate Multipliers
-#' @description Returns a function to draw the between host evolutionary rate multipliers. Currently modelled with a log normal density.
-#' @param bwerm.mu		mean of the log normal density
-#' @param bwerm.sigma	standard deviation of the log normal density
+#' @title Create sampler of Evolutionary Rates for transmission edges
+#' @description Returns a function to draw evolutionary rates for transmission edges. Currently modelled with a log normal density.
+#' @param er.shift		shift to mean of the log normal density
 #' @return R function
 #' @export
+PANGEA.TransmissionEdgeEvolutionaryRate.create.sampler<- function(er.meanlog, er.sdlog)
+{
+	if(0)
+	{
+		x		<- seq(0.0005, 0.003, 0.00001)		
+		tmp		<- data.table(x=x, y1=dLOGNO(x, mu=-6.714086, sigma=0.15), y2=dLOGNO(x, mu=-6.714086-0.15^2/2+0.075^2/2, sigma=0.075), y4=dLOGNO(x, mu=-6.714086-0.15^2/2+0.0375^2/2, sigma=0.0375))
+		tmp		<- melt(tmp, id.var='x')
+		ggplot(tmp, aes(x=x, y=value, group=variable, colour=variable)) + geom_line() + scale_x_continuous(breaks=seq(0,0.003,0.0005))
+		x		<- seq(0.0005, 0.003, 0.00001)
+		tmp		<- data.table(x=x, y1=dLOGNO(x, mu=log(0.002239075)-0.05^2/2, sigma=0.05), y5=dLOGNO(x, mu=log(0.002239075-0.0005)-0.065^2/2, sigma=0.065), y10=dLOGNO(x, mu=log(0.002239075-0.001)-0.09^2/2, sigma=0.09))
+		
+		x		<- seq(0.0005, 0.01, 0.00001)
+		tmp		<- data.table(	x=x, 
+								y5=dLOGNO(x, mu=log(0.002239075)-0.05^2/2, sigma=0.05), y7=dLOGNO(x, mu=log(0.002239075)-0.07^2/2, sigma=0.07), y10=dLOGNO(x, mu=log(0.002239075)-0.1^2/2, sigma=0.1), y13=dLOGNO(x, mu=log(0.002239075)-0.13^2/2, sigma=0.13), 
+								W441=dLOGNO(x, mu=log(0.00447743)-0.3^2/2, sigma=0.3), W442=dLOGNO(x, mu=log(0.00447743)-0.4^2/2, sigma=0.4), W443=dLOGNO(x, mu=log(0.00447743)-0.5^2/2, sigma=0.5))
+		tmp		<- data.table(	x=x, 
+								TransmissionLineage=dLOGNO(x, mu=log(0.002239075)-0.13^2/2, sigma=0.13), 
+								TipBranch=dLOGNO(x, mu=log(0.00447743)-0.3^2/2, sigma=0.3))
+		tmp		<- data.table(	x=x, 
+								TransmissionLineage=dLOGNO(x, mu=log(0.002239075)-0.01^2/2, sigma=0.01), 
+								TipBranch=dLOGNO(x, mu=log(0.003)-0.2^2/2, sigma=0.2))
+						
+		tmp		<- melt(tmp, id.var='x')
+		ggplot(tmp, aes(x=x, y=value, group=variable, colour=variable)) + geom_line() + scale_x_continuous(breaks=seq(0,0.02,0.001))		
+	}
+	if(0)
+	{
+		require(gamlss)		
+		file		<- system.file(package="rPANGEAHIVsim", "misc",'PANGEA_SSAfgBwhRc-_140907_n390_BEASTlog.R')	
+		cat(paste('\nreading GTR parameters from file',file))
+		load(file)	# expect log.df
+		#	exclude odd BEAST runs
+		log.df		<- subset(log.df, !(GENE=='ENV' & FILE=='pool3'))
+		#	exclude cols
+		log.df[, ucld.mean:=NULL]
+		log.df[, ucld.stdev:=NULL]
+		log.df[, coefficientOfVariation:=NULL]
+		log.df[, treeModel.rootHeight:=NULL]
+		#	get posterior distribution of overall meanRate across genes
+		tmp		<- log.df[, list(meanRate=mean(meanRate)), by='GENE'][, mean(meanRate)]	
+		log.df	<- log.df[, list(meanRate=meanRate/mean(meanRate)*tmp), by='GENE']
+		#ggplot(log.df, aes(x=meanRate)) + geom_histogram() + facet_grid(.~GENE, scales='free')
+		#	get lognormal density parameters
+		sd.log	<- log.df[, sd(log(meanRate))]			# 0.1499262
+		mean.log<- log.df[, mean(log(meanRate))]		# -6.113092; 0.002239075
+		#	mean is exp( mean.log+sd.log*sd.log/2 ); median is exp(mean.log) 
+	}
+	rERbw.args	<- list(meanlog=er.meanlog, sdlog=er.sdlog)
+	if(er.sdlog>0)
+	{
+		rERbw		<- function(n, rERbw.args)
+				{	
+					rlnorm(n, meanlog=rERbw.args$meanlog, sdlog=rERbw.args$sdlog)		
+				}		
+	}
+	if(er.sdlog==0)
+	{
+		rERbw		<- function(n, rERbw.args)
+				{	
+					rep( exp(rERbw.args$meanlog), n)		
+				}		
+	}	
+	list(rERbw=rERbw, rERbw.args=rERbw.args)	
+}
+##--------------------------------------------------------------------------------------------------------
+#	return evolutionary rate modifier sampler for transmission edges	
+#	olli originally written 21-08-2014
+##--------------------------------------------------------------------------------------------------------
 PANGEA.BetweenHostEvolutionaryRateModifier.create.sampler.v1<- function(bwerm.mu=1.5, bwerm.sigma=0.12)
 {
 	require(gamlss)
 	if(0)
 	{
 		#from Vrancken et al:
-		#c(3.5/2.5, 7.0/4.2) #1.4, 1.67	draw this from lognormal with mean 1.5 and variance so that tail captures 1.8
-		x		<- seq(1.01, 2, 0.01)
-		plot(x, dLOGNO(x, mu=log(1.5), sigma=0.1), type='l')
-		lines(x, dLOGNO(x, mu=log(1.5), sigma=0.07), col='blue' )
-		lines(x, dLOGNO(x, mu=log(1.5), sigma=0.12), col='red' )		
+		#c(3.5/2.5, 7.0/4.2) #1.4, 1.67	draw this from lognormal with mean 1.5 and variance so that tail captures 1.8		
+		x		<- seq(1.01, 15, 0.01)
+		tmp		<- data.table(x=x, y5=dLOGNO(x, mu=log(1.5), sigma=0.12), y8=dLOGNO(x, mu=log(1.75), sigma=0.103), y2=dLOGNO(x, mu=log(2), sigma=0.09))
+		tmp		<- data.table(x=x, y4=dLOGNO(x, mu=log(4), sigma=0.045), y3=dLOGNO(x, mu=log(3), sigma=0.06), y2=dLOGNO(x, mu=log(2), sigma=0.09))
+		tmp		<- data.table(x=x, y4=dLOGNO(x, mu=log(4), sigma=0.06), y3=dLOGNO(x, mu=log(3), sigma=0.06), y2=dLOGNO(x, mu=log(2), sigma=0.06))		
+		tmp		<- data.table(x=x, y6=dLOGNO(x, mu=log(6)+0.4^2/2, sigma=0.4), y5=dLOGNO(x, mu=log(5)+0.4^2/2, sigma=0.4), y4=dLOGNO(x, mu=log(4)+0.4^2/2, sigma=0.4), y3=dLOGNO(x, mu=log(3)+0.4^2/2, sigma=0.4))
+		tmp		<- melt(tmp, id.var='x')
+		ggplot(tmp, aes(x=x, y=value, group=variable, colour=variable)) + geom_line() + scale_x_log10(breaks=seq(1,20,1))
 	}
 	rER.bwm<- function(n)
 	{
@@ -873,7 +1042,7 @@ PANGEA.BetweenHostEvolutionaryRateModifier.create.sampler.v1<- function(bwerm.mu
 #' @param wher.sigma 	standard deviation of the log normal density
 #' @return R function
 #' @export
-PANGEA.WithinHostEvolutionaryRate.create.sampler.v1<- function(wher.mu=0.005, wher.sigma=0.8)
+PANGEA.WithinHostEvolutionaryRate.create.sampler.v1<- function(wher.mu=log(0.005), wher.sigma=0.8)
 {
 	require(gamlss)
 	if(0)
@@ -884,20 +1053,47 @@ PANGEA.WithinHostEvolutionaryRate.create.sampler.v1<- function(wher.mu=0.005, wh
 		tmp		<- gamlss(ER~1, data=df.er, family=LOGNO)
 		x		<- seq(0.0005, 0.02, 0.0001)
 		tmp		<- data.table(x=x, y5=dLOGNO(x, mu=log(0.005), sigma=0.8), y4=dLOGNO(x, mu=log(0.004), sigma=0.7), y3=dLOGNO(x, mu=log(0.003), sigma=0.6))
+		tmp		<- data.table(x=x, y83=dLOGNO(x, mu=-4.784295+0.045, sigma=0.3), y62=dLOGNO(x, mu=-5.071977+0.08, sigma=0.4), y41=dLOGNO(x, mu=-5.477443+0.18, sigma=0.6))
+		#	should have been '-' all along:
+		#	mean(rLOGNO(1e4, mu=-5.071977+0.4^2/2, sigma=0.4))
+		tmp		<- data.table(x=x, y62=dLOGNO(x, mu=-5.071977+0.08, sigma=0.4), y62b=dLOGNO(x, mu=-5.071977-0.4^2/2, sigma=0.4) )
+		tmp		<- data.table(x=x, y62=dLOGNO(x, mu=log(0.006716145)-0.37^2/2, sigma=0.37), y621=dLOGNO(x, mu=-5.071977-0.2^2/2, sigma=0.2), y441=dLOGNO(x, mu=log(0.00447743)-0.3^2/2, sigma=0.3) )		
 		tmp		<- melt(tmp, id.var='x')
-		ggplot(tmp, aes(x=x, y=value, group=variable, colour=variable)) + geom_line() + scale_x_continuous(breaks=seq(0,0.02,0.002))		
+		ggplot(tmp, aes(x=x, y=value, group=variable, colour=variable)) + geom_line() + scale_x_continuous(breaks=seq(0,0.02,0.002))
+		#correlation model: need high multiplier if ER high
+		require(compositions)		
+		y		<- rlnorm.rplus(1e4, meanlog=c(-5.071977+0.08, log(3)+0.4^2/2),  varlog=diag(c(0.6,0.4))%*%matrix(c(1,0.95,0.95,1),2,2)%*%diag(c(0.6,0.4)) )		
+		tmp		<- data.table(wh=y[,1], bm=y[,2])
+		ggplot(tmp, aes(x= wh, y=bm)) + geom_point()
+		#explore marginal ER along branches
+		tmp		<- do.call('rbind',lapply(c(3,4,5,6), function(bm)
+				{
+					tmp	<- rlnorm.rplus(1e4, meanlog=c(-5.071977+0.08, log(bm)+0.4^2/2),  varlog=diag(c(0.6,0.4))%*%matrix(c(1,0.95,0.95,1),2,2)%*%diag(c(0.6,0.4)) )
+					data.table(value=tmp[,1]/tmp[,2], variable=paste('y',bm,sep=''))
+				}))
+		ggplot(tmp, aes(x=value, fill=variable)) + geom_histogram(binwidth=0.00025) + facet_grid(.~variable, scales='free')
 	}	
-	rER.pol<- function(n)
-				{		
-					ans	<- numeric(0)
-					while(length(ans)<n)
-					{
-						tmp		<- rLOGNO(2*n, mu=log(wher.mu), sigma=wher.sigma)
-						tmp[which(tmp>0.02)]	<- NA
-						ans		<- c(ans, na.omit(tmp))						
-					}			
-					ans[seq_len(n)]
-				}
+	if(wher.sigma>0)
+	{
+		rER.pol<- function(n)
+			{		
+				ans	<- numeric(0)
+				while(length(ans)<n)
+				{
+					tmp		<- rLOGNO(2*n, mu=wher.mu, sigma=wher.sigma)
+					tmp[which(tmp>0.02)]	<- NA
+					ans		<- c(ans, na.omit(tmp))						
+				}			
+				ans[seq_len(n)]
+			}
+	}
+	if(wher.sigma==0)
+	{
+		rER.pol<- function(n)
+			{		
+				rep(exp(wher.mu), n)			
+			}
+	}
 	rER.pol
 }
 ######################################################################################
