@@ -5,7 +5,7 @@ Title: rPANGEAHIVsim
 Author: {Oliver Ratmann}
 Maintainer: Oliver Ratmann <oliver.ratmann@imperial.ac.uk>
 Depends:
-    R (>= 2.15),
+    R (>= 3.1),
     gamlss,
     ape,
     phytools,
@@ -15,7 +15,8 @@ Depends:
     grid,
     ggplot2,
     igraph,
-    phyclust
+    phyclust,
+    distr
 Description: R scripts for the PANGEA-HIV methods comparison exercise.
 License: GPL (>=2)
 LazyLoad: yes

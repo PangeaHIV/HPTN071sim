@@ -1033,10 +1033,212 @@ project.PANGEA.TEST.scenarios<- function()
 	}
 }
 ##--------------------------------------------------------------------------------------------------------
+##	rename simulated sequences
+##	olli 27.10.14
+##--------------------------------------------------------------------------------------------------------
+project.PANGEA.TEST.pipeline.November2014.renameVillage<- function()
+{
+	indir	<- '/Users/Oliver/duke/2014_Gates/methods_comparison_pipeline/Pangea_Oct27_2014_sim/CD4-toBlind'	
+	infiles	<- data.table(FILE= list.files(path=indir, pattern='*.csv'))
+	
+	set(infiles, NULL, 'EPI', infiles[, sapply(strsplit(FILE, '_'),'[[',1)])
+	set(infiles, NULL, 'EPI', infiles[, factor(EPI, levels=c('A','B','C'), labels=c(1,2,3))])
+	set(infiles, NULL, 'TIMEPOINT', infiles[, sapply(strsplit(FILE, '_'),'[[',3)])
+	
+	set(infiles, NULL, 'TIMEPOINT_BLINDED', c('B','A','C',  'D','F','E',   'I','H','G','I','H','G'))
+	set(infiles, NULL, 'SAMPLE', c(rep(1,3),  rep(1,3),   rep(1,3),rep(2,3)))
+	set(infiles, NULL, 'TO', infiles[, paste('281014','_Village_sc',TIMEPOINT_BLINDED,'_sample',SAMPLE,'_epi',EPI,'.fasta',sep='')])
+	
+	infiles[, file.rename(paste(indir,'/',FILE,sep=''), paste(indir,'/',TO,sep='')), by='FILE']
+	
+}
+##--------------------------------------------------------------------------------------------------------
+##	rename simulated sequences
+##	olli 26.10.14
+##--------------------------------------------------------------------------------------------------------
+project.PANGEA.TEST.pipeline.November2014.rename<- function()
+{
+	indir	<- '/Users/Oliver/git/Pangea__Oct27_2014_code'
+	indir	<- '/Users/Oliver/git/Pangea__Oct27_2014_code'
+	infiles	<- data.table(FILE= list.files(path=indir, pattern='*SCENARIO.*.csv'))
+	
+	set(infiles, NULL, 'DATE', infiles[, substr(FILE, 1, 6)])
+	set(infiles, NULL, 'END', infiles[, substr(FILE, nchar(FILE)-6, nchar(FILE))])
+	set(infiles, NULL, 'REP', infiles[, regmatches(FILE,regexpr('RUN[0-9]+',FILE))])
+	set(infiles, NULL, 'REP', infiles[, as.numeric(substr(REP, 4, nchar(REP)))])
+	set(infiles, NULL, 'SCENARIO', infiles[, regmatches(FILE,regexpr('SCENARIO_[0-3]',FILE))])
+	set(infiles, NULL, 'SCENARIO', infiles[, substr(SCENARIO, nchar(SCENARIO), nchar(SCENARIO))])
+	
+	set(infiles, infiles[, which(SCENARIO=='0')], 'SCENARIO', 'A')
+	set(infiles, infiles[, which(SCENARIO=='3')], 'SCENARIO', 'B')
+	set(infiles, infiles[, which(SCENARIO=='2')], 'SCENARIO', 'C')
+	
+	set(infiles, NULL, 'TO', infiles[, paste(DATE,'_HPTN071_sc',SCENARIO,'_rep',REP,'_',END,sep='')])
+	
+	infiles[, file.rename(paste(indir,'/',FILE,sep=''), paste(indir,'/',TO,sep='')), by='FILE']
+}
+##--------------------------------------------------------------------------------------------------------
+##	check simulated sequences: create ExaML tree and estimate R2
+##	olli 23.10.14
+##--------------------------------------------------------------------------------------------------------
+project.PANGEA.TEST.pipeline.November2014<- function()
+{		
+	#	with CD4
+	if(0)
+	{
+		indir			<- system.file(package="rPANGEAHIVsim", "misc")
+		pipeline.args	<- rPANGEAHIVsim.pipeline.args( yr.start=1980, yr.end=2020, seed=42,
+														s.INC.recent=0.1, s.INC.recent.len=5, s.PREV.min=0.01, s.PREV.max=0, 
+														epi.model='HPTN071', epi.dt=1/48, epi.import=0.05,
+														v.N0tau=1, v.r=2.851904, v.T50=-2,
+														wher.mu=log(0.00447743)-0.3^2/2, wher.sigma=0.3, bwerm.mu=log(0.002239075)-0.13^2/2, bwerm.sigma=0.13, er.gamma=NA,
+														dbg.GTRparam=0, dbg.rER=0, index.starttime.mode='normal', startseq.mode='sample', seqtime.mode=NA)						
+		# standard run, fixed GTR param + fixed relative rates for each transmission chain
+		# no WH Er to equal BH ER, and both being constant
+		pipeline.vary	<- data.table(	seqtime.mode=c('Gamma9','Gamma3','Unif12'),				
+										label=c('-n0005g9','-n0005g3','-n0005u'))						
+		dummy			<- pipeline.vary[, {				
+					set(pipeline.args, which( pipeline.args$stat=='seqtime.mode' ), 'v', as.character(seqtime.mode))
+					print(pipeline.args)
+					#	scenario A		
+					infile.ind		<- '211014_RUN123_SCENARIO_0'
+					infile.trm		<- '211014_RUN123_SCENARIO_0'
+					tmpdir			<- '/Users/Oliver/git/HPTN071sim/tmp141024'
+					tmpdir			<- paste(tmpdir,label,sep='')
+					dir.create(tmpdir, showWarnings=FALSE)																		
+					set(pipeline.args, which( pipeline.args$stat=='s.PREV.max' ), 'v', '0.11')
+					file.copy(paste(indir,'/',infile.ind,'_IND.csv',sep=''), paste(tmpdir,'/',infile.ind,label,'_IND.csv',sep=''))
+					file.copy(paste(indir,'/',infile.trm,'_TRM.csv',sep=''), paste(tmpdir,'/',infile.trm,label,'_TRM.csv',sep=''))
+					file			<- rPANGEAHIVsim.pipeline(tmpdir, paste(infile.ind,label,'_IND.csv',sep=''), paste(infile.trm,label,'_TRM.csv',sep=''), tmpdir, pipeline.args=pipeline.args)
+					system(file)					
+				}, by='label']
+	}
+	#	with CD4, lower WH rate
+	if(1)
+	{
+		indir			<- system.file(package="rPANGEAHIVsim", "misc")
+		pipeline.args	<- rPANGEAHIVsim.pipeline.args( yr.start=1980, yr.end=2020, seed=42,
+														s.INC.recent=0.1, s.INC.recent.len=5, s.PREV.min=0.01, s.PREV.max=0, 
+														epi.model='HPTN071', epi.dt=1/48, epi.import=0.05,
+														v.N0tau=1, v.r=2.851904, v.T50=-2,
+														wher.mu=log(0.003358613)-0.3^2/2, wher.sigma=0.3, bwerm.mu=log(0.002239075)-0.13^2/2, bwerm.sigma=0.13, er.gamma=NA,
+														dbg.GTRparam=0, dbg.rER=0, index.starttime.mode='normal', startseq.mode='sample', seqtime.mode=NA)						
+		# standard run, fixed GTR param + fixed relative rates for each transmission chain
+		# no WH Er to equal BH ER, and both being constant
+		pipeline.vary	<- data.table(	seqtime.mode=c('Gamma9','Gamma3','Unif12'),				
+										label=c('-n0005g9l','-n0005g3l','-n0005ul'))						
+		dummy			<- pipeline.vary[, {				
+					set(pipeline.args, which( pipeline.args$stat=='seqtime.mode' ), 'v', as.character(seqtime.mode))
+					print(pipeline.args)
+					if(1)
+					{
+						#	scenario A					
+						infile.ind		<- '271014_HPTN071_scA_rep1'
+						infile.trm		<- '271014_HPTN071_scA_rep1'
+						tmpdir			<- '/Users/Oliver/git/HPTN071sim/tmp141025a'
+						tmpdir			<- paste(tmpdir,label,sep='')
+						dir.create(tmpdir, showWarnings=FALSE)																		
+						set(pipeline.args, which( pipeline.args$stat=='s.PREV.max' ), 'v', '0.11')
+						file.copy(paste(indir,'/',infile.ind,'_IND.csv',sep=''), paste(tmpdir,'/',infile.ind,label,'_IND.csv',sep=''))
+						file.copy(paste(indir,'/',infile.trm,'_TRM.csv',sep=''), paste(tmpdir,'/',infile.trm,label,'_TRM.csv',sep=''))
+						file			<- rPANGEAHIVsim.pipeline(tmpdir, paste(infile.ind,label,'_IND.csv',sep=''), paste(infile.trm,label,'_TRM.csv',sep=''), tmpdir, pipeline.args=pipeline.args)
+						system(file)													
+					}
+					if(1)
+					{
+						#	scenario B						
+						infile.ind		<- '271014_HPTN071_scB_rep1'
+						infile.trm		<- '271014_HPTN071_scB_rep1'	
+						tmpdir			<- '/Users/Oliver/git/HPTN071sim/tmp141025b'
+						tmpdir			<- paste(tmpdir,label,sep='')
+						dir.create(tmpdir, showWarnings=FALSE)																														
+						set(pipeline.args, which( pipeline.args$stat=='s.PREV.max' ), 'v', '0.15')
+						file.copy(paste(indir,'/',infile.ind,'_IND.csv',sep=''), paste(tmpdir,'/',infile.ind,label,'_IND.csv',sep=''))
+						file.copy(paste(indir,'/',infile.trm,'_TRM.csv',sep=''), paste(tmpdir,'/',infile.trm,label,'_TRM.csv',sep=''))
+						file			<- rPANGEAHIVsim.pipeline(tmpdir, paste(infile.ind,label,'_IND.csv',sep=''), paste(infile.trm,label,'_TRM.csv',sep=''), tmpdir, pipeline.args=pipeline.args)
+						system(file)						
+					}
+					if(1)
+					{
+						#	scenario C						
+						infile.ind		<- '271014_HPTN071_scC_rep1'
+						infile.trm		<- '271014_HPTN071_scC_rep1'	
+						tmpdir			<- '/Users/Oliver/git/HPTN071sim/tmp141025c'
+						tmpdir			<- paste(tmpdir,label,sep='')
+						dir.create(tmpdir, showWarnings=FALSE)																														
+						set(pipeline.args, which( pipeline.args$stat=='s.PREV.max' ), 'v', '0.185')
+						file.copy(paste(indir,'/',infile.ind,'_IND.csv',sep=''), paste(tmpdir,'/',infile.ind,label,'_IND.csv',sep=''))
+						file.copy(paste(indir,'/',infile.trm,'_TRM.csv',sep=''), paste(tmpdir,'/',infile.trm,label,'_TRM.csv',sep=''))
+						file			<- rPANGEAHIVsim.pipeline(tmpdir, paste(infile.ind,label,'_IND.csv',sep=''), paste(infile.trm,label,'_TRM.csv',sep=''), tmpdir, pipeline.args=pipeline.args)
+						system(file)	
+					}					
+				}, by='label']
+	}
+	
+	#	all replicates
+	if(1)
+	{
+		indir			<- '/Users/Oliver/duke/2014_Gates/methods_comparison_pipeline/Pangea_Oct28_2014_sim'
+		indir			<- '/Users/Oliver/git/Pangea__Oct27_2014_code'
+		pipeline.args	<- rPANGEAHIVsim.pipeline.args( yr.start=1980, yr.end=2020, seed=42,
+				s.INC.recent=0.1, s.INC.recent.len=5, s.PREV.min=0.01, s.PREV.max=0, 
+				epi.model='HPTN071', epi.dt=1/48, epi.import=0.05,
+				v.N0tau=1, v.r=2.851904, v.T50=-2,
+				wher.mu=log(0.003358613)-0.3^2/2, wher.sigma=0.3, bwerm.mu=log(0.002239075)-0.13^2/2, bwerm.sigma=0.13, er.gamma=0,
+				dbg.GTRparam=0, dbg.rER=0, index.starttime.mode='normal', startseq.mode='sample', seqtime.mode='Unif12')						
+		
+		pipeline.vary	<- data.table(	REP=1:1, label=paste('-r',1:1,sep='')  )		
+		dummy			<- pipeline.vary[, {									
+					if(1)
+					{
+						#	scenario A					
+						infile.ind		<- paste('281014_HPTN071_scA_rep',REP,sep='')
+						infile.trm		<- paste('281014_HPTN071_scA_rep',REP,sep='')
+						tmpdir			<- '/Users/Oliver/git/HPTN071sim/tmp141026a'
+						tmpdir			<- paste(tmpdir,label,sep='')
+						dir.create(tmpdir, showWarnings=FALSE)																		
+						set(pipeline.args, which( pipeline.args$stat=='s.PREV.max' ), 'v', '0.11')
+						file.copy(paste(indir,'/',infile.ind,'_IND.csv',sep=''), paste(tmpdir,'/',infile.ind,'_IND.csv',sep=''))
+						file.copy(paste(indir,'/',infile.trm,'_TRM.csv',sep=''), paste(tmpdir,'/',infile.trm,'_TRM.csv',sep=''))
+						file			<- rPANGEAHIVsim.pipeline(tmpdir, paste(infile.ind,'_IND.csv',sep=''), paste(infile.trm,'_TRM.csv',sep=''), tmpdir, pipeline.args=pipeline.args)
+						system(file)	
+					}
+					if(1)
+					{
+						#	scenario B						
+						infile.ind		<- paste('281014_HPTN071_scB_rep',REP,sep='')
+						infile.trm		<- paste('281014_HPTN071_scB_rep',REP,sep='')
+						tmpdir			<- '/Users/Oliver/git/HPTN071sim/tmp141026b'
+						tmpdir			<- paste(tmpdir,label,sep='')
+						dir.create(tmpdir, showWarnings=FALSE)																														
+						set(pipeline.args, which( pipeline.args$stat=='s.PREV.max' ), 'v', '0.15')
+						file.copy(paste(indir,'/',infile.ind,'_IND.csv',sep=''), paste(tmpdir,'/',infile.ind,'_IND.csv',sep=''))
+						file.copy(paste(indir,'/',infile.trm,'_TRM.csv',sep=''), paste(tmpdir,'/',infile.trm,'_TRM.csv',sep=''))
+						file			<- rPANGEAHIVsim.pipeline(tmpdir, paste(infile.ind,'_IND.csv',sep=''), paste(infile.trm,'_TRM.csv',sep=''), tmpdir, pipeline.args=pipeline.args)
+						system(file)						
+					}
+					if(1)
+					{
+						#	scenario C						
+						infile.ind		<- paste('281014_HPTN071_scC_rep',REP,sep='')
+						infile.trm		<- paste('281014_HPTN071_scC_rep',REP,sep='')	
+						tmpdir			<- '/Users/Oliver/git/HPTN071sim/tmp141026c'
+						tmpdir			<- paste(tmpdir,label,sep='')
+						dir.create(tmpdir, showWarnings=FALSE)																														
+						set(pipeline.args, which( pipeline.args$stat=='s.PREV.max' ), 'v', '0.185')
+						file.copy(paste(indir,'/',infile.ind,'_IND.csv',sep=''), paste(tmpdir,'/',infile.ind,'_IND.csv',sep=''))
+						file.copy(paste(indir,'/',infile.trm,'_TRM.csv',sep=''), paste(tmpdir,'/',infile.trm,'_TRM.csv',sep=''))
+						file			<- rPANGEAHIVsim.pipeline(tmpdir, paste(infile.ind,'_IND.csv',sep=''), paste(infile.trm,'_TRM.csv',sep=''), tmpdir, pipeline.args=pipeline.args)
+						system(file)	
+					}					
+				}, by='label']
+	}
+}
+##--------------------------------------------------------------------------------------------------------
 ##	check simulated sequences: create ExaML tree and estimate R2
 ##	olli 14.09.14
 ##--------------------------------------------------------------------------------------------------------
-project.PANGEA.TEST.pipeline<- function()
+project.PANGEA.TEST.pipeline.October2014<- function()
 {	
 	if(0)
 	{
@@ -2063,7 +2265,7 @@ project.PANGEA.TEST.SSApg.BEAST<- function()
 	tree.id.labelsep		<- '|'
 	tree.id.label.idx.ctime	<- 4 
 	select		<- 'divergent'
-	indir		<- '/Users/Oliver/duke/2014_Gates/methods_comparison_pipeline/140928'
+	indir		<- '/Users/Oliver/duke/2014_Gates/methods_comparison_pipeline/141026'
 	#indir		<- '/Users/Oliver/git/HPTN071sim/tmp140914/140716_RUN001_INTERNAL'  
 	outdir		<- indir
 	infiles		<- list.files(indir, '.*INTERNAL.R$', full.names=FALSE)
@@ -2298,8 +2500,8 @@ project.PANGEA.TEST.SSApg.ExaMLR2<- function()
 	require(hivclust)
 	tree.id.labelsep		<- '|'
 	tree.id.label.idx.ctime	<- 4 
-	indir		<- '/Users/Oliver/duke/2014_Gates/methods_comparison_pipeline/140928'  
-	outdir		<- '/Users/Oliver/duke/2014_Gates/methods_comparison_pipeline/140928'
+	indir		<- '/Users/Oliver/duke/2014_Gates/methods_comparison_pipeline/141026'  
+	outdir		<- '/Users/Oliver/duke/2014_Gates/methods_comparison_pipeline/141026'
 	infiles		<- list.files(indir, '.*INTERNAL.R$', full.names=FALSE)
 	#stopifnot(length(infiles)==1)
 	#
@@ -2368,7 +2570,7 @@ project.PANGEA.TEST.SSApg.ExaMLR2<- function()
 		cmd				<- hivc.cmd.hpcwrapper(cmd, hpc.walltime=21, hpc.q= NA, hpc.mem="450mb", hpc.nproc=1)
 		cmd.hpccaller(outdir, paste("exa",paste(strsplit(date(),split=' ')[[1]],collapse='_',sep=''),sep='.'), cmd)
 		Sys.sleep(1)
-		if(0)
+		if(1)
 		{
 			#
 			#	run ExaML on concatenated
@@ -2390,7 +2592,7 @@ project.PANGEA.TEST.SSApg.ExaMLR2<- function()
 	#
 	#	evaluate R2 for pol
 	#
-	gene			<- 'pol'
+	gene			<- 'conc'
 	infiles			<- list.files(indir, paste('^ExaML_result.*',gene,'seq.*finaltree.000$',sep=''), full.names=FALSE)
 	for(i in seq_along(infiles))
 	{

@@ -531,8 +531,33 @@ PANGEA.ImportSimulator.SimulateIndexCase<- function(df.ind, df.trm, epi.import)
 	list(df.ind=df.ind, df.trm=df.trm)
 }
 ##--------------------------------------------------------------------------------------------------------
+#	simulate guide to sequence sampling times. if not NA, then in every year, individuals in +-6mo to the guide are sampled	
+#	olli originally written 24-10-2014
+##--------------------------------------------------------------------------------------------------------
+PANGEA.Seqsampler.SimulateGuideToSamplingTimes<- function(df.ind, seqtime.mode)
+{
+	stopifnot(seqtime.mode%in%c('Gamma3','Gamma9','Unif12'))
+	cat(paste('\nUsing seqtime.mode=', seqtime.mode ))
+	if(seqtime.mode=='Gamma3')
+	{
+		library(distr) 
+		tmp		<- Gammad(shape=3, scale=2)
+		tmp		<- Truncate(tmp, lower=0, upper=8)
+		df.ind[, T1_SEQ:= df.ind[, r(tmp)(nrow(df.ind)) + TIME_TR]]			
+	}
+	if(seqtime.mode=='Gamma9')
+	{
+		df.ind[, T1_SEQ:= df.ind[, rgamma(nrow(df.ind),shape=9,scale=0.25 ) + TIME_TR]]	
+	}
+	if(seqtime.mode=='Unif12')
+	{
+		df.ind[, T1_SEQ:=NA_real_]
+	}
+	df.ind
+}
+##--------------------------------------------------------------------------------------------------------
 #	return ancestral sequence sampler	
-#	olli originally written 11-09-2014
+#	olli originally written 24-10-2014
 ##--------------------------------------------------------------------------------------------------------
 PANGEA.Seqsampler<- function(df.ind, df.trm, pipeline.args, outfile.ind, outfile.trm, with.plot=1)
 {	
@@ -573,7 +598,7 @@ PANGEA.Seqsampler<- function(df.ind, df.trm, pipeline.args, outfile.ind, outfile
 	set(df.sample, NULL, 's.n.TOTAL', c(df.sample[1, s.n.CUMTOTAL], df.sample[, diff(s.n.CUMTOTAL)]))	
 	set(df.sample, NULL, 's.n.INC', df.sample[, round(INC/(PREV-s.n.CUMTOTAL) * s.n.TOTAL)])
 	set(df.sample, NULL, 's.n.notINC', df.sample[, round(s.n.TOTAL-s.n.INC)])
-	stopifnot(df.sample[, all(s.n.TOTAL>0)])
+	stopifnot(df.sample[, all(s.n.TOTAL>=0)])
 	cat(paste('\n total number of sequences sampled=', df.sample[, sum( s.n.TOTAL )]))
 	cat(paste('\n prop of sequences sampled among HIV+=', df.sample[, sum( s.n.TOTAL )] / df.sample[, rev(PREV)[1]]))		
 	cat(paste('\n total number of incident sequences to sample=', df.sample[, sum( s.n.INC )]))
@@ -590,6 +615,250 @@ PANGEA.Seqsampler<- function(df.ind, df.trm, pipeline.args, outfile.ind, outfile
 									TIME_SEQ=TIME_TR[z]+rexp(length(z), rate=1/(3*30))/365, 
 									INCIDENT_SEQ=rep('Y',length(z) ) )
 						}, by='YR']
+	df.inds	<- merge(df.inds, subset(tmp, select=c(IDPOP, TIME_SEQ, INCIDENT_SEQ)), by='IDPOP', all.x=1)
+	tmp		<- df.inds[, which(TIME_SEQ>DOD)]
+	set(df.inds, tmp, 'TIME_SEQ', df.inds[tmp, TIME_TR+(DOD-TIME_TR)/2])
+	cat(paste('\n total number of incident sequences sampled=', df.inds[, length(which(!is.na(TIME_SEQ)))] ))	
+	#	sample non-incident cases by year
+	for(yr in df.sample[, YR])		#TODO took out [-1] because there are s.n.notINC for DSPS in 1980
+	{
+		#	of all infected and not incident and not yet sampled, sample
+		cat(paste('\nadd non-incident samples in year',yr))
+		tmp		<- subset(df.inds, is.na(TIME_SEQ) & floor(DOB)<=yr & ceiling(DOD)>yr+1 & yr-TIME_TR>1)
+		cat(paste('\navailable non-sampled non-incident cases in year=',nrow(tmp)))
+		tmp		<- subset(tmp, yr-TIME_TR<12)
+		cat(paste('\navailable with TIME_TR at most 12 years earlier, n=',nrow(tmp)))		
+		tmp		<- subset(tmp, is.na(T1_SEQ) | (T1_SEQ-0.5<=yr & T1_SEQ+0.5>yr & T1_SEQ-0.5-TIME_TR>1))
+		cat(paste('\navailable with T1_SEQ +- 6mo, n=',nrow(tmp)))
+		tmp2	<- df.sample[['s.n.notINC']][ which(df.sample[['YR']]==yr) ]
+		stopifnot(tmp2<=nrow(tmp))
+		tmp2	<- sample(seq_len(nrow(tmp)), tmp2)
+		#	set variables in df.inds		
+		tmp		<- data.table(IDPOP= tmp[tmp2, IDPOP], TIME_SEQ=runif(length(tmp2), min=yr, max=yr+1), INCIDENT_SEQ=rep('N',length(tmp2) ))
+		cat(paste('\nsampled non-incident cases in year=',nrow(tmp)))
+		tmp2	<- sapply(tmp[,IDPOP], function(x) df.inds[,which(IDPOP==x)])
+		set(df.inds, tmp2, 'TIME_SEQ', tmp[,TIME_SEQ])
+		set(df.inds, tmp2, 'INCIDENT_SEQ', tmp[,INCIDENT_SEQ])		
+	}
+	stopifnot( df.inds[, !any(TIME_SEQ>DOD, na.rm=TRUE)] )
+	stopifnot( df.inds[, !any(TIME_SEQ<TIME_TR, na.rm=TRUE)] )	
+	cat(paste('\n total number of HIV+ in df.inds=', nrow(subset(df.inds, !is.na(TIME_TR)))))
+	cat(paste('\n total number of sampled HIV+ in df.inds=', nrow(subset(df.inds, !is.na(TIME_TR) & !is.na(TIME_SEQ)))))	
+	#
+	#	interpolate CD4 count at time of sampling
+	#
+	tmp		<- subset(df.inds, !is.na(TIME_SEQ), select=c(IDPOP, TIME_TR, INCIDENT_SEQ, TIME_SEQ, T1_CD4_500, T1_CD4_350, T1_CD4_200, DOD))
+	set(tmp, NULL, 'TIME_TR', tmp[, TIME_TR-0.05])
+	set(tmp, NULL, 'DOD', tmp[, DOD+0.05])
+	setnames(tmp, c('TIME_TR','DOD'), c('T1_CD4_1000','T1_CD4_100'))
+	tmp		<- melt(tmp, id.vars=c('IDPOP','TIME_SEQ','INCIDENT_SEQ'), value.name='T1_CD4', variable.name='CD4')
+	set(tmp, NULL, 'CD4', tmp[, as.numeric(sapply(strsplit(as.character(CD4),'_'),'[[',3)) ])
+	tmp2	<- tmp[, which(CD4==1000)]
+	set(tmp, tmp2, 'CD4', runif(length(tmp2), min=700, max=1000))
+	#tmp		<- tmp[, list(TIME_SEQ=TIME_SEQ[1], CD4_SEQ=exp(approx(T1_CD4, log(CD4), xout=TIME_SEQ[1], rule=1)$y)), by='IDPOP']
+	tmp		<- tmp[, list(TIME_SEQ=TIME_SEQ[1], CD4_SEQ=round(approx(T1_CD4, CD4, xout=TIME_SEQ[1], rule=1)$y)), by='IDPOP']
+	stopifnot( tmp[, !any(is.na(CD4_SEQ))] )
+	df.inds	<- merge(df.inds, tmp, all.x=TRUE, by=c('IDPOP','TIME_SEQ'))
+	#
+	#	check that allocation OK
+	#	
+	set(df.inds, NULL, 'TIME_SEQYR', df.inds[, floor(TIME_SEQ)])
+	tmp	<- subset(df.inds, !is.na(TIME_SEQ))[, list(s.n.TOTAL=length(IDPOP)), by='TIME_SEQYR']
+	setkey(tmp, TIME_SEQYR)
+	set(tmp,NULL,'s.n.CUMTOTAL',tmp[, cumsum(s.n.TOTAL)])
+	stopifnot(  tmp[,tail(s.n.CUMTOTAL,1)]==df.sample[, tail(s.n.CUMTOTAL,1)] ) 
+	#	set sampling in df.trm
+	tmp		<- subset( df.inds, !is.na(TIME_SEQ), select=c(IDPOP, TIME_SEQ) )
+	setnames(tmp, c('IDPOP','TIME_SEQ'), c('IDREC','SAMPLED_REC'))
+	df.trms	<- merge(df.trm, tmp, by='IDREC', all.x=TRUE)
+	setnames(tmp, c('IDREC','SAMPLED_REC'), c('IDTR','SAMPLED_TR'))
+	df.trms	<- merge(df.trms, tmp, by='IDTR', all.x=TRUE)	
+	#
+	#	TRANSMISSION NETWORKS
+	#
+	require(igraph)
+	#	cluster with index case
+	tmp			<- subset(df.trms, select=c(IDTR, IDREC))			
+	tmp			<- graph.data.frame(tmp, directed=TRUE, vertices=NULL)
+	tmp			<- data.table(IDPOP=as.integer(V(tmp)$name), CLU=clusters(tmp, mode="weak")$membership)
+	tmp2		<- tmp[, list(CLU_SIZE=length(IDPOP)), by='CLU']
+	setkey(tmp2, CLU_SIZE)
+	tmp2[, IDCLU:=rev(seq_len(nrow(tmp2)))]
+	tmp			<- subset( merge(tmp, tmp2, by='CLU'), select=c(IDPOP, IDCLU) )
+	setnames(tmp, 'IDPOP', 'IDREC')
+	df.trms		<- merge( df.trms, tmp, by='IDREC', all.x=TRUE )
+	stopifnot( nrow(subset(df.trms, is.na(IDCLU)))==0 )
+	cat(paste('\nFound transmission clusters, n=', df.trms[, length(unique(IDCLU))]))
+	#	add IDCLU to df.inds
+	tmp			<- subset( df.trms, select=c(IDREC, IDTR, IDCLU) )
+	tmp			<- subset( melt(tmp, id.var='IDCLU', value.name='IDPOP'), select=c(IDPOP, IDCLU))
+	setkey(tmp, IDPOP, IDCLU)
+	tmp			<- unique(tmp)
+	df.inds		<- merge( df.inds, tmp, by='IDPOP', all.x=TRUE )
+	#
+	#	PLOTS
+	#
+	if(with.plot)
+	{
+		require(ggplot2)
+		require(reshape2)
+		#	plot numbers sampled, prevalent, incident
+		set(df.sample, NULL, 'POP', df.sample[, as.numeric(POP)])
+		set(df.sample, NULL, 'PREV', df.sample[, as.numeric(PREV)])
+		set(df.sample, NULL, 'INC', df.sample[, as.numeric(INC)])
+		tmp	<- data.table(	stat=c('POP','PREV','INC','ACUTEp','IMPORTp','s.n.TOTAL','s.n.INC','s.n.notINC'), 
+				stat.long=c('population size','HIV infected', 'HIV incident', 'Proportion incident\nfrom acute in study', 'Proportion incident\nimported', 'Total\nsequenced', 'Total\nincident\nsequenced', 'Total\nnon-incident\nsequenced'))
+		tmp	<- merge(	melt(df.sample, id.vars='YR', measure.vars=c('POP','PREV','INC','ACUTEp','IMPORTp','s.n.TOTAL','s.n.INC','s.n.notINC'), variable.name='stat', value.name='v'),
+				tmp, by='stat' )
+		ggplot(tmp, aes(x=YR, y=v, group=stat.long)) + geom_point() +
+				scale_x_continuous(name='year', breaks=seq(1980,2020,2)) + scale_y_continuous(name='total')	+
+				facet_grid(stat.long ~ ., scales='free_y', margins=FALSE)
+		file<- paste(substr(outfile.ind, 1, nchar(outfile.ind)-7),'INFO_Totals.pdf',sep='')
+		cat(paste('\nPlotting to file',file))
+		ggsave(file=file, w=16, h=10)	
+		#	plot CD4 counts at time of sampling
+		ggplot(subset(df.inds, !is.na(TIME_SEQ)), aes(x=TIME_SEQ, y=CD4_SEQ, colour=INCIDENT_SEQ)) + geom_point() + geom_smooth() + scale_y_continuous(breaks=seq(100,1000,100))		
+		file<- paste(substr(outfile.ind, 1, nchar(outfile.ind)-7),'INFO_CD4.pdf',sep='')
+		cat(paste('\nPlotting to file',file))
+		ggsave(file=file, w=8, h=8)					
+		ggplot(subset(df.inds, !is.na(TIME_SEQ)), aes(x=floor(TIME_SEQ), fill=cut(CD4_SEQ, breaks=c(0,200,350,500,700,2000)))) + geom_bar(binwidth=1, position='fill') + 
+				labs(fill='CD4 category', y='percent', x='year sequenced') + scale_y_continuous(breaks=seq(0,1,0.1)) + scale_fill_brewer(palette='Set1')		
+		file<- paste(substr(outfile.ind, 1, nchar(outfile.ind)-7),'INFO_CD4PROP.pdf',sep='')
+		cat(paste('\nPlotting to file',file))
+		ggsave(file=file, w=8, h=8)			
+		#	plot distribution between transmission time and sequencing time
+		tmp	<- subset(df.inds, !is.na(TIME_SEQ))
+		set(tmp, NULL, 'TIME_TO_SEQ', tmp[, TIME_SEQ-TIME_TR])
+		ggplot(tmp, aes(x=TIME_TO_SEQ)) + geom_histogram(binwidth=1) + 
+				scale_x_continuous(name='time from transmission to sequence sampling\n(years)', breaks=seq(0,100,2))
+		file<- paste(substr(outfile.ind, 1, nchar(outfile.ind)-7),'INFO_Time2Seq.pdf',sep='')
+		ggsave(file=file, w=8, h=8)
+		#	plot distribution of #recipients per infector
+		tmp	<- df.trms[, list(N= length(IDREC)), by='IDTR']
+		ggplot(tmp, aes(x=N)) + geom_histogram(binwidth=1, aes(y= ..density..)) +
+				scale_x_continuous(name='recipients per source case\n(number)', breaks=seq(1,100,1)+0.5, label=seq(1,100,1)) +
+				scale_y_continuous(breaks=seq(0,1,0.05))
+		file<- paste(substr(outfile.ind, 1, nchar(outfile.ind)-7),'INFO_RecSource.pdf',sep='')
+		ggsave(file=file, w=8, h=8)
+		#	plot time to death for infected
+		tmp	<- subset(df.inds, !is.na(TIME_TR) & IDPOP>0 & DOD<max(DOD, na.rm=1), select=c(TIME_TR, DOD))
+		ggplot(tmp, aes(x=DOD-TIME_TR)) + geom_histogram(binwidth=1, aes(y= ..density..)) +
+				scale_x_continuous(name='time to death for HIV+\n(years)', breaks=seq(1,100,2))
+		file<- paste(substr(outfile.ind, 1, nchar(outfile.ind)-7),'INFO_T2DeathForInf.pdf',sep='')
+		ggsave(file=file, w=8, h=8)		
+		#	plot transmission network
+		file		<- paste(substr(outfile.ind, 1, nchar(outfile.ind)-7),'INFO_TrNetworks.pdf',sep='')
+		cat(paste('\nPlotting to file',file))
+		pdf(file=file, w=20, h=20)
+		dummy	<- sapply( df.inds[, sort(na.omit(unique(IDCLU)))], function(clu)
+				{
+					cat(paste('\nprocess cluster no',clu))
+					tmp					<- subset(df.inds, IDCLU==clu & IDPOP>=0, select=c(IDPOP, GENDER, TIME_SEQ))
+					tmp[, IS_SEQ:= tmp[, factor(!is.na(TIME_SEQ), label=c('N','Y'), levels=c(FALSE, TRUE))]]
+					clu.igr				<- graph.data.frame(subset(df.trms, IDCLU==clu & IDTR>=0, select=c(IDTR, IDREC)), directed=TRUE, vertices=subset(tmp, select=c(IDPOP, GENDER, IS_SEQ)))
+					V(clu.igr)$color	<- ifelse( get.vertex.attribute(clu.igr, 'IS_SEQ')=='Y', 'green', 'grey90' )
+					V(clu.igr)$shape	<- ifelse( get.vertex.attribute(clu.igr, 'GENDER')=='M', 'circle', 'square' )
+					
+					par(mai=c(0,0,1,0))
+					plot(clu.igr, main=paste('IDCLU=',clu,sep=''), vertex.size=2, vertex.label.cex=0.25, edge.arrow.size=0.5, layout=layout.fruchterman.reingold(clu.igr, niter=1e3) )
+					legend('bottomright', fill=c('green','grey90'), legend=c('sequence sampled','sequence not sampled'), bty='n')
+					legend('bottomleft', legend=c('square= Female','circle= Male'), bty='n')				
+				})
+		dev.off()
+		#ggplot(df.trms, aes(x=IDTR, y=TIME_TR)) + geom_point()
+		#ggplot(df.trms, aes(x=IDTR, y=IDCLU)) + geom_point()
+	}
+	#
+	#	SAVE SAMPLED RECIPIENTS AND TRANSMISSIONS TO SAMPLED RECIPIENTS
+	#
+	#	save for us
+	file		<- paste(substr(outfile.ind, 1, nchar(outfile.ind)-7),'SAVE.R',sep='')
+	save(file=file, df.epi, df.trms, df.inds, df.sample)
+	#	save for virus tree simulator
+	#	exclude columns that are not needed	
+	df.inds	<- subset(df.inds, !is.na(TIME_TR))
+	if('RISK'%in%colnames(df.inds))
+		df.inds[, RISK:=NULL]
+	if('INCIDENT_SEQ'%in%colnames(df.inds))
+		df.inds[, INCIDENT_SEQ:=NULL]
+	if('TIME_SEQYR'%in%colnames(df.inds))
+		df.inds[, TIME_SEQYR:=NULL]	
+	if('TR_ACUTE'%in%colnames(df.trms))
+		df.trms[, TR_ACUTE:=NULL]
+	if('YR'%in%colnames(df.trms))
+		df.trms[, YR:=NULL]	
+	#	add columns that the virus tree simulator needs
+	if(!'IDTR_TIME_INFECTED'%in%colnames(df.trms))
+	{
+		tmp		<- subset( df.inds, !is.na(TIME_TR), c(IDPOP, TIME_TR) )
+		setnames(tmp, c('IDPOP','TIME_TR'), c('IDTR','IDTR_TIME_INFECTED') )
+		df.trms	<- merge(df.trms, tmp, by='IDTR', all.x=TRUE)		
+	}
+	cat(paste('\nwrite to file',outfile.ind))
+	write.csv(file=outfile.ind, df.inds)
+	cat(paste('\nwrite to file',outfile.trm))
+	write.csv(file=outfile.trm, df.trms)
+}
+##--------------------------------------------------------------------------------------------------------
+#	return ancestral sequence sampler	
+#	olli originally written 11-09-2014
+##--------------------------------------------------------------------------------------------------------
+PANGEA.Seqsampler.v1<- function(df.ind, df.trm, pipeline.args, outfile.ind, outfile.trm, with.plot=1)
+{	
+	#	TODO is IDTR integer?
+	# 	compute prevalence and incidence by year
+	#	sampling model
+	epi.adult	<- 13
+	suppressWarnings( df.trm[, YR:= df.trm[, floor(TIME_TR)]] )
+	df.epi		<- df.trm[, list(INC=length(IDREC), INC_ACUTE=length(which(TR_ACUTE=='Yes')),IMPORT=length(which(IDTR<0))), by='YR']
+	tmp			<- df.epi[, 	{
+				sexactive	<- which( floor(df.ind[['DOB']]+epi.adult)<=YR  &  ceiling(df.ind[['DOD']])>YR )
+				infected	<- which( floor(df.ind[['DOB']])<=YR  &  floor(df.ind[['DOD']])>YR  &  floor(df.ind[['TIME_TR']])<=YR )
+				infdead		<- which( floor(df.ind[['DOD']])==YR  &  floor(df.ind[['TIME_TR']])<=YR )
+				list(POP=length(sexactive), PREV=length(infected), PREVDIED=length(infdead))				
+			},by='YR']
+	df.epi		<- merge( tmp, df.epi, by='YR' )	
+	set(df.epi, NULL, 'PREVp', df.epi[, PREV/(POP-PREV)])	
+	set(df.epi, NULL, 'INCp', df.epi[, INC/(POP-PREV)])
+	set(df.epi, NULL, 'IMPORTp', df.epi[, IMPORT/INC])
+	set(df.epi, NULL, 'ACUTEp', df.epi[, INC_ACUTE/INC])
+	# 	SAMPLING PROBABILITIES and TOTALS PER YEAR
+	#
+	#	Can we detect a 25% or 50% reduction in HIV incidence in the most recent 2 or 3 years 
+	#	with 1%, 5%, 10% of all recent incident cases sampled?
+	#
+	#	suppose exponentially increasing sampling over time
+	#	the number of incident cases sampled is the total sampled in that year * the proportion of incident cases out of all non-sampled cases to date
+	#	TODO this needs to be changed to fix the proportion of sequences sampled from incident
+	s.PREV.base	<- exp(1)
+	df.sample	<- subset( df.epi, YR>= pipeline.args['yr.start',][, as.numeric(v)] & YR<pipeline.args['yr.end',][, as.numeric(v)] )
+	#	exponential rate of increasing s.TOTAL (total sampling rate) per year
+	tmp			<- log( pipeline.args['s.PREV.max',][, as.numeric(v)]/pipeline.args['s.PREV.min',][, as.numeric(v)], base=s.PREV.base ) / df.sample[, diff(range(YR))]
+	tmp			<- df.sample[, s.PREV.base^( tmp*(YR-min(YR)) ) * pipeline.args['s.PREV.min',][, as.numeric(v)] ]	
+	#tmp			<- log( 1+pipeline.args['s.PREV.max',][, as.numeric(v)]-pipeline.args['s.PREV.min',][, as.numeric(v)], base=s.PREV.base ) / df.sample[, diff(range(YR))]
+	#tmp			<- df.sample[, s.PREV.base^( tmp*(YR-min(YR)) ) - 1 + pipeline.args['s.PREV.min',][, as.numeric(v)] ]
+	set(df.sample, NULL, 's.CUMTOTAL', tmp)		
+	set(df.sample, NULL, 's.n.CUMTOTAL', df.sample[, round(PREV*s.CUMTOTAL)])
+	set(df.sample, NULL, 's.n.TOTAL', c(df.sample[1, s.n.CUMTOTAL], df.sample[, diff(s.n.CUMTOTAL)]))	
+	set(df.sample, NULL, 's.n.INC', df.sample[, round(INC/(PREV-s.n.CUMTOTAL) * s.n.TOTAL)])
+	set(df.sample, NULL, 's.n.notINC', df.sample[, round(s.n.TOTAL-s.n.INC)])
+	stopifnot(df.sample[, all(s.n.TOTAL>0)])
+	cat(paste('\n total number of sequences sampled=', df.sample[, sum( s.n.TOTAL )]))
+	cat(paste('\n prop of sequences sampled among HIV+=', df.sample[, sum( s.n.TOTAL )] / df.sample[, rev(PREV)[1]]))		
+	cat(paste('\n total number of incident sequences to sample=', df.sample[, sum( s.n.INC )]))
+	cat(paste('\n total number of non-incident sequences to sample=', df.sample[, sum( s.n.notINC )]))	
+	#	SAMPLE INFECTED INDIVIDUALS BASED ON NUMBERS PER YEAR
+	#
+	#	sample incident cases by year
+	df.inds	<- copy(df.ind)
+	tmp		<- subset(df.trm, YR>= pipeline.args['yr.start',][, as.numeric(v)])
+	tmp		<- tmp[, {
+				z	<- df.sample[['s.n.INC']][ which(df.sample[['YR']]==YR) ]
+				z	<- sample(seq_along(IDREC), z)
+				list( 	IDPOP=IDREC[z], TIME_TR=TIME_TR[z], 
+						TIME_SEQ=TIME_TR[z]+rexp(length(z), rate=1/(3*30))/365, 
+						INCIDENT_SEQ=rep('Y',length(z) ) )
+			}, by='YR']
 	df.inds	<- merge(df.inds, subset(tmp, select=c(IDPOP, TIME_SEQ, INCIDENT_SEQ)), by='IDPOP', all.x=1)
 	cat(paste('\n total number of incident sequences sampled=', df.inds[, length(which(!is.na(TIME_SEQ)))] ))	
 	#	sample non-incident cases by year
@@ -708,7 +977,9 @@ PANGEA.Seqsampler<- function(df.ind, df.trm, pipeline.args, outfile.ind, outfile
 					legend('bottomright', fill=c('green','grey90'), legend=c('sequence sampled','sequence not sampled'), bty='n')
 					legend('bottomleft', legend=c('square= Female','circle= Male'), bty='n')				
 				})
-		dev.off()	
+		dev.off()
+		#ggplot(df.trms, aes(x=IDTR, y=TIME_TR)) + geom_point()
+		#ggplot(df.trms, aes(x=IDTR, y=IDCLU)) + geom_point()
 	}
 	#
 	#	SAVE SAMPLED RECIPIENTS AND TRANSMISSIONS TO SAMPLED RECIPIENTS
@@ -958,12 +1229,18 @@ PANGEA.TransmissionEdgeEvolutionaryRate.create.sampler<- function(er.meanlog, er
 		tmp		<- data.table(	x=x, 
 								y5=dLOGNO(x, mu=log(0.002239075)-0.05^2/2, sigma=0.05), y7=dLOGNO(x, mu=log(0.002239075)-0.07^2/2, sigma=0.07), y10=dLOGNO(x, mu=log(0.002239075)-0.1^2/2, sigma=0.1), y13=dLOGNO(x, mu=log(0.002239075)-0.13^2/2, sigma=0.13), 
 								W441=dLOGNO(x, mu=log(0.00447743)-0.3^2/2, sigma=0.3), W442=dLOGNO(x, mu=log(0.00447743)-0.4^2/2, sigma=0.4), W443=dLOGNO(x, mu=log(0.00447743)-0.5^2/2, sigma=0.5))
+		#	times 2				
 		tmp		<- data.table(	x=x, 
 								TransmissionLineage=dLOGNO(x, mu=log(0.002239075)-0.13^2/2, sigma=0.13), 
 								TipBranch=dLOGNO(x, mu=log(0.00447743)-0.3^2/2, sigma=0.3))
+		#	times 1.5				
 		tmp		<- data.table(	x=x, 
-								TransmissionLineage=dLOGNO(x, mu=log(0.002239075)-0.01^2/2, sigma=0.01), 
-								TipBranch=dLOGNO(x, mu=log(0.003)-0.2^2/2, sigma=0.2))
+								TransmissionLineage=dLOGNO(x, mu=log(0.002239075)-0.13^2/2, sigma=0.13), 
+								TipBranch=dLOGNO(x, mu=log(0.003358613)-0.3^2/2, sigma=0.3))
+						
+		#tmp		<- data.table(	x=x, 
+		#						TransmissionLineage=dLOGNO(x, mu=log(0.002239075)-0.01^2/2, sigma=0.01), 
+		#						TipBranch=dLOGNO(x, mu=log(0.003)-0.2^2/2, sigma=0.2))
 						
 		tmp		<- melt(tmp, id.var='x')
 		ggplot(tmp, aes(x=x, y=value, group=variable, colour=variable)) + geom_line() + scale_x_continuous(breaks=seq(0,0.02,0.001))		

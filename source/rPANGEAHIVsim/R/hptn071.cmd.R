@@ -1,7 +1,9 @@
 PR.PACKAGE					<- "rPANGEAHIVsim"
-PR.STARTME					<- system.file(package=PR.PACKAGE, "misc", "rPANGEAHIV.startme.R")
+#PR.STARTME					<- system.file(package=PR.PACKAGE, "misc", "rPANGEAHIV.startme.R")
+PR.STARTME					<- '/Users/Oliver/git/HPTN071sim/source/rPANGEAHIVsim/misc/rPANGEAHIV.startme.R'
 PR.HPTN071.INPUT.PARSER1	<- paste(PR.STARTME,"-exe=HPTN071.INPUT.PARSER1",sep=' ')
 PR.HPTN071.INPUT.PARSER2	<- paste(PR.STARTME,"-exe=HPTN071.INPUT.PARSER2",sep=' ')
+PR.HPTN071.INPUT.PARSER3	<- paste(PR.STARTME,"-exe=HPTN071.INPUT.PARSER3",sep=' ')
 PR.DSPS.INPUT.PARSER2		<- paste(PR.STARTME,"-exe=DSPS.INPUT.PARSER2",sep=' ')
 PR.SEQGEN.FILECREATOR		<- paste(PR.STARTME,"-exe=PR.SEQGEN.FILECREATOR",sep=' ')
 PR.SEQGEN.SIMULATOR			<- paste(PR.STARTME,"-exe=PR.SEQGEN.SIMULATOR",sep=' ')
@@ -109,12 +111,33 @@ cmd.HPTN071.input.parser.v2<- function(indir, infile.trm, infile.ind, infile.arg
 {
 	cmd<- "#######################################################
 # start: run HPTN071.input.parser.v2
-#######################################################"
+			#######################################################"
 	cmd		<- paste(cmd, paste("\necho \'run ",prog,"\'\n",sep=''))
 	cmd		<- paste(cmd, paste(prog,' -indir=', indir,' -infile.trm=',infile.trm,' -infile.ind=',infile.ind,' -infile.args=',infile.args,' -outdir=',outdir,' -outfile.ind=',outfile.ind,' -outfile.trm=',outfile.trm,' \n', sep=''))
 	cmd		<- paste(cmd,paste("echo \'end ",prog,"\'\n",sep=''))
 	cmd		<- paste(cmd,"#######################################################
 # end: run HPTN071.input.parser.v2
+					#######################################################\n",sep='')
+	cmd
+}
+##--------------------------------------------------------------------------------------------------------
+##	command line generator for 'prog.HPTN071.input.parser.v3'
+##	olli originally written 08-09-2014
+##--------------------------------------------------------------------------------------------------------
+#' @title Command line generator for \code{HPTN071.input.parser.v2}
+#' @return command line string
+#' @example example/ex.seq.sampler.v2.R
+#' @export
+cmd.HPTN071.input.parser.v3<- function(indir, infile.trm, infile.ind, infile.args, outdir, outfile.trm, outfile.ind, prog=PR.HPTN071.INPUT.PARSER3 )	
+{
+	cmd<- "#######################################################
+# start: run HPTN071.input.parser.v3
+#######################################################"
+	cmd		<- paste(cmd, paste("\necho \'run ",prog,"\'\n",sep=''))
+	cmd		<- paste(cmd, paste(prog,' -indir=', indir,' -infile.trm=',infile.trm,' -infile.ind=',infile.ind,' -infile.args=',infile.args,' -outdir=',outdir,' -outfile.ind=',outfile.ind,' -outfile.trm=',outfile.trm,' \n', sep=''))
+	cmd		<- paste(cmd,paste("echo \'end ",prog,"\'\n",sep=''))
+	cmd		<- paste(cmd,"#######################################################
+# end: run HPTN071.input.parser.v3
 #######################################################\n",sep='')
 	cmd
 }

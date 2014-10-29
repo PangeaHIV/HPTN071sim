@@ -1,4 +1,4 @@
-#! /Library/Frameworks/R.framework/Versions/2.15/Resources/bin/Rscript
+#! /Library/Frameworks/R.framework/Versions/3.1/Resources/bin/Rscript
 ##
 ##	first line in shell script starts with #! and points to absolute path to Rscript
 ##	CHANGE  as needed
@@ -53,6 +53,7 @@ if(length(args))
 					MAKE.RDATA				= "package.generate.rdafiles",					
 					HPTN071.INPUT.PARSER1	= "prog.HPTN071.input.parser.v1",
 					HPTN071.INPUT.PARSER2	= "prog.HPTN071.input.parser.v2",
+					HPTN071.INPUT.PARSER3	= "prog.HPTN071.input.parser.v3",
 					DSPS.INPUT.PARSER2		= "prog.DSPS.input.parser.v2",
 					PR.SEQGEN.FILECREATOR	= "prog.PANGEA.SeqGen.createInputFile",
 					PR.SEQGEN.SIMULATOR		= "prog.PANGEA.SeqGen.run"

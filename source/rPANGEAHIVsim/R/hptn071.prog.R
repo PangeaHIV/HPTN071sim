@@ -393,7 +393,10 @@ prog.PANGEA.SeqGen.run<- function()
 	#	save simulated data -- to be shared
 	#	
 	if(pipeline.args['epi.model'][,v]=='HPTN071')
-		tmp			<- subset( df.inds, !is.na(TIME_SEQ), select=c(IDPOP, GENDER, CIRCM, DOB, DOD, TIME_SEQ ) )
+	{
+		tmp			<- subset( df.inds, !is.na(TIME_SEQ), select=c(IDPOP, GENDER, CIRCM, DOB, DOD, TIME_SEQ, CD4_SEQ, INCIDENT_SEQ ) )
+		setnames(tmp, 'INCIDENT_SEQ', 'INCIDENT_WITHIN1YEAR_SEQ')
+	}		
 	if(pipeline.args['epi.model'][,v]=='DSPS')
 		tmp			<- subset( df.inds, !is.na(TIME_SEQ), select=c(IDPOP, GENDER, TIME_SEQ ) )
 	file			<- paste(outdir, '/', infile.prefix, 'SIMULATED_metadata.csv', sep='')
@@ -1243,7 +1246,7 @@ rPANGEAHIVsim.pipeline.args<- function(	yr.start=1980, yr.end=2020, seed=42,
 										wher.mu=0.005, wher.sigma=0.8,
 										bwerm.mu=1.5, bwerm.sigma=0.12, er.gamma=4,
 										dbg.GTRparam=0, dbg.rER=0, 
-										index.starttime.mode='normal', startseq.mode='sample')
+										index.starttime.mode='normal', startseq.mode='sample', seqtime.mode='Gamma9')									
 {
 	#explore within host Neff*tau model
 	if(0)
@@ -1285,8 +1288,8 @@ rPANGEAHIVsim.pipeline.args<- function(	yr.start=1980, yr.end=2020, seed=42,
 		set(df.sample, NULL, 's.PREV.max', df.sample[, factor(s.PREV.max, levels=c('0.11','0.15','0.185'), labels=c('A','B','C'))]) 			
 		ggplot(df.sample, aes(x=YR, y=s.fraction, colour=s.PREV.max)) + geom_line() + scale_y_continuous(breaks=seq(0, 0.16, 0.02)) + labs(colour='scenario', x='year', y='sampling fraction')		
 	}
-	pipeline.args	<- data.table(	stat= 	c('yr.start','yr.end','s.INC.recent','s.INC.recent.len', 's.PREV.min', 's.PREV.max', 's.seed', 'index.starttime.mode', 'startseq.mode', 'epi.model', 'epi.dt', 'epi.import','v.N0tau','v.r','v.T50','wher.mu','wher.sigma','bwerm.mu','bwerm.sigma','er.gamma','dbg.GTRparam','dbg.rER'), 
-									v	=	c(yr.start, yr.end, s.INC.recent, s.INC.recent.len, s.PREV.min, s.PREV.max, seed, index.starttime.mode, startseq.mode, epi.model, epi.dt, epi.import, v.N0tau, v.r, v.T50, wher.mu, wher.sigma, bwerm.mu, bwerm.sigma, er.gamma, dbg.GTRparam, dbg.rER) )
+	pipeline.args	<- data.table(	stat= 	c('yr.start','yr.end','s.INC.recent','s.INC.recent.len', 's.PREV.min', 's.PREV.max', 's.seed', 'index.starttime.mode', 'startseq.mode', 'seqtime.mode','epi.model', 'epi.dt', 'epi.import','v.N0tau','v.r','v.T50','wher.mu','wher.sigma','bwerm.mu','bwerm.sigma','er.gamma','dbg.GTRparam','dbg.rER'), 
+									v	=	c(yr.start, yr.end, s.INC.recent, s.INC.recent.len, s.PREV.min, s.PREV.max, seed, index.starttime.mode, startseq.mode, seqtime.mode, epi.model, epi.dt, epi.import, v.N0tau, v.r, v.T50, wher.mu, wher.sigma, bwerm.mu, bwerm.sigma, er.gamma, dbg.GTRparam, dbg.rER) )
 	setkey(pipeline.args, stat)	
 	pipeline.args
 }
@@ -1331,7 +1334,7 @@ rPANGEAHIVsim.pipeline<- function(indir, infile.ind, infile.trm, outdir, pipelin
 	cmd				<- paste(cmd, '\nmkdir -p ', outdir.TrChain,sep='')
 	if(pipeline.args['epi.model'][,v]=='HPTN071')
 	{
-		cmd			<- paste(cmd, cmd.HPTN071.input.parser.v2(indir, infile.trm, infile.ind, infile.args, outdir.TrChain,  infile.trm, infile.ind), sep='\n')	
+		cmd			<- paste(cmd, cmd.HPTN071.input.parser.v3(indir, infile.trm, infile.ind, infile.args, outdir.TrChain,  infile.trm, infile.ind), sep='\n')	
 	}	
 	if(pipeline.args['epi.model'][,v]=='DSPS')
 	{
@@ -2020,6 +2023,220 @@ prog.HPTN071.input.parser.v2<- function()
 	#	ignore T1_CD4350 for now
 	df.ind[, T1_CD4350:=NULL]
 	df.ind[, T1_SEQ:= df.ind[, rgamma(nrow(df.ind),shape=9,scale=0.25 ) + TIME_TR]]
+	#
+	#	reduce to time frame of interest
+	#
+	#tmp		<- subset( df.trm, TIME_TR>=as.numeric( pipeline.args['yr.end',][, as.numeric(v)] ) )[, IDREC]
+	df.trm	<- subset( df.trm, TIME_TR<as.numeric( pipeline.args['yr.end',][, as.numeric(v)] ) )
+	#df.ind	<- subset(df.ind, !IDPOP%in%tmp)
+	df.ind	<- subset(df.ind, is.na(DOB) | DOB<pipeline.args['yr.end',][, as.numeric(v)] )
+	df.ind	<- subset(df.ind, is.na(DOD) | DOD >= floor(min(df.trm$TIME_TR)) )
+	cat(paste('\nFound individuals born before',pipeline.args['yr.end',][, as.numeric(v)],', n=', nrow(df.ind)))
+	cat(paste('\nFound transmissions before',pipeline.args['yr.end',][, as.numeric(v)],', n=', nrow(df.trm)))
+	cat(paste('\nTotal transmitters, n=', df.trm[, length(unique(IDTR))]))		
+	stopifnot( length(setdiff( subset(df.trm, IDTR>0)[, IDTR], df.ind[, IDPOP] ))==0 )
+	stopifnot( length(setdiff( df.trm[, IDREC], df.ind[, IDPOP] ))==0 )
+	#	simulate a fraction of transmissions to be imports
+	tmp		<- PANGEA.ImportSimulator.SimulateIndexCase(df.ind, df.trm, epi.import= pipeline.args['epi.import',][,as.numeric(v)])
+	df.trm	<- tmp$df.trm
+	df.ind	<- tmp$df.ind
+	#
+	#	set infection times for index case
+	#
+	#	add IDTR_TIME_INFECTED for baseline cases
+	tmp		<- df.trm[, which(is.na(IDTR_TIME_INFECTED))]	
+	set( df.trm, tmp, 'IDTR_TIME_INFECTED', df.trm[tmp, runif(length(tmp), TIME_TR-5, TIME_TR)] )	
+	tmp		<- PANGEA.ImportSimulator.SimulateStartingTimeOfIndexCase(df.ind, df.trm, index.starttime.mode= pipeline.args['index.starttime.mode',][,v])
+	df.trm	<- tmp$df.trm
+	df.ind	<- tmp$df.ind	
+	#
+	#	sample sequences 
+	#
+	PANGEA.Seqsampler(df.ind, df.trm, pipeline.args, outfile.ind, outfile.trm, with.plot=with.plot)
+	#
+	return(1)
+}
+##--------------------------------------------------------------------------------------------------------
+##	olli originally written 23-10-2014
+##--------------------------------------------------------------------------------------------------------
+#' @title HPTN071 parser (version 3, uses CD4 counts)
+#' @description Reads files from the epi simulator in directory \code{indir} and writes csv files
+#' in directory \code{outdir} for the virus tree simulator. The program samples sequences according to
+#' an exponentially increasing sampling fraction in the same way as \code{prog.HPTN071.input.parser.v1}.
+#' In addition, transmissions are broken and treated as imported from outside the simulated population.
+#' The infected of a broken transmission chain is considered a new index case of a transmission chain within the 
+#' simulated population. All input arguments are specified via the \code{argv} 
+#' string, see the Examples.
+#' @return NULL. Saves simulations to file.
+#' @example example/ex.seq.sampler.v2.R
+#' @export
+prog.HPTN071.input.parser.v3<- function()	
+{
+	require(data.table)
+	verbose			<- 1
+	with.plot		<- 1	
+	pipeline.args	<- NULL
+	indir			<- system.file(package="rPANGEAHIVsim", "misc")
+	indir			<- ifelse(indir=='','/Users/Oliver/git/HPTN071sim/raw_trchain',indir)
+	outdir			<- '/Users/Oliver/git/HPTN071sim/tmp140908'
+	infile.ind		<- '140716_RUN001_IND.csv'
+	infile.trm		<- '140716_RUN001_TRM.csv'
+	infile.args		<- NA
+	outfile.ind		<- '140716_RUN001_IND.csv'
+	outfile.trm		<- '140716_RUN001_TRM.csv'
+	#
+	if(exists("argv"))
+	{
+		#	args input
+		tmp<- na.omit(sapply(argv,function(arg)
+						{	switch(substr(arg,2,6),
+									indir= return(substr(arg,8,nchar(arg))),NA)	}))
+		if(length(tmp)>0) indir<- tmp[1]		
+		tmp<- na.omit(sapply(argv,function(arg)
+						{	switch(substr(arg,2,11),
+									infile.ind= return(substr(arg,13,nchar(arg))),NA)	}))
+		if(length(tmp)>0) infile.ind<- tmp[1]
+		tmp<- na.omit(sapply(argv,function(arg)
+						{	switch(substr(arg,2,11),
+									infile.trm= return(substr(arg,13,nchar(arg))),NA)	}))
+		if(length(tmp)>0) infile.trm<- tmp[1]
+		tmp<- na.omit(sapply(argv,function(arg)
+						{	switch(substr(arg,2,12),
+									infile.args= return(substr(arg,14,nchar(arg))),NA)	}))
+		if(length(tmp)>0) infile.args<- tmp[1]
+		#	args output
+		tmp<- na.omit(sapply(argv,function(arg)
+						{	switch(substr(arg,2,7),
+									outdir= return(substr(arg,9,nchar(arg))),NA)	}))
+		if(length(tmp)>0) outdir<- tmp[1]		
+		tmp<- na.omit(sapply(argv,function(arg)
+						{	switch(substr(arg,2,12),
+									outfile.ind= return(substr(arg,14,nchar(arg))),NA)	}))
+		if(length(tmp)>0) outfile.ind<- tmp[1]
+		tmp<- na.omit(sapply(argv,function(arg)
+						{	switch(substr(arg,2,12),
+									outfile.trm= return(substr(arg,14,nchar(arg))),NA)	}))
+		if(length(tmp)>0) outfile.trm<- tmp[1]		
+	}
+	if(verbose)
+	{
+		cat('\ninput args\n',paste(indir, infile.ind, infile.trm, outdir, outfile.ind, outfile.trm, sep='\n'))
+	}	
+	if(!is.na(infile.args))
+	{
+		load(infile.args)	#expect 'pipeline.args'
+	}
+	if(is.null(pipeline.args))
+	{
+		cat('\nCould not find pipeline.args, generating default')
+		pipeline.args	<- rPANGEAHIVsim.pipeline.args()
+	}
+	stopifnot( all( c('yr.start', 'yr.end', 's.seed', 's.PREV.min', 's.PREV.max', 'epi.dt', 'epi.import')%in%pipeline.args[, stat] ) )
+	#
+	infile.ind	<- paste(indir, '/', infile.ind, sep='')
+	infile.trm	<- paste(indir, '/', infile.trm, sep='')
+	outfile.ind	<- paste(outdir, '/', outfile.ind, sep='')
+	outfile.trm	<- paste(outdir, '/', outfile.trm, sep='')
+	
+	#	set seed
+	set.seed( pipeline.args['s.seed',][, as.numeric(v)] )
+	#
+	#	prepare transmissions
+	#	
+	df.trm	<- as.data.table(read.csv(infile.trm, stringsAsFactors=FALSE, sep='', dec='.'))
+	setnames(df.trm, c("IdInfector","IdInfected","TimeOfInfection","IsInfectorAcute"), c('IDTR','IDREC','TIME_TR','TR_ACUTE'))
+	stopifnot( df.trm[, !any(is.na(TR_ACUTE))] )
+	set(df.trm, df.trm[, which(TR_ACUTE<0)], 'TR_ACUTE', NA_integer_)
+	set(df.trm, NULL, 'TR_ACUTE', df.trm[, factor(TR_ACUTE, levels=c(0,1), labels=c('No','Yes'))])
+	#	transmissions happen either at baseline, or at unique times.
+	#	the epi simulation allocates transmissions in 1/48 of a year, so draw a uniform number if there are more transmission per TIME_TR
+	tmp		<- df.trm[, range(TIME_TR)]
+	df.trm	<- df.trm[, {
+				z<- TIME_TR
+				if(TIME_TR>tmp[1] & length(IDTR)>1)
+					z<- sort(runif(length(IDTR), z, min(ceiling(tmp[2]), z+pipeline.args['epi.dt',][, as.numeric(v)])))
+				list(IDTR=IDTR, IDREC=IDREC, TIME_TR.new=z, TR_ACUTE=TR_ACUTE, l=length(IDTR))
+			}, by='TIME_TR']
+	df.trm[, TIME_TR:=NULL]
+	setnames(df.trm, 'TIME_TR.new', 'TIME_TR')	
+	#	set baseline cases as negative ID
+	tmp		<- df.trm[, which(IDTR=='-1')]
+	cat(paste('\nFound index cases, n=', length(tmp)))
+	set(df.trm, tmp, 'IDTR', rev(-seq_along(tmp)))
+	#	check that all transmission times except baseline are unique
+	tmp		<- subset(df.trm, TIME_TR>min(TIME_TR))
+	stopifnot( nrow(tmp)==tmp[,length(unique(TIME_TR))] )	
+	cat(paste('\nFound transmissions, n=', nrow(df.trm)))
+	cat(paste('\nTotal transmitters, n=', df.trm[, length(unique(IDTR))]))
+	cat(paste('\nTotal index cases, n=', df.trm[, length(which(unique(IDTR)<0))]))
+	#
+	#	prepare patient metavariables
+	#
+	df.ind	<- as.data.table(read.csv(infile.ind, stringsAsFactors=FALSE))		
+	setnames(df.ind, c(	"Id","Gender","DoB","DateOfDeath","RiskGroup","Circumcised"), c('IDPOP','GENDER','DOB','DOD','RISK','CIRCM'))
+	setnames(df.ind, c(	"t.cd4below350","t.cd4.500","t.cd4.350","t.cd4.200","t.aidsdeath","SPVL.category","t.sc"), c('T1_CD4_l350','T1_CD4_500','T1_CD4_350','T1_CD4_200',"DOAD","SPVL","DOSC"))		
+	set(df.ind, df.ind[, which(CIRCM=='')], 'CIRCM', NA_character_)
+	set(df.ind, NULL, 'CIRCM', df.ind[, factor(CIRCM)])
+	set(df.ind, NULL, 'GENDER', df.ind[, factor(GENDER)])
+	set(df.ind, NULL, 'RISK', df.ind[, factor(RISK)])	
+	set(df.ind, df.ind[, which(DOD==-1)], 'DOD', ceiling(max(df.trm$TIME_TR))+1.)
+	set(df.ind, df.ind[, which(DOAD==-10)], 'DOAD', ceiling(max(df.trm$TIME_TR))+1.)
+	set(df.ind, df.ind[, which(DOSC==-10)], 'DOSC', NA_real_)
+	set(df.ind, df.ind[, which(SPVL==-1)], 'SPVL', NA_integer_)
+	set(df.ind, NULL, 'SPVL', df.ind[, factor(SPVL, levels=c(0, 1, 2, 3), labels=c('le40','le45','le50','g50'))])	
+	set(df.ind, df.ind[, which(T1_CD4_500%in%c(-1,-10))],'T1_CD4_500',NA_real_)
+	stopifnot( df.ind[, !any(T1_CD4_500<0, na.rm=TRUE)])
+	set(df.ind, df.ind[, which(T1_CD4_350==-10)],'T1_CD4_350',NA_real_)
+	stopifnot( df.ind[, !any(T1_CD4_350<0, na.rm=TRUE)] )
+	set(df.ind, df.ind[, which(T1_CD4_200==-10)],'T1_CD4_200',NA_real_)
+	stopifnot( df.ind[, !any(T1_CD4_200<0, na.rm=TRUE)] )
+	set(df.ind, df.ind[, which(T1_CD4_l350==-10)],'T1_CD4_l350',NA_real_)
+	set(df.ind, df.ind[, which(T1_CD4_l350%in%c(-8,-9,-11,-12))],'T1_CD4_l350',Inf)	
+	stopifnot( df.ind[, !any(T1_CD4_l350<0, na.rm=TRUE)] )
+	stopifnot( df.ind[, !any(DOD>DOAD+0.125)] )
+	set(df.ind, NULL, c('T1_CD4_l350','DOAD'), NULL)
+	#	add transmission time
+	tmp			<- subset(df.trm, select=c(IDREC, TIME_TR))
+	stopifnot( df.ind[, !any(is.na(DOB))] )
+	setnames(tmp, 'IDREC','IDPOP')
+	df.ind		<- merge(df.ind, tmp, by='IDPOP', all.x=TRUE)
+	cat(paste('\nFound individuals with a valid record, n=', nrow(df.ind)))
+	cat(paste('\nFound individuals with an infection event, n=', nrow(subset(df.ind,!is.na(TIME_TR)))))
+	#	reset DOSC if needed, because TIME_TR got randomized above
+	tmp			<- df.ind[, which(DOSC<TIME_TR)]
+	set(df.ind, tmp, 'DOSC', df.ind[tmp, TIME_TR+(TIME_TR-DOSC)])
+	tmp			<- df.ind[, which(T1_CD4_500<TIME_TR)]
+	set(df.ind, tmp, 'T1_CD4_500', df.ind[tmp, TIME_TR+(TIME_TR-T1_CD4_500)])
+	tmp			<- df.ind[, which(T1_CD4_350<TIME_TR)]
+	set(df.ind, tmp, 'T1_CD4_350', df.ind[tmp, TIME_TR+(TIME_TR-T1_CD4_350)])
+	tmp			<- df.ind[, which(T1_CD4_200<TIME_TR)]
+	set(df.ind, tmp, 'T1_CD4_200', df.ind[tmp, TIME_TR+(TIME_TR-T1_CD4_200)])
+	stopifnot(df.ind[, !any(DOD<TIME_TR, na.rm=TRUE)])	
+	#	set T1_CD4 if starting with lower count than 500
+	tmp			<- df.ind[, which(!is.na(TIME_TR) & !is.na(T1_CD4_200) & is.na(T1_CD4_350))]
+	set(df.ind, tmp, 'T1_CD4_350', df.ind[tmp, TIME_TR])
+	set(df.ind, tmp, 'T1_CD4_500', df.ind[tmp, TIME_TR-0.01])
+	tmp			<- df.ind[, which(!is.na(TIME_TR) & !is.na(T1_CD4_350) & is.na(T1_CD4_500))]
+	set(df.ind, tmp, 'T1_CD4_500', df.ind[tmp, TIME_TR])
+	#	set T1_CD4 if ending with lower count than 200
+	tmp			<- df.ind[, which(!is.na(TIME_TR) & !is.na(T1_CD4_350) & is.na(T1_CD4_200))]
+	set(df.ind, tmp, 'T1_CD4_200', df.ind[tmp, DOD])
+	tmp			<- df.ind[, which(!is.na(TIME_TR) & !is.na(T1_CD4_500) & is.na(T1_CD4_350))]
+	set(df.ind, tmp, 'T1_CD4_350', df.ind[tmp, DOD])
+	set(df.ind, tmp, 'T1_CD4_200', df.ind[tmp, DOD+0.01])
+	tmp			<- df.ind[, which(!is.na(TIME_TR) & is.na(T1_CD4_500))]
+	set(df.ind, tmp, 'T1_CD4_500', df.ind[tmp, DOD])
+	set(df.ind, tmp, 'T1_CD4_350', df.ind[tmp, DOD+0.01])
+	set(df.ind, tmp, 'T1_CD4_200', df.ind[tmp, DOD+0.02])
+	#	T1_CD4 is only after acute phase, and before we interpolate from 1500. 
+	#	add time of infection of transmitter to df.trm	
+	tmp		<- subset(df.ind, select=c(IDPOP, TIME_TR))
+	setnames(tmp, c('IDPOP','TIME_TR'), c('IDTR','IDTR_TIME_INFECTED') )
+	setkey(tmp, IDTR)
+	df.trm	<- merge(df.trm, unique(tmp), by='IDTR', all.x=TRUE)		
+	#	simulate time individual ready for sequencing
+	df.ind	<- PANGEA.Seqsampler.SimulateGuideToSamplingTimes(df.ind, seqtime.mode= pipeline.args['seqtime.mode',][,v])
+	#
 	#
 	#	reduce to time frame of interest
 	#
