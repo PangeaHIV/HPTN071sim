@@ -402,10 +402,10 @@
         <uniformPrior lower="0.0001" upper="0.006">
             <parameter idref="ucld.mean"/>
         </uniformPrior>
-        <uniformPrior lower="25.0" upper="85.0">
+        <uniformPrior lower="35.0" upper="95.0">
             <parameter idref="treeModel.rootHeight"/>
         </uniformPrior>
-        <normalPrior mean="55.0" stdev="12.0">
+        <normalPrior mean="65.0" stdev="12.0">
             <parameter idref="treeModel.rootHeight"/>
         </normalPrior>
         <gammaPrior shape="0.0010" scale="1000.0" offset="0.0">

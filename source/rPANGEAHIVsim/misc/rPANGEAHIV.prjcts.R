@@ -1038,16 +1038,23 @@ project.PANGEA.TEST.scenarios<- function()
 ##--------------------------------------------------------------------------------------------------------
 project.PANGEA.TEST.pipeline.November2014.renameVillage<- function()
 {
-	indir	<- '/Users/Oliver/duke/2014_Gates/methods_comparison_pipeline/Pangea_Oct27_2014_sim/CD4-toBlind'	
-	infiles	<- data.table(FILE= list.files(path=indir, pattern='*.csv'))
+	indir	<- '/Users/Oliver/duke/2014_Gates/meeting_2014_09_DSPSupdate/CD4-toBlind'	
+	infiles	<- data.table(FILE= list.files(path=indir))
 	
 	set(infiles, NULL, 'EPI', infiles[, sapply(strsplit(FILE, '_'),'[[',1)])
 	set(infiles, NULL, 'EPI', infiles[, factor(EPI, levels=c('A','B','C'), labels=c(1,2,3))])
 	set(infiles, NULL, 'TIMEPOINT', infiles[, sapply(strsplit(FILE, '_'),'[[',3)])
+	set(infiles, NULL, 'TIMEPOINT', infiles[, substr(TIMEPOINT,1,1)])
+	set(infiles, NULL, 'END', infiles[, sapply(strsplit(FILE, '.', fixed=TRUE),'[[',2)])
 	
-	set(infiles, NULL, 'TIMEPOINT_BLINDED', c('B','A','C',  'D','F','E',   'I','H','G','I','H','G'))
-	set(infiles, NULL, 'SAMPLE', c(rep(1,3),  rep(1,3),   rep(1,3),rep(2,3)))
-	set(infiles, NULL, 'TO', infiles[, paste('281014','_Village_sc',TIMEPOINT_BLINDED,'_sample',SAMPLE,'_epi',EPI,'.fasta',sep='')])
+	tmp		<- unique(subset(infiles, select=c(EPI, TIMEPOINT)))	
+	set(tmp, NULL, 'TIMEPOINT_BLINDED', c('B','A','C',  'D','F','E',   'I','H','G'))	
+	infiles	<- merge(infiles, tmp, by=c('EPI','TIMEPOINT'))
+	
+	set(infiles, NULL, 'SAMPLE', 1)
+	set(infiles, infiles[, which(EPI==3 & grepl('60', FILE))], 'SAMPLE', 2)
+	
+	set(infiles, NULL, 'TO', infiles[, paste('281014','_Village_sc',TIMEPOINT_BLINDED,'_sample',SAMPLE,'_epi',EPI,'.',END,sep='')])
 	
 	infiles[, file.rename(paste(indir,'/',FILE,sep=''), paste(indir,'/',TO,sep='')), by='FILE']
 	
@@ -1076,6 +1083,144 @@ project.PANGEA.TEST.pipeline.November2014.rename<- function()
 	set(infiles, NULL, 'TO', infiles[, paste(DATE,'_HPTN071_sc',SCENARIO,'_rep',REP,'_',END,sep='')])
 	
 	infiles[, file.rename(paste(indir,'/',FILE,sep=''), paste(indir,'/',TO,sep='')), by='FILE']
+}
+##--------------------------------------------------------------------------------------------------------
+##	check simulated sequences: create ExaML tree and estimate R2
+##	olli 03.11.14
+##--------------------------------------------------------------------------------------------------------
+project.PANGEA.logo<- function()
+{	
+	treelabel.idx.sep	<- '|'
+	infile				<- "/Users/Oliver/Dropbox\ (Infectious Disease)/PANGEAHIVsim_internal/freeze_Nov14/freeze1028_HPTN071_seqsimA/281014_HPTN071_scA_rep1_INTERNAL/281014_HPTN071_scA_rep1_SIMULATED_INTERNAL.R"
+	load(infile)
+		
+	
+	#	concatenate sequences
+	tmp				<- tolower(do.call('rbind',strsplit(df.seq[, paste(GAG,POL,ENV,sep='')],'')))
+	rownames(tmp)	<- df.seq[, paste(IDCLU,treelabel.idx.sep,LABEL,sep='')]	
+	seq				<- as.DNAbin(tmp)
+	#tmp				<- cbind(outgroup.seq.gag[,1:ncol(df.seq.gag)], outgroup.seq.pol, outgroup.seq.env)
+	#seq				<- rbind(seq,tmp)	
+	seq.ph			<- nj(dist.dna(seq))		
+	seq.ph			<- ladderize(seq.ph)
+	#	plot
+	file			<- paste('/Users/Oliver/duke/2014_Gates', '/', 'logo_ph.pdf', sep='')				
+	pdf(file=file, w=10, h=10)
+	plot(seq.ph, type='fan',show.tip.label=0)
+	dev.off()	
+	
+}
+##--------------------------------------------------------------------------------------------------------
+##	check simulated sequences: create ExaML tree and estimate R2
+##	olli 23.10.14
+##--------------------------------------------------------------------------------------------------------
+project.PANGEA.TEST.pipeline.November2014.plotrepclicates<- function()
+{		
+	indir	<- '/Users/Oliver/git/HPTN071sim'
+	infiles	<- list.files(path=indir, pattern='*INTERNAL.R', recursive=TRUE)
+	infiles	<- data.table(FILE=infiles[grepl('281014',infiles)])
+	infiles[, SCENARIO:=regmatches(FILE,regexpr('sc[A-C]',FILE))]
+	infiles[, REP:=regmatches(FILE,regexpr('rep[0-9]+',FILE))]
+	set(infiles, NULL, 'SCENARIO', infiles[, substr(SCENARIO, 3, 3)])
+	set(infiles, NULL, 'REP', infiles[, as.numeric(substr(REP, 4, nchar(REP)))])
+	setkey(infiles, SCENARIO, REP)
+	
+	df.epi	<- infiles[, {
+								 z<- load( paste(indir, '/', FILE, sep='') )
+								 df.epi[, SCENARIO:=SCENARIO]
+								 df.epi[, REP:=REP]
+								 df.epi				 
+							}, by=c('SCENARIO','REP')]
+					
+	ggplot( df.epi, aes(x=YR, y=INC, group=interaction(SCENARIO,REP), colour=SCENARIO) ) + geom_line() + theme_bw() + 
+			scale_x_continuous(limits=c(1980,2020), breaks=seq(1980,2020,2)) +
+			scale_y_continuous(breaks=seq(0,2000,100))
+	
+	ggplot( df.epi, aes(x=YR, y=INCp*100, group=interaction(SCENARIO,REP), colour=SCENARIO) ) + geom_line() + theme_bw() + 
+			scale_x_continuous(limits=c(1980,2020), breaks=seq(1980,2020,2)) +
+			scale_y_continuous(breaks=seq(0,5,0.5))
+}
+##--------------------------------------------------------------------------------------------------------
+##	check simulated sequences: create ExaML tree and estimate R2
+##	olli 26.01.15
+##--------------------------------------------------------------------------------------------------------
+project.PANGEA.TEST.pipeline.Jan2015.episc<- function()
+{		
+	if(0)
+	{
+		indir	<- '/Users/Oliver/Dropbox\ (Infectious Disease)/PANGEAHIVsim_internal/freeze_Jan15/regional/150125'
+		infile	<- 'Annual_outputs_CL19_SA_A_V0_Rand1_Run48.csv'
+		
+		file	<- paste(indir,infile,sep='/')
+		df		<- as.data.table(read.csv(file))
+		set(df, NULL, 'X', NULL)
+		tmp		<- names(df)[ which(as.character(sapply(df, class))!='numeric') ]
+		for(x in tmp)
+			set(df, NULL, x, as.numeric(df[[x]]))
+		df[, 'Percent\nINC':= df[, NewCasesThisYear/(TotalPopulation-Prevalence)]]
+		
+		df		<- melt(df, id.vars=c('Year'))
+		set(df, NULL, 'variable', df[, gsub('_','\n',variable)])
+		set(df, NULL, 'variable', df[, gsub('MeanN','MeanN\n',variable)])
+		set(df, NULL, 'variable', df[, gsub('NewCases','NewCases\n',variable)])	
+		set(df, NULL, 'variable', df[, gsub('NHIVTested','NHIVTested\n',variable)])	
+		set(df, NULL, 'variable', df[, gsub('Cumulative','Cumulative\n',variable)])
+		set(df, NULL, 'variable', df[, gsub('Number','Number\n',variable)])
+		set(df, NULL, 'variable', df[, gsub('PropHIV','PropHIV\n',variable)])
+		set(df, NULL, 'variable', df[, gsub('PropAnnual','PropAnnual\n',variable)])
+		#	paste(df[, unique(variable)], collapse='\',\'')
+		tmp		<- c('Prevalence','Number\nPositive','NewCases\nThisYear','Percent\nINC','PropAnnual\nAcute','PropHIV\nPosONART','NAnnual','TotalPopulation','Number\nPositiveM','PopulationM','Number\nPositiveF','PopulationF','Cumulative\nNonPopartHIVtests','Cumulative\nPopartHIVtests','Cumulative\nNonPopartCD4tests','Cumulative\nPopartCD4tests','NHIVTested\nThisYear','NOnARTM','NNeedARTM','NOnARTF','NNeedARTF','PropMenCirc','Prop\nriskLow','Prop\nriskMed','Prop\nriskHigh','Prevalence\nriskLow','Prevalence\nriskMed','Prevalence\nriskHigh','MeanN\ncurrentpart\nriskLow','MeanN\ncurrentpart\nriskMed','MeanN\ncurrentpart\nriskHigh','MeanN\ncurrentsdpart\nriskLow','MeanN\ncurrentsdpart\nriskMed','MeanN\ncurrentsdpart\nriskHigh','MeanN\newPartnersthisyear\nriskLow','MeanN\newPartnersthisyear\nriskMed','MeanN\newPartnersthisyear\nriskHigh','MeanN\nlifetimepart\nriskLow','MeanN\nlifetimepart\nriskMed','MeanN\nlifetimepart\nriskHigh')
+		set(df, NULL, 'variable', df[, factor(variable, levels=tmp, labels=tmp)])
+		
+		ggplot(df, aes(x=Year, y=value, group=variable)) + geom_step(with.guide=FALSE) + 
+				facet_grid(variable~., scales='free_y')  + 
+				scale_x_continuous(breaks=seq(1950,2050,by=10)) + theme_bw() +
+				theme(strip.text=element_text(size=7))
+		file	<- paste(indir,gsub('\\.csv','\\.pdf',infile),sep='/')
+		ggsave(file=file, w=8, h=40)	
+	}
+	#
+	#	new epi model; new Sampling model based on diagnoses; prelim scenario Acute Low + ART Fast
+	#
+	if(1)
+	{
+		indir			<- '/Users/Oliver/git/HPTN071sim/source/rPANGEAHIVsim/inst/misc'
+		pipeline.args	<- rPANGEAHIVsim.pipeline.args( yr.start=1980, yr.end=2020, seed=42, s.MODEL='Prop2DiagB4I',
+				s.PREV.max=0.08, s.INTERVENTION.start=2015, s.INTERVENTION.mul= 2, s.ARCHIVAL.n=50,
+				epi.model='HPTN071', epi.dt=1/48, epi.import=0.05,
+				v.N0tau=1, v.r=2.851904, v.T50=-2,
+				wher.mu=log(0.003358613)-0.3^2/2, wher.sigma=0.3, bwerm.mu=log(0.002239075)-0.13^2/2, bwerm.sigma=0.13, er.gamma=NA,
+				dbg.GTRparam=0, dbg.rER=0, index.starttime.mode='fix1955', startseq.mode='one', seqtime.mode='AtDiag')								
+		
+		# proposed standard run and control simulation
+		pipeline.vary	<- data.table(	seqtime.mode=	c('AtDiag','AtDiag','AtDiag','AtTrm'),	
+										s.MODEL=		c('Prop2DiagB4I','Prop2DiagB4I','Prop2DiagB4I','Prop2Untreated'),
+										startseq.mode=	c('one','many','one','one'),
+										epi.import=		c(0.05, 0.05, 0, 0),
+										wher.mu=		c(log(0.003358613)-0.3^2/2, log(0.003358613)-0.3^2/2, log(0.002239075)-0.13^2/2, log(0.002239075)-0.13^2/2),
+										wher.sigma=		c(0.3,0.3,0.13,0.13),
+										label=			c('-o5DI','-m5DI','-o0DI','-o0PU'))						
+		dummy			<- pipeline.vary[, {				
+											set(pipeline.args, which( pipeline.args$stat=='seqtime.mode' ), 'v', as.character(seqtime.mode))
+											set(pipeline.args, which( pipeline.args$stat=='s.MODEL' ), 'v', as.character(s.MODEL))											
+											set(pipeline.args, which( pipeline.args$stat=='startseq.mode' ), 'v', as.character(startseq.mode))
+											set(pipeline.args, which( pipeline.args$stat=='epi.import' ), 'v', as.character(epi.import))
+											set(pipeline.args, which( pipeline.args$stat=='wher.mu' ), 'v', as.character(wher.mu))
+											set(pipeline.args, which( pipeline.args$stat=='wher.sigma' ), 'v', as.character(wher.sigma))
+											
+											print(pipeline.args)
+											#	scenario Acute Low + ART Fast	
+											infile.ind		<- '150127_RUN001'
+											infile.trm		<- '150127_RUN001'
+											tmpdir			<- '/Users/Oliver/git/HPTN071sim/tmp151027'
+											tmpdir			<- paste(tmpdir,label,sep='')
+											dir.create(tmpdir, showWarnings=FALSE)																													
+											file.copy(paste(indir,'/',infile.ind,'_IND.csv',sep=''), paste(tmpdir,'/',infile.ind, label,'_IND.csv',sep=''))
+											file.copy(paste(indir,'/',infile.trm,'_TRM.csv',sep=''), paste(tmpdir,'/',infile.trm, label,'_TRM.csv',sep=''))
+											file			<- rPANGEAHIVsim.pipeline(tmpdir, paste(infile.ind,label,'_IND.csv',sep=''), paste(infile.trm,label,'_TRM.csv',sep=''), tmpdir, pipeline.args=pipeline.args)
+											system(file)
+										}, by='label']
+	}
 }
 ##--------------------------------------------------------------------------------------------------------
 ##	check simulated sequences: create ExaML tree and estimate R2
@@ -1118,6 +1263,39 @@ project.PANGEA.TEST.pipeline.November2014<- function()
 	{
 		indir			<- system.file(package="rPANGEAHIVsim", "misc")
 		pipeline.args	<- rPANGEAHIVsim.pipeline.args( yr.start=1980, yr.end=2020, seed=42,
+				s.INC.recent=0.1, s.INC.recent.len=5, s.PREV.min=0.01, s.PREV.max=0, 
+				epi.model='HPTN071', epi.dt=1/48, epi.import=0.20,
+				v.N0tau=1, v.r=2.851904, v.T50=-2,
+				wher.mu=log(0.003358613)-0.3^2/2, wher.sigma=0.3, bwerm.mu=log(0.002239075)-0.13^2/2, bwerm.sigma=0.13, er.gamma=NA,
+				dbg.GTRparam=0, dbg.rER=0, index.starttime.mode='fix', startseq.mode='sample', seqtime.mode=NA)						
+		# standard run, fixed GTR param + fixed relative rates for each transmission chain
+		# no WH Er to equal BH ER, and both being constant
+		pipeline.vary	<- data.table(	seqtime.mode=c('Unif12'),				
+										label=c('-n0005ul20'))						
+		dummy			<- pipeline.vary[, {				
+					set(pipeline.args, which( pipeline.args$stat=='seqtime.mode' ), 'v', as.character(seqtime.mode))
+					print(pipeline.args)
+					if(1)
+					{
+						#	scenario A					
+						infile.ind		<- '271014_HPTN071_scA_rep1'
+						infile.trm		<- '271014_HPTN071_scA_rep1'
+						tmpdir			<- '/Users/Oliver/git/HPTN071sim/tmp141025a'
+						tmpdir			<- paste(tmpdir,label,sep='')
+						dir.create(tmpdir, showWarnings=FALSE)																		
+						set(pipeline.args, which( pipeline.args$stat=='s.PREV.max' ), 'v', '0.11')
+						file.copy(paste(indir,'/',infile.ind,'_IND.csv',sep=''), paste(tmpdir,'/',infile.ind,label,'_IND.csv',sep=''))
+						file.copy(paste(indir,'/',infile.trm,'_TRM.csv',sep=''), paste(tmpdir,'/',infile.trm,label,'_TRM.csv',sep=''))
+						file			<- rPANGEAHIVsim.pipeline(tmpdir, paste(infile.ind,label,'_IND.csv',sep=''), paste(infile.trm,label,'_TRM.csv',sep=''), tmpdir, pipeline.args=pipeline.args)
+						system(file)													
+					}
+				}, by='label']
+	}
+	#	with CD4, lower WH rate
+	if(1)
+	{
+		indir			<- system.file(package="rPANGEAHIVsim", "misc")
+		pipeline.args	<- rPANGEAHIVsim.pipeline.args( yr.start=1980, yr.end=2020, seed=42,
 														s.INC.recent=0.1, s.INC.recent.len=5, s.PREV.min=0.01, s.PREV.max=0, 
 														epi.model='HPTN071', epi.dt=1/48, epi.import=0.05,
 														v.N0tau=1, v.r=2.851904, v.T50=-2,
@@ -1144,7 +1322,7 @@ project.PANGEA.TEST.pipeline.November2014<- function()
 						file			<- rPANGEAHIVsim.pipeline(tmpdir, paste(infile.ind,label,'_IND.csv',sep=''), paste(infile.trm,label,'_TRM.csv',sep=''), tmpdir, pipeline.args=pipeline.args)
 						system(file)													
 					}
-					if(1)
+					if(0)
 					{
 						#	scenario B						
 						infile.ind		<- '271014_HPTN071_scB_rep1'
@@ -1158,7 +1336,7 @@ project.PANGEA.TEST.pipeline.November2014<- function()
 						file			<- rPANGEAHIVsim.pipeline(tmpdir, paste(infile.ind,label,'_IND.csv',sep=''), paste(infile.trm,label,'_TRM.csv',sep=''), tmpdir, pipeline.args=pipeline.args)
 						system(file)						
 					}
-					if(1)
+					if(0)
 					{
 						#	scenario C						
 						infile.ind		<- '271014_HPTN071_scC_rep1'
@@ -1174,12 +1352,133 @@ project.PANGEA.TEST.pipeline.November2014<- function()
 					}					
 				}, by='label']
 	}
-	
+	#	with CD4, no introductions after baseline for Leventhal et al
+	if(1)
+	{
+		indir			<- system.file(package="rPANGEAHIVsim", "misc")
+		pipeline.args	<- rPANGEAHIVsim.pipeline.args( yr.start=1980, yr.end=2020, seed=42,
+				s.INC.recent=0.1, s.INC.recent.len=5, s.PREV.min=0.01, s.PREV.max=0, 
+				epi.model='HPTN071', epi.dt=1/48, epi.import=0,
+				v.N0tau=1, v.r=2.851904, v.T50=-2,
+				wher.mu=log(0.003358613)-0.3^2/2, wher.sigma=0.3, bwerm.mu=log(0.002239075)-0.13^2/2, bwerm.sigma=0.13, er.gamma=NA,
+				dbg.GTRparam=0, dbg.rER=0, index.starttime.mode='normal', startseq.mode='sample', seqtime.mode=NA)						
+		# standard run, fixed GTR param + fixed relative rates for each transmission chain
+		# no WH Er to equal BH ER, and both being constant
+		pipeline.vary	<- data.table(	seqtime.mode=c('Unif12'),				
+										label=c('-Leventhal00ul'))						
+		dummy			<- pipeline.vary[, {				
+					set(pipeline.args, which( pipeline.args$stat=='seqtime.mode' ), 'v', as.character(seqtime.mode))
+					print(pipeline.args)
+					if(1)
+					{
+						#	scenario A					
+						infile.ind		<- '271014_HPTN071_scA_rep1'
+						infile.trm		<- '271014_HPTN071_scA_rep1'
+						tmpdir			<- '/Users/Oliver/git/HPTN071sim/tmp141114a'
+						tmpdir			<- paste(tmpdir,label,sep='')
+						dir.create(tmpdir, showWarnings=FALSE)																		
+						set(pipeline.args, which( pipeline.args$stat=='s.PREV.max' ), 'v', '0.11')
+						file.copy(paste(indir,'/',infile.ind,'_IND.csv',sep=''), paste(tmpdir,'/',infile.ind,label,'_IND.csv',sep=''))
+						file.copy(paste(indir,'/',infile.trm,'_TRM.csv',sep=''), paste(tmpdir,'/',infile.trm,label,'_TRM.csv',sep=''))
+						file			<- rPANGEAHIVsim.pipeline(tmpdir, paste(infile.ind,label,'_IND.csv',sep=''), paste(infile.trm,label,'_TRM.csv',sep=''), tmpdir, pipeline.args=pipeline.args)
+						#system(file)													
+					}
+					if(1)
+					{
+						#	scenario B						
+						infile.ind		<- '271014_HPTN071_scB_rep1'
+						infile.trm		<- '271014_HPTN071_scB_rep1'	
+						tmpdir			<- '/Users/Oliver/git/HPTN071sim/tmp141114b'
+						tmpdir			<- paste(tmpdir,label,sep='')
+						dir.create(tmpdir, showWarnings=FALSE)																														
+						set(pipeline.args, which( pipeline.args$stat=='s.PREV.max' ), 'v', '0.15')
+						file.copy(paste(indir,'/',infile.ind,'_IND.csv',sep=''), paste(tmpdir,'/',infile.ind,label,'_IND.csv',sep=''))
+						file.copy(paste(indir,'/',infile.trm,'_TRM.csv',sep=''), paste(tmpdir,'/',infile.trm,label,'_TRM.csv',sep=''))
+						file			<- rPANGEAHIVsim.pipeline(tmpdir, paste(infile.ind,label,'_IND.csv',sep=''), paste(infile.trm,label,'_TRM.csv',sep=''), tmpdir, pipeline.args=pipeline.args)
+						#system(file)						
+					}
+					if(1)
+					{
+						#	scenario C						
+						infile.ind		<- '271014_HPTN071_scC_rep1'
+						infile.trm		<- '271014_HPTN071_scC_rep1'	
+						tmpdir			<- '/Users/Oliver/git/HPTN071sim/tmp141114c'
+						tmpdir			<- paste(tmpdir,label,sep='')
+						dir.create(tmpdir, showWarnings=FALSE)																														
+						set(pipeline.args, which( pipeline.args$stat=='s.PREV.max' ), 'v', '0.185')
+						file.copy(paste(indir,'/',infile.ind,'_IND.csv',sep=''), paste(tmpdir,'/',infile.ind,label,'_IND.csv',sep=''))
+						file.copy(paste(indir,'/',infile.trm,'_TRM.csv',sep=''), paste(tmpdir,'/',infile.trm,label,'_TRM.csv',sep=''))
+						file			<- rPANGEAHIVsim.pipeline(tmpdir, paste(infile.ind,label,'_IND.csv',sep=''), paste(infile.trm,label,'_TRM.csv',sep=''), tmpdir, pipeline.args=pipeline.args)
+						#system(file)	
+					}					
+				}, by='label']
+	}
+	#	with CD4, same WH rate for Suchard et al
+	if(1)
+	{
+		indir			<- system.file(package="rPANGEAHIVsim", "misc")
+		pipeline.args	<- rPANGEAHIVsim.pipeline.args( yr.start=1980, yr.end=2020, seed=42,
+				s.INC.recent=0.1, s.INC.recent.len=5, s.PREV.min=0.01, s.PREV.max=0, 
+				epi.model='HPTN071', epi.dt=1/48, epi.import=0.05,
+				v.N0tau=1, v.r=2.851904, v.T50=-2,
+				wher.mu=log(0.002239075)-0.13^2/2, wher.sigma=0.13, bwerm.mu=log(0.002239075)-0.13^2/2, bwerm.sigma=0.13, er.gamma=NA,
+				dbg.GTRparam=1, dbg.rER=1, index.starttime.mode='normal', startseq.mode='sample', seqtime.mode=NA)						
+		# standard run, fixed GTR param + fixed relative rates for each transmission chain
+		# no WH Er to equal BH ER, and both being constant
+		pipeline.vary	<- data.table(	seqtime.mode=c('Unif12'),				
+										label=c('-Suchard05ul'))						
+		dummy			<- pipeline.vary[, {				
+					set(pipeline.args, which( pipeline.args$stat=='seqtime.mode' ), 'v', as.character(seqtime.mode))
+					print(pipeline.args)
+					if(1)
+					{
+						#	scenario A					
+						infile.ind		<- '271014_HPTN071_scA_rep1'
+						infile.trm		<- '271014_HPTN071_scA_rep1'
+						tmpdir			<- '/Users/Oliver/git/HPTN071sim/tmp141114a'
+						tmpdir			<- paste(tmpdir,label,sep='')
+						dir.create(tmpdir, showWarnings=FALSE)																		
+						set(pipeline.args, which( pipeline.args$stat=='s.PREV.max' ), 'v', '0.11')
+						file.copy(paste(indir,'/',infile.ind,'_IND.csv',sep=''), paste(tmpdir,'/',infile.ind,label,'_IND.csv',sep=''))
+						file.copy(paste(indir,'/',infile.trm,'_TRM.csv',sep=''), paste(tmpdir,'/',infile.trm,label,'_TRM.csv',sep=''))
+						file			<- rPANGEAHIVsim.pipeline(tmpdir, paste(infile.ind,label,'_IND.csv',sep=''), paste(infile.trm,label,'_TRM.csv',sep=''), tmpdir, pipeline.args=pipeline.args)
+						#system(file)													
+					}
+					if(1)
+					{
+						#	scenario B						
+						infile.ind		<- '271014_HPTN071_scB_rep1'
+						infile.trm		<- '271014_HPTN071_scB_rep1'	
+						tmpdir			<- '/Users/Oliver/git/HPTN071sim/tmp141114b'
+						tmpdir			<- paste(tmpdir,label,sep='')
+						dir.create(tmpdir, showWarnings=FALSE)																														
+						set(pipeline.args, which( pipeline.args$stat=='s.PREV.max' ), 'v', '0.15')
+						file.copy(paste(indir,'/',infile.ind,'_IND.csv',sep=''), paste(tmpdir,'/',infile.ind,label,'_IND.csv',sep=''))
+						file.copy(paste(indir,'/',infile.trm,'_TRM.csv',sep=''), paste(tmpdir,'/',infile.trm,label,'_TRM.csv',sep=''))
+						file			<- rPANGEAHIVsim.pipeline(tmpdir, paste(infile.ind,label,'_IND.csv',sep=''), paste(infile.trm,label,'_TRM.csv',sep=''), tmpdir, pipeline.args=pipeline.args)
+						#system(file)						
+					}
+					if(1)
+					{
+						#	scenario C						
+						infile.ind		<- '271014_HPTN071_scC_rep1'
+						infile.trm		<- '271014_HPTN071_scC_rep1'	
+						tmpdir			<- '/Users/Oliver/git/HPTN071sim/tmp141114c'
+						tmpdir			<- paste(tmpdir,label,sep='')
+						dir.create(tmpdir, showWarnings=FALSE)																														
+						set(pipeline.args, which( pipeline.args$stat=='s.PREV.max' ), 'v', '0.185')
+						file.copy(paste(indir,'/',infile.ind,'_IND.csv',sep=''), paste(tmpdir,'/',infile.ind,label,'_IND.csv',sep=''))
+						file.copy(paste(indir,'/',infile.trm,'_TRM.csv',sep=''), paste(tmpdir,'/',infile.trm,label,'_TRM.csv',sep=''))
+						file			<- rPANGEAHIVsim.pipeline(tmpdir, paste(infile.ind,label,'_IND.csv',sep=''), paste(infile.trm,label,'_TRM.csv',sep=''), tmpdir, pipeline.args=pipeline.args)
+						#system(file)	
+					}					
+				}, by='label']
+	}
 	#	all replicates
 	if(1)
 	{
 		indir			<- '/Users/Oliver/duke/2014_Gates/methods_comparison_pipeline/Pangea_Oct28_2014_sim'
-		indir			<- '/Users/Oliver/git/Pangea__Oct27_2014_code'
+		#indir			<- '/Users/Oliver/git/Pangea__Oct27_2014_code'
 		pipeline.args	<- rPANGEAHIVsim.pipeline.args( yr.start=1980, yr.end=2020, seed=42,
 				s.INC.recent=0.1, s.INC.recent.len=5, s.PREV.min=0.01, s.PREV.max=0, 
 				epi.model='HPTN071', epi.dt=1/48, epi.import=0.05,
@@ -1187,7 +1486,7 @@ project.PANGEA.TEST.pipeline.November2014<- function()
 				wher.mu=log(0.003358613)-0.3^2/2, wher.sigma=0.3, bwerm.mu=log(0.002239075)-0.13^2/2, bwerm.sigma=0.13, er.gamma=0,
 				dbg.GTRparam=0, dbg.rER=0, index.starttime.mode='normal', startseq.mode='sample', seqtime.mode='Unif12')						
 		
-		pipeline.vary	<- data.table(	REP=1:1, label=paste('-r',1:1,sep='')  )		
+		pipeline.vary	<- data.table(	REP=1:100, label=paste('-r',1:100,sep='')  )		
 		dummy			<- pipeline.vary[, {									
 					if(1)
 					{
@@ -2262,10 +2561,15 @@ project.PANGEA.TEST.SSApg.BEAST<- function()
 	require(phytools)
 	require(hivclust)
 	require(XML)
+	#	load outgroup sequences
+	file			<- system.file(package="rPANGEAHIVsim", "misc",'PANGEA_SSAfg_HXB2outgroup.R')
+	cat(paste('\nLoading outgroup seq from file', file))
+	load(file)		#expect "outgroup.seq.gag" "outgroup.seq.pol" "outgroup.seq.env"	
+	
 	tree.id.labelsep		<- '|'
 	tree.id.label.idx.ctime	<- 4 
 	select		<- 'divergent'
-	indir		<- '/Users/Oliver/duke/2014_Gates/methods_comparison_pipeline/141026'
+	indir		<- '/Users/Oliver/duke/2014_Gates/methods_comparison_pipeline/150127'
 	#indir		<- '/Users/Oliver/git/HPTN071sim/tmp140914/140716_RUN001_INTERNAL'  
 	outdir		<- indir
 	infiles		<- list.files(indir, '.*INTERNAL.R$', full.names=FALSE)
@@ -2279,7 +2583,7 @@ project.PANGEA.TEST.SSApg.BEAST<- function()
 	bxml.template.env	<- xmlTreeParse(infile.beast.env, useInternalNodes=TRUE, addFinalizer = TRUE)	
 	#
 	#	run  
-	#
+	#	
 	for(i in seq_along(infiles))
 	{
 		infile			<- infiles[i]
@@ -2287,10 +2591,6 @@ project.PANGEA.TEST.SSApg.BEAST<- function()
 		file			<- paste(indir, '/', infile, sep='')
 		cat(paste('\nLoading file', file))
 		load(file)		#expect "df.epi"    "df.trms"   "df.inds"   "df.sample" "df.seq"
-		#	load outgroup sequences
-		file			<- system.file(package="rPANGEAHIVsim", "misc",'PANGEA_SSAfg_HXB2outgroup.R')
-		cat(paste('\nLoading outgroup seq from file', file))
-		load(file)		#expect "outgroup.seq.gag" "outgroup.seq.pol" "outgroup.seq.env"
 		#	concatenate sequences
 		tmp				<- tolower(do.call('rbind',strsplit(df.seq[, GAG],'')))
 		rownames(tmp)	<- df.seq[, LABEL]
@@ -2500,8 +2800,8 @@ project.PANGEA.TEST.SSApg.ExaMLR2<- function()
 	require(hivclust)
 	tree.id.labelsep		<- '|'
 	tree.id.label.idx.ctime	<- 4 
-	indir		<- '/Users/Oliver/duke/2014_Gates/methods_comparison_pipeline/141026'  
-	outdir		<- '/Users/Oliver/duke/2014_Gates/methods_comparison_pipeline/141026'
+	indir		<- '/Users/Oliver/duke/2014_Gates/methods_comparison_pipeline/150127'  
+	outdir		<- '/Users/Oliver/duke/2014_Gates/methods_comparison_pipeline/150127'
 	infiles		<- list.files(indir, '.*INTERNAL.R$', full.names=FALSE)
 	#stopifnot(length(infiles)==1)
 	#
