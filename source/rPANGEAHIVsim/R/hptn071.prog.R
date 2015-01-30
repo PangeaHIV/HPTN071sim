@@ -433,7 +433,7 @@ prog.PANGEA.SeqGen.run<- function()
 		seq				<- as.DNAbin(tmp)
 		tmp				<- cbind(outgroup.seq.gag[,1:ncol(df.seq.gag)], outgroup.seq.pol, outgroup.seq.env)
 		seq				<- rbind(seq,tmp)	
-		seq.ph			<- nj(dist.dna(seq))		
+		seq.ph			<- nj(dist.dna(seq, model='raw'))		
 		tmp				<- which(seq.ph$tip.label=="HXB2")
 		seq.ph			<- reroot(seq.ph, tmp, seq.ph$edge.length[which(seq.ph$edge[,2]==tmp)])
 		seq.ph			<- ladderize(seq.ph)
@@ -557,6 +557,8 @@ prog.PANGEA.SeqGen.run.v4<- function()
 								}, by=c('GENE','CODON_POS')]
 	#	sample GTR parameters from posterior
 	df.ph.out	<- merge(df.ph.out, log.df, by=c('GENE', 'CODON_POS', 'IDX'))
+	stopifnot( nrow(df.ph.out)<65535 )	# running out of seeds?
+	df.ph.out[, SEED:=sample.int(65535, nrow(df.ph.out))]
 	#
 	if(with.plot)
 	{
@@ -577,7 +579,7 @@ prog.PANGEA.SeqGen.run.v4<- function()
 	cat(paste('\nUsing Gamma rate variation, gamma=',pipeline.args['er.gamma',][, as.numeric(v)]))
 	tmp		<- df.ph.out[, {	
 				cat(paste('\nProcess', IDCLU, GENE, CODON_POS))				
-				cmd	<- cmd.SeqGen(indir.sg, FILE, indir.sg, gsub('seqgen','phy',FILE), prog=PR.SEQGEN, prog.args=paste('-n',1,' -k1 -or -z',pipeline.args['s.seed',][, as.numeric(v)],sep=''), 
+				cmd	<- cmd.SeqGen(indir.sg, FILE, indir.sg, gsub('seqgen','phy',FILE), prog=PR.SEQGEN, prog.args=paste('-n',1,' -k1 -or -z',SEED,sep=''), 
 						alpha=alpha, gamma=pipeline.args['er.gamma',][, as.numeric(v)], invariable=0, scale=mu, freq.A=a, freq.C=c, freq.G=g, freq.T=t,
 						rate.AC=ac, rate.AG=ag, rate.AT=at, rate.CG=cg, rate.CT=1, rate.GT=gt)
 				system(cmd)				
@@ -664,6 +666,8 @@ prog.PANGEA.SeqGen.run.v4<- function()
 	df.seq.env		<- as.DNAbin(tmp)
 	file			<- paste(outdir, '/', infile.prefix, 'SIMULATED_env.fa', sep='')
 	write.dna(df.seq.env, file, format = "fasta")
+	
+	df.seq			<- merge(df.seq, df.seq[, list(IDCLU_N=length(IDPOP)), by='IDCLU'], by='IDCLU')
 	if(with.plot)
 	{
 		#
@@ -673,22 +677,55 @@ prog.PANGEA.SeqGen.run.v4<- function()
 		file			<- system.file(package="rPANGEAHIVsim", "misc",'PANGEA_SSAfg_HXB2outgroup.R')
 		cat(paste('\nLoading outgroup seq from file', file))
 		load(file)		#expect "outgroup.seq.gag" "outgroup.seq.pol" "outgroup.seq.env"
-		#	concatenate sequences
-		tmp				<- tolower(do.call('rbind',strsplit(df.seq[, paste(GAG,POL,ENV,sep='')],'')))
-		rownames(tmp)	<- df.seq[, paste(IDCLU,treelabel.idx.sep,LABEL,sep='')]	
+		#	concatenate sequences	
+		df.seq[, TIPCOLOR:='black']
+		set(df.seq, df.seq[,which(IDCLU_N<3)],'TIPCOLOR','red')
+		tmp				<- tolower(do.call('rbind',strsplit(df.seq[, paste(GAG,POL,ENV,sep='')],'')))		
+		rownames(tmp)	<- df.seq[, paste(IDCLU,'_',IDCLU_N,treelabel.idx.sep,LABEL,sep='')]	
 		seq				<- as.DNAbin(tmp)
 		tmp				<- cbind(outgroup.seq.gag[,1:ncol(df.seq.gag)], outgroup.seq.pol, outgroup.seq.env)
 		seq				<- rbind(seq,tmp)	
-		seq.ph			<- nj(dist.dna(seq))		
+		seq.ph			<- nj(dist.dna(seq, model='raw'))		
 		tmp				<- which(seq.ph$tip.label=="HXB2")
 		seq.ph			<- reroot(seq.ph, tmp, seq.ph$edge.length[which(seq.ph$edge[,2]==tmp)])
 		seq.ph			<- ladderize(seq.ph)
-		#	plot
-		file			<- paste(indir.sg, '/', infile.prefix, 'INFO_NJconc.pdf', sep='')				
+		file			<- paste(indir.sg, '/', infile.prefix, 'INFO_NJconc.pdf', sep='')	
+		cat(paste('\nwrite to file',file))
 		pdf(file=file, w=10, h=80)
-		plot(seq.ph, show.tip=TRUE, cex=0.5)
-		dev.off()		
+		plot(seq.ph, show.tip=TRUE, cex=0.5, tip.color=df.seq[,TIPCOLOR])
+		dev.off()	
+		#
+		#	create and plot NJ tree on pol seq
+		#			
+		tmp				<- tolower(do.call('rbind',strsplit(df.seq[, POL],'')))		
+		rownames(tmp)	<- df.seq[, paste(IDCLU,'_',IDCLU_N,treelabel.idx.sep,LABEL,sep='')]	
+		seq				<- as.DNAbin(tmp)		
+		seq				<- rbind(seq,outgroup.seq.pol)	
+		seq.ph			<- nj(dist.dna(seq, model='raw'))		
+		tmp				<- which(seq.ph$tip.label=="HXB2")
+		seq.ph			<- reroot(seq.ph, tmp, seq.ph$edge.length[which(seq.ph$edge[,2]==tmp)])
+		seq.ph			<- ladderize(seq.ph)
+		file			<- paste(indir.sg, '/', infile.prefix, 'INFO_NJpol.pdf', sep='')	
+		cat(paste('\nwrite to file',file))
+		pdf(file=file, w=10, h=0.1*Ntip(seq.ph))
+		plot(seq.ph, show.tip=TRUE, cex=0.5, tip.color=df.seq[,TIPCOLOR])
+		dev.off()			
 	}
+	if(0)
+	{
+		# 83|48713  56|84607
+		tmp		<- dist.dna(seq, model='N', as.matrix=TRUE)
+		tmp[ which(grepl('IDPOP_48713',rownames(tmp))), which(grepl('IDPOP_84607',colnames(tmp)))]
+		#12!!
+		subset(df.ph.out, IDCLU==83 & GENE=='POL' & CODON_POS=='CP1')[, {										
+					cmd	<- cmd.SeqGen(indir.sg, FILE, indir.sg, gsub('seqgen','phy',FILE), prog=PR.SEQGEN, prog.args=paste('-n',1,' -k1 -or -z',SEED,sep=''), 
+							alpha=alpha, gamma=pipeline.args['er.gamma',][, as.numeric(v)], invariable=0, scale=mu, freq.A=a, freq.C=c, freq.G=g, freq.T=t,
+							rate.AC=ac, rate.AG=ag, rate.AT=at, rate.CG=cg, rate.CT=1, rate.GT=gt)
+					cat(cmd)				
+					stop()							
+				}, by='FILE']
+	}
+	
 	#
 	#	zip simulated sequence files
 	#
@@ -1445,10 +1482,15 @@ prog.PANGEA.SeqGen.createInputFile<- function()
 		
 		if(grepl('fix',pipeline.args['index.starttime.mode',][,v]))
 		{
-			file	<- paste(indir.epi, '/', substr(infile.epi,1,nchar(infile.epi)-6),'DATEDTREE.pdf', sep='')
-			pdf(file=file, w=10, h=Ntip(phd)*0.1)
-			plot(phd, show.tip=TRUE, cex=0.5)
+			setkey(df.nodestat, IDPOP)
+			tmp				<- merge(subset(unique(df.nodestat), select=c(IDCLU, LABEL)), unique(df.nodestat)[, list(IDCLU_N=length(which(!is.na(TIME_SEQ)))), by='IDCLU'], by='IDCLU')
+			tmp[, LABEL_NEW:= tmp[, paste(IDCLU,'_',IDCLU_N,label.sep,LABEL,sep='')]]
+			setkey(tmp, LABEL)			
+			phd$tip.label	<- tmp[ phd$tip.label, ][, LABEL_NEW]
+			file			<- paste(indir.epi, '/', substr(infile.epi,1,nchar(infile.epi)-6),'DATEDTREE.pdf', sep='')
 			cat(paste('\nWrite to file=',file))
+			pdf(file=file, w=10, h=Ntip(phd)*0.1)
+			plot(phd, show.tip=TRUE, cex=0.5)			
 			dev.off()
 		}
 	}

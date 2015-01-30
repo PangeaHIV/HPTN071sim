@@ -741,6 +741,7 @@ PANGEA.Seqsampler.sample.prop.to.diagnosis<- function(df.ind, df.epi, pipeline.a
 	cat(paste('\nSampling sequences, scheduled number is n=', df.sample[, sum(s.nTOTAL)]))
 	stopifnot(df.sample[, all(s.nTOTAL>=0)])
 	cat(paste('\n prop of sequences sampled among HIV+=', df.sample[, sum( s.nTOTAL )] / df.sample[, rev(PREV)[1]]))
+	stopifnot( abs(pipeline.args['s.PREV.max',][, as.numeric(v)]-df.sample[, sum( s.nTOTAL )] / df.sample[, rev(PREV)[1]])<=pipeline.args['s.PREV.max',][, as.numeric(v)]*0.1 )
 	#
 	#	SAMPLE INFECTED INDIVIDUALS BASED ON NUMBERS PER YEAR
 	#
@@ -789,14 +790,17 @@ PANGEA.Seqsampler.sample.prop.to.diagnosis.b4intervention<- function(df.ind, df.
 	df.sample	<- subset( df.epi, YR>= pipeline.args['yr.start',][, as.numeric(v)] & YR<pipeline.args['yr.end',][, as.numeric(v)] )
 	set(df.sample, NULL, 's.nTOTAL', 0)	
 	tmp			<- df.sample[, which(YR<=s.archival.yr)]
-	set(df.sample, tmp, 's.nTOTAL', as.numeric(rmultinom(1, pipeline.args['s.ARCHIVAL.n',][, as.numeric(v)], rep(1/length(tmp), length(tmp)))))
+	set(df.sample, tmp, 's.nTOTAL', as.numeric(rmultinom(1, pipeline.args['s.ARCHIVAL.n',][, as.numeric(v)], rep(1/length(tmp), length(tmp)))))	
+	cat(paste('\nSampling sequences from archival, scheduled number is n=', df.sample[tmp, sum(s.nTOTAL)]))
 	tmp			<- df.sample[, which( YR>s.archival.yr & YR<pipeline.args['s.INTERVENTION.start',][, as.numeric(v)] )]	
 	set(df.sample, tmp, 's.nTOTAL', as.numeric(rmultinom(1, round( s.diagb4intervention.n*s.diagb4intervention ), df.sample[tmp, NEW_DIAG]/df.sample[tmp, sum(NEW_DIAG)])) )
+	cat(paste('\nSampling sequences before intervention, scheduled number is n=', df.sample[tmp, sum(s.nTOTAL)]))
 	tmp			<- df.sample[, which(YR>=pipeline.args['s.INTERVENTION.start',][, as.numeric(v)]) ]
-	set(df.sample, tmp, 's.nTOTAL', as.numeric(rmultinom(1, round( (df.sample[nrow(df.sample), DIAG]-s.diagb4intervention.n)*pipeline.args['s.INTERVENTION.mul'][, as.numeric(v)]*s.diagb4intervention ), length(tmp))) )
-	cat(paste('\nSampling sequences, scheduled number is n=', df.sample[, sum(s.nTOTAL)]))
+	set(df.sample, tmp, 's.nTOTAL', as.numeric(rmultinom(1, round( (df.sample[nrow(df.sample), DIAG]-s.diagb4intervention.n)*pipeline.args['s.INTERVENTION.mul'][, as.numeric(v)]*s.diagb4intervention ), rep(1/length(tmp),length(tmp))) ) )
+	cat(paste('\nSampling sequences after intervention, scheduled number is n=', df.sample[tmp, sum(s.nTOTAL)]))
 	stopifnot(df.sample[, all(s.nTOTAL>=0)])
-	cat(paste('\n prop of sequences sampled among HIV+=', df.sample[, sum( s.nTOTAL )] / df.sample[, rev(PREV)[1]]))
+	cat(paste('\n prop of sequences sampled among HIV+=', df.sample[, sum( s.nTOTAL )] / df.sample[, rev(PREV)[1]]))	
+	stopifnot( abs(pipeline.args['s.PREV.max',][, as.numeric(v)]-df.sample[, sum( s.nTOTAL )] / df.sample[, rev(PREV)[1]])<=pipeline.args['s.PREV.max',][, as.numeric(v)]*0.1 )
 	#
 	#	SAMPLE INFECTED INDIVIDUALS BASED ON NUMBERS PER YEAR
 	#
