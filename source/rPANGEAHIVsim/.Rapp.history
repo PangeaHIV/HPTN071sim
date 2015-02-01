@@ -1,104 +1,1356 @@
-pipeline.args	<- rPANGEAHIVsim.pipeline.args( yr.start=1980, yr.end=2020, #
-												seed=42, s.PREV.min=0.03, s.PREV.max=0.70, #
-												epi.model='DSPS', epi.dt=1/48, epi.import=0.25)
-suppressWarnings( df.trm[, YR:= df.trm[, floor(TIME_TR)]] )#
-	df.epi		<- df.trm[, list(INC=length(IDREC), IMPORT=length(which(IDTR<0))), by='YR']#
-	tmp			<- df.epi[, 	{#
-				alive		<- which( floor(df.ind[['DOB']])<=YR  &  ceiling(df.ind[['DOD']])>YR )#
-				infected	<- which( floor(df.ind[['DOB']])<=YR  &  ceiling(df.ind[['DOD']])>YR  &  floor(df.ind[['TIME_TR']])<=YR )#
-				list(POP=length(alive), PREV=length(infected))				#
-			},by='YR']#
-	df.epi		<- merge( tmp, df.epi, by='YR' )	#
-	set(df.epi, NULL, 'PREVp', df.epi[, PREV/POP])	#
-	set(df.epi, NULL, 'INCp', df.epi[, INC/POP])#
-	set(df.epi, NULL, 'IMPORTp', df.epi[, IMPORT/INC])#
-	# 	SAMPLING PROBABILITIES and TOTALS PER YEAR#
-	##
-	#	Can we detect a 25% or 50% reduction in HIV incidence in the most recent 2 or 3 years #
-	#	with 1%, 5%, 10% of all recent incident cases sampled?#
-	##
-	#	suppose exponentially increasing sampling over time#
-	#	the number of incident cases sampled is the total sampled in that year * the proportion of incident cases out of all non-sampled cases to date#
-	#	TODO this needs to be changed to fix the proportion of sequences sampled from incident#
-	df.sample	<- subset( df.epi, YR>= pipeline.args['yr.start',][, as.numeric(v)] & YR<pipeline.args['yr.end',][, as.numeric(v)] )#
-	#	exponential rate of increasing s.TOTAL (total sampling rate) per year#
-	tmp			<- log( 1+pipeline.args['s.PREV.max',][, as.numeric(v)]-pipeline.args['s.PREV.min',][, as.numeric(v)] ) / df.sample[, diff(range(YR))]#
-	tmp			<- df.sample[, exp( tmp*(YR-min(YR)) ) - 1 + pipeline.args['s.PREV.min',][, as.numeric(v)] ]#
-	set(df.sample, NULL, 's.CUMTOTAL', tmp)		#
-	set(df.sample, NULL, 's.n.CUMTOTAL', df.sample[, round(PREV*s.CUMTOTAL)])#
-	set(df.sample, NULL, 's.n.TOTAL', c(df.sample[1, s.n.CUMTOTAL], df.sample[, diff(s.n.CUMTOTAL)]))	#
-	set(df.sample, NULL, 's.n.INC', df.sample[, round(INC/(PREV-s.n.CUMTOTAL) * s.n.TOTAL)])#
-	set(df.sample, NULL, 's.n.notINC', df.sample[, round(s.n.TOTAL-s.n.INC)])	#
-	cat(paste('\n total number of sequences sampled=', df.sample[, sum( s.n.TOTAL )]))#
-	cat(paste('\n prop of sequences sampled among HIV+=', df.sample[, sum( s.n.TOTAL )] / df.sample[, rev(PREV)[1]]))		#
-	cat(paste('\n total number of incident sequences to sample=', df.sample[, sum( s.n.INC )]))#
-	cat(paste('\n total number of non-incident sequences to sample=', df.sample[, sum( s.n.notINC )]))
-indir			<- system.file(package="rPANGEAHIVsim", "misc")#
-indir			<- ifelse(indir=='','/Users/Oliver/git/HPTN071sim/raw_trchain',indir)#
-#	re-name the following:#
-tmpdir			<- '/Users/Oliver/git/HPTN071sim/tmp140910'#
-dir.create(tmpdir, showWarnings=FALSE)#
-tmpdir.HPTN071	<- paste(tmpdir,'/HPTN071parser',sep='')#
-dir.create(tmpdir.HPTN071, showWarnings=FALSE)#
-#	simulation input files from the epi-simulator#
-infile.ind		<- '140716_RUN001_IND.csv'#
-infile.trm		<- '140716_RUN001_TRM.csv'#
-#	input arguments for the pipeline#
-pipeline.args	<- rPANGEAHIVsim.pipeline.args( yr.start=1980, yr.end=2020, seed=42, s.PREV.min=0.01, s.PREV.max=0.25, epi.dt=1/48, epi.import=0.1)#
-infile.args		<- paste(tmpdir,'/',substr(infile.ind, 1, nchar(infile.ind)-7), 'PipeArgs.R',sep='')#
-save(pipeline.args, file=infile.args)#
-#	get input into 'argv'. this is needed because the input parser is usually called from the command line, and 'argv' mimics the way input is provided when the parser is called from the command line#
-cmd				<- cmd.HPTN071.input.parser.v2(indir, infile.trm, infile.ind, infile.args, tmpdir.HPTN071,  infile.trm, infile.ind)				 #
-argv			<<- unlist(strsplit(cmd,' '))
+z2
+z3	<- data.table(Patient=x, t=z[,PosCD4], CD4=cd4.s)	#answer
+z3
+z2	<- subset(z2, PosCD4d>2)				#
+									for(i in seq_len(nrow(z2)))#
+									{#
+										set(z3, z3[,which( t>z2[i, PosCD4] & t<z2[i, PosCD4+PosCD4d])], 'CD4', NA_real_)#
+									}
+z3
+rbind(ans, z3)
+subset(rbind(ans, z3), !is.na(t))
+ans	<- subset(rbind(ans, z3), !is.na(t))
+b<- 0
+subset( immu.pa, BATCH==b)[, unique(Patient)]
+smNA
+cat(paste('\nprocess Batch',b))#
+					immu.sm	<- lapply( subset( immu.pa, BATCH==b)[, unique(Patient)], function(x)#
+							{								#
+								ART.st	<- subset(immu, Patient==x)[1, AnyT_T1]#
+								ART.st	<- ifelse(is.na(ART.st), 2030., ART.st)	#
+								#	before ART start#
+								z		<- subset(tmp, Patient==x & PosCD4<=ART.st, PosCD4)		#	times to predict at#
+								z2		<- subset(immu, Patient==x & PosCD4<=ART.st)			#	data to build model#
+								if(!nrow(z2) || !nrow(z))#
+									ans	<- data.table(Patient=x, t=NA_real_, CD4=NA_real_)#
+								else#
+								{#
+									z3		<- subset(z, PosCD4>= z2[,min(PosCD4)] & PosCD4<= z2[,max(PosCD4)])#
+									if(!nrow(z3))#
+										cd4.s	<- rep(z2[1,][,mean(CD4)],nrow(z))#
+									else#
+									{#
+										z		<- z3 #
+										if(nrow(z2)==1)#
+											cd4.s	<- rep(z2[1,][,CD4],nrow(z))#
+										if(nrow(z2)>1 && z2[, all(CD4==CD4[1])])#
+											cd4.s	<- rep(z2[1,][,CD4],nrow(z))#
+										if(nrow(z2)>1 && z2[, any(CD4!=CD4[1])])#
+										{#
+											cd4.d	<- ifelse(z2[, diff(range(PosCD4))<2], 1, min(15,ceiling(nrow(z2)/8))  )#
+											tryCatch({#
+														cd4.ml	<- gamlss(CD4 ~ PosCD4, data=z2, family='NO', trace = FALSE)#
+														cd4.m	<- gamlss(CD4 ~ bs(PosCD4, degree=cd4.d), data=z2, family='NO', trace = FALSE)										#
+														#	gamlss fit may go wild occasionally, in this case fall back to linear interpolation		#
+														if(deviance(cd4.ml)-deviance(cd4.m)>10)#
+															cd4.s	<- predict(cd4.m, type='response', newdata=z, data=z2) #
+														if(deviance(cd4.ml)-deviance(cd4.m)<=10)#
+															cd4.s	<- predict(cd4.ml, type='response', newdata=z, data=z2) 	#
+													}, #
+													warning=function(w)#
+													{ #
+														cat(paste('\nWarning: fall back to approx for patient',x))#
+														cd4.s	<<- approx(z2[,PosCD4], z2[,CD4], xout=z[,PosCD4]+t.period/2, rule=2)$y	#
+													}, #
+													error=function(e)#
+													{ #
+														cat(paste('\nError: fall back to approx for patient',x))#
+														cd4.s	<<- approx(z2[,PosCD4], z2[,CD4], xout=z[,PosCD4]+t.period/2, rule=2)$y	#
+													})						#
+										}#
+									}#
+									ans	<- data.table(Patient=x, t=z[,PosCD4], CD4=cd4.s)	#answer#
+									z2	<- subset(z2, PosCD4d>2)				#
+									for(i in seq_len(nrow(z2)))#
+									{#
+										set(ans, ans[,which( t>z2[i, PosCD4] & t<z2[i, PosCD4+PosCD4d])], 'CD4', NA_real_)#
+									}#
+								}							#
+								#	after ART start#
+								z		<- subset(tmp, Patient==x & PosCD4>ART.st, PosCD4)		#	times to predict at#
+								z2		<- subset(immu, Patient==x & PosCD4>ART.st)				#	data to build model#
+								if(nrow(z) && nrow(z2))								#
+								{#
+									z3		<- subset(z, PosCD4>= z2[,min(PosCD4)] & PosCD4<= z2[,max(PosCD4)])#
+									if(!nrow(z3))#
+										cd4.s	<- rep(z2[1,][,mean(CD4)],nrow(z))#
+									else#
+									{#
+										z		<- z3 #
+										if(nrow(z2)==1)#
+											cd4.s	<- rep(z2[1,][,CD4],nrow(z))#
+										if(nrow(z2)>1 && z2[, all(CD4==CD4[1])])#
+											cd4.s	<- rep(z2[1,][,CD4],nrow(z))#
+										if(nrow(z2)>1 && z2[, any(CD4!=CD4[1])])#
+										{#
+											cd4.d	<- ifelse(z2[, diff(range(PosCD4))<2], 1, min(15,ceiling(nrow(z2)/8))  )#
+											tryCatch({#
+														cd4.ml	<- gamlss(CD4 ~ PosCD4, data=z2, family='NO', trace = FALSE)#
+														cd4.m	<- gamlss(CD4 ~ bs(PosCD4, degree=cd4.d), data=z2, family='NO', trace = FALSE)													#
+														#	gamlss fit may go wild occasionally, in this case fall back to linear interpolation		#
+														if(deviance(cd4.ml)-deviance(cd4.m)>10)#
+															cd4.s	<- predict(cd4.m, type='response', newdata=z, data=z2) #
+														if(deviance(cd4.ml)-deviance(cd4.m)<=10)#
+															cd4.s	<- predict(cd4.ml, type='response', newdata=z, data=z2) 	#
+													}, #
+													warning=function(w)#
+													{ #
+														cat(paste('\nWarning: fall back to approx for patient',x))#
+														cd4.s	<<- approx(z2[,PosCD4], z2[,CD4], xout=z[,PosCD4]+t.period/2, rule=2)$y	#
+													},#
+													error=function(e)#
+													{ #
+														cat(paste('\nError: fall back to approx for patient',x))#
+														cd4.s	<<- approx(z2[,PosCD4], z2[,CD4], xout=z[,PosCD4]+t.period/2, rule=2)$y	#
+													})						#
+										}#
+									}#
+									z3	<- data.table(Patient=x, t=z[,PosCD4], CD4=cd4.s)	#answer#
+									z2	<- subset(z2, PosCD4d>2)				#
+									for(i in seq_len(nrow(z2)))#
+									{#
+										set(z3, z3[,which( t>z2[i, PosCD4] & t<z2[i, PosCD4+PosCD4d])], 'CD4', NA_real_)#
+									}#
+									ans	<- subset(rbind(ans, z3), !is.na(t))#
+								}#
+								ans				#
+							})#
+					immu.sm	<- do.call('rbind',immu.sm)
+immu.sm
+subset( immu.pa, BATCH==b)[, length(unique(Patient))]
+immu.sm[, length(unique(Patient))]
+outdir
+file	<- paste(DATA,'/derived/','ATHENA_2014_06_Patient_AllMSM_CD4.R',sep='')#
+		z<- load(file)
+z
+subset(immu.sm, Patient%in%c('M10032','M10038'))
+outdir
+outdir<- "/Users/Oliver/duke/2013_HIV_NL/ATHENA_2013/derived"
+DATA
+outdir<- "/Users/Oliver/duke/2013_HIV_NL/ATHENA_2013/data/derived"
+t.period<- 0.125#
+		df.cov	<- copy(df.all.allmsm)#
+		setkey(df.cov, Patient)#
+		df.cov	<- unique(df.cov)		#
+		immu	<- subset( df.immu.allmsm, select=c(Patient, PosCD4, CD4) )#
+		set(immu, NULL, 'PosCD4', hivc.db.Date2numeric(immu[,PosCD4]))#
+		tmp		<- subset(df.cov, select=c(Patient, AnyT_T1))#
+		set(tmp, tmp[, which(is.na(AnyT_T1))], 'AnyT_T1', 2030.)#
+		tmp2	<- immu[, list(CD4.gap=ifelse(length(PosCD4)==1, 0, max(diff(PosCD4)))), by='Patient']#
+		tmp		<- merge(tmp, tmp2, by='Patient')		#
+		immu	<- merge(immu, tmp, by='Patient')	#
+		require(gamlss)#
+		stopifnot(class(immu$Patient)=='character',class(df.cov$Patient)=='character')#
+		#	add time to next PosCD4#
+		tmp		<- immu[, {#
+					z	<- c(diff(PosCD4),0)#
+					if(length(PosCD4)==1)#
+						z<- 0#
+					list(PosCD4=PosCD4, PosCD4d=z)	#
+				}, by='Patient']#
+		immu	<- merge(immu, tmp, by=c('Patient','PosCD4'))#
+		#			#
+		tmp		<- subset(immu, select=c(Patient, PosCD4))[, list(ts=min(PosCD4), te=max(PosCD4)), by='Patient']#
+		set(tmp, NULL, 'ts', tmp[, floor(ts) + round( (ts%%1)*100 %/% (t.period*100) ) * t.period] )#
+		set(tmp, NULL, 'te', tmp[, floor(te) + round( (te%%1)*100 %/% (t.period*100) ) * t.period] )#
+		tmp		<- tmp[, list(PosCD4= seq(ts, te, by=t.period)),by='Patient']	#
+		setkey(tmp, Patient)#
+		immu.pa	<- unique(subset(immu, select=Patient))#
+		immu.pa[, BATCH:=floor(seq_len(nrow(immu.pa))/100)]
+immu.pa
+subset(immu.pa, Patient=='M10032')
+immu.sm<- lapply( immu.pa[, unique(BATCH)], function(b)#
+				{#
+					cat(paste('\nprocess Batch',b))#
+					immu.sm	<- lapply( subset( immu.pa, BATCH==b)[, unique(Patient)], function(x)#
+							{								#
+								ART.st	<- subset(immu, Patient==x)[1, AnyT_T1]#
+								ART.st	<- ifelse(is.na(ART.st), 2030., ART.st)	#
+								#	before ART start#
+								z		<- subset(tmp, Patient==x & PosCD4<=ART.st, PosCD4)		#	times to predict at#
+								z2		<- subset(immu, Patient==x & PosCD4<=ART.st)			#	data to build model#
+								if(!nrow(z2) || !nrow(z))#
+									ans	<- data.table(Patient=x, t=NA_real_, CD4=NA_real_)#
+								else#
+								{#
+									z3		<- subset(z, PosCD4>= z2[,min(PosCD4)] & PosCD4<= z2[,max(PosCD4)])#
+									if(!nrow(z3))#
+										cd4.s	<- rep(z2[1,][,mean(CD4)],nrow(z))#
+									else#
+									{#
+										z		<- z3 #
+										if(nrow(z2)==1)#
+											cd4.s	<- rep(z2[1,][,CD4],nrow(z))#
+										if(nrow(z2)>1 && z2[, all(CD4==CD4[1])])#
+											cd4.s	<- rep(z2[1,][,CD4],nrow(z))#
+										if(nrow(z2)>1 && z2[, any(CD4!=CD4[1])])#
+										{#
+											cd4.d	<- ifelse(z2[, diff(range(PosCD4))<2], 1, min(15,ceiling(nrow(z2)/8))  )#
+											tryCatch({#
+														cd4.ml	<- gamlss(CD4 ~ PosCD4, data=z2, family='NO', trace = FALSE)#
+														cd4.m	<- gamlss(CD4 ~ bs(PosCD4, degree=cd4.d), data=z2, family='NO', trace = FALSE)										#
+														#	gamlss fit may go wild occasionally, in this case fall back to linear interpolation		#
+														if(deviance(cd4.ml)-deviance(cd4.m)>10)#
+															cd4.s	<- predict(cd4.m, type='response', newdata=z, data=z2) #
+														if(deviance(cd4.ml)-deviance(cd4.m)<=10)#
+															cd4.s	<- predict(cd4.ml, type='response', newdata=z, data=z2) 	#
+													}, #
+													warning=function(w)#
+													{ #
+														cat(paste('\nWarning: fall back to approx for patient',x))#
+														cd4.s	<<- approx(z2[,PosCD4], z2[,CD4], xout=z[,PosCD4]+t.period/2, rule=2)$y	#
+													}, #
+													error=function(e)#
+													{ #
+														cat(paste('\nError: fall back to approx for patient',x))#
+														cd4.s	<<- approx(z2[,PosCD4], z2[,CD4], xout=z[,PosCD4]+t.period/2, rule=2)$y	#
+													})						#
+										}#
+									}#
+									ans	<- data.table(Patient=x, t=z[,PosCD4], CD4=cd4.s)	#answer#
+									z2	<- subset(z2, PosCD4d>2)				#
+									for(i in seq_len(nrow(z2)))#
+									{#
+										set(ans, ans[,which( t>z2[i, PosCD4] & t<z2[i, PosCD4+PosCD4d])], 'CD4', NA_real_)#
+									}#
+								}							#
+								#	after ART start#
+								z		<- subset(tmp, Patient==x & PosCD4>ART.st, PosCD4)		#	times to predict at#
+								z2		<- subset(immu, Patient==x & PosCD4>ART.st)				#	data to build model#
+								if(nrow(z) && nrow(z2))								#
+								{#
+									z3		<- subset(z, PosCD4>= z2[,min(PosCD4)] & PosCD4<= z2[,max(PosCD4)])#
+									if(!nrow(z3))#
+										cd4.s	<- rep(z2[1,][,mean(CD4)],nrow(z))#
+									else#
+									{#
+										z		<- z3 #
+										if(nrow(z2)==1)#
+											cd4.s	<- rep(z2[1,][,CD4],nrow(z))#
+										if(nrow(z2)>1 && z2[, all(CD4==CD4[1])])#
+											cd4.s	<- rep(z2[1,][,CD4],nrow(z))#
+										if(nrow(z2)>1 && z2[, any(CD4!=CD4[1])])#
+										{#
+											cd4.d	<- ifelse(z2[, diff(range(PosCD4))<2], 1, min(15,ceiling(nrow(z2)/8))  )#
+											tryCatch({#
+														cd4.ml	<- gamlss(CD4 ~ PosCD4, data=z2, family='NO', trace = FALSE)#
+														cd4.m	<- gamlss(CD4 ~ bs(PosCD4, degree=cd4.d), data=z2, family='NO', trace = FALSE)													#
+														#	gamlss fit may go wild occasionally, in this case fall back to linear interpolation		#
+														if(deviance(cd4.ml)-deviance(cd4.m)>10)#
+															cd4.s	<- predict(cd4.m, type='response', newdata=z, data=z2) #
+														if(deviance(cd4.ml)-deviance(cd4.m)<=10)#
+															cd4.s	<- predict(cd4.ml, type='response', newdata=z, data=z2) 	#
+													}, #
+													warning=function(w)#
+													{ #
+														cat(paste('\nWarning: fall back to approx for patient',x))#
+														cd4.s	<<- approx(z2[,PosCD4], z2[,CD4], xout=z[,PosCD4]+t.period/2, rule=2)$y	#
+													},#
+													error=function(e)#
+													{ #
+														cat(paste('\nError: fall back to approx for patient',x))#
+														cd4.s	<<- approx(z2[,PosCD4], z2[,CD4], xout=z[,PosCD4]+t.period/2, rule=2)$y	#
+													})						#
+										}#
+									}#
+									z3	<- data.table(Patient=x, t=z[,PosCD4], CD4=cd4.s)	#answer#
+									z2	<- subset(z2, PosCD4d>2)				#
+									for(i in seq_len(nrow(z2)))#
+									{#
+										set(z3, z3[,which( t>z2[i, PosCD4] & t<z2[i, PosCD4+PosCD4d])], 'CD4', NA_real_)#
+									}#
+									ans	<- subset(rbind(ans, z3), !is.na(t))#
+								}#
+								ans				#
+							})#
+					immu.sm	<- do.call('rbind',immu.sm)#
+					save(file=paste(outdir,'/','ATHENA_composition_CD4_batch',b,'.R',sep=''),immu.sm)#
+					immu.sm				#
+				})
+immu.sm	<- do.call('rbind',immu.sm)
+subset(immu.sm, Patient%in%c('M10032','M10038'))
+immu.sm
+subset(immu.sm, !is.na(t))
+immu.sm	<- subset(immu.sm, !is.na(t))
+file	<- paste(DATA,'/derived/','ATHENA_2014_06_Patient_AllMSM_CD4.R',sep='')
+file
+save(file=paste(outdir,'/','ATHENA_2014_06_Patient_AllMSM_CD4.R',sep=''),immu.sm)
+t.period				<- 0.125#
+		t.recent.startctime		<- hivc.db.Date2numeric(as.Date("1996-07-15"))#
+		t.recent.startctime		<- floor(t.recent.startctime) + floor( (t.recent.startctime%%1)*100 %/% (t.period*100) ) * t.period#
+		t.recent.endctime		<- 2011#
+		#tp.cut				<- c(-Inf, 2006.5, 2008, 2009.5, 2011)#
+		tperiod.info<- as.data.table(structure(list(t.period = structure(1:4, .Label = c("1", "2", "3", "4"), class = "factor"), t.period.min = c(1996.5, 2006.5, 2008, 2009.5)+0.001, t.period.max = c(2006.5, 2008, 2009.5, 2011)), row.names = c(NA, -4L), class = "data.frame", .Names = c("t.period", "t.period.min", "t.period.max")))		#
+		df.cov	<- copy(df.all.allmsm)#
+		setkey(df.cov, Patient)#
+		df.cov	<- unique(df.cov)#
+		##
+		# get first time CD4<350#
+		##
+		file	<- paste(DATA,'/derived/','ATHENA_2014_06_Patient_AllMSM_CD4.R',sep='')#
+		load(file)
+tmp		<- immu.sm[, {#
+									CD4_350_T1	<- which(CD4<=350)#
+									CD4_500_T1	<- which(CD4<=500)#
+									list(CD4sm='Y', CD4_350_T1=ifelse(length(CD4_350_T1), t, NA_real_), CD4_500_T1=ifelse(length(CD4_500_T1), t, NA_real_))#
+								}, by='Patient']#
+		df.cov	<- merge(df.cov, tmp, all.x=TRUE, by='Patient')#
+		df.cov	<- subset(df.cov, Trm=='MSM' | Trm=='BI')#
+		cat(paste('\nNumber of patients for whom we don t have a smooth, n=', subset(df.cov, is.na(CD4sm))[, length(unique(Patient))] ))
+subset(df.cov, is.na(CD4sm))
+unique( subset(df.cov, is.na(CD4sm), Patient) )
+merge( df.immu.allmsm, unique( subset(df.cov, is.na(CD4sm), Patient) ), by='Patient' )
+df.cov
+subset(df.cov, is.na(CD4sm) & !is.na(CD4_T1))
+subset(df.cov, is.na(CD4sm) & !is.na(CD4_T1) & CD4_T1<500)
+subset(df.cov, is.na(CD4sm) & !is.na(CD4_T1) & CD4_T1>=500)
+subset(df.cov, is.na(CD4sm) & !is.na(CD4_T1) & CD4_T1<=500)
+tmp		<- df.cov[, which(is.na(CD4sm) & !is.na(CD4_T1) & CD4_T1<=500)]
+tmp
+df.cov[tmp, PosCD4_T1]
+df.cov[tmp, ]
+set( df.cov, tmp, 'CD4_500_T1', df.cov[tmp, PosCD4_T1] )
+df.cov[tmp, ]
+tmp		<- df.cov[, which(is.na(CD4sm) & !is.na(CD4_T1) & CD4_T1<=350)]
+tmp
+set( df.cov, tmp, 'CD4_350_T1', df.cov[tmp, PosCD4_T1] )
+df.cov[tmp, ]
+unique(subset(df.cov, is.na(CD4_T1), Patient))
+193-181
+cat(paste('\nNumber of patients for whom we don t have a single CD4 count, n=', nrow(unique(subset(df.cov, is.na(CD4_T1), Patient))) ))
+df.cd4cov	<- data.table(t= seq(t.recent.startctime, t.recent.endctime, 1/12))#
+		df.cd4cov	<- df.cd4cov[, list(	N_CD4_350=		nrow(subset(df.cov, t>=AnyPos_T1 & (is.na(DateDied) | DateDied<t) & t>=CD4_350_T1 )),#
+											N_CD4_l500=		nrow(subset(df.cov, t>=AnyPos_T1 & (is.na(DateDied) | DateDied<t) & t>=CD4_500_T1 & (is.na(CD4_350_T1) |  t<CD4_350_T1))),#
+											N_CD4_g500=		nrow(subset(df.cov, t>=AnyPos_T1 & (is.na(DateDied) | DateDied<t) & t>=PosCD4_T1 & (t<CD4_500_T1 | is.na(CD4_500_T1)))),#
+											N_CD4_NA= 		nrow(subset(df.cov, t>=AnyPos_T1 & (is.na(DateDied) | DateDied<t) & (t<PosCD4_T1 | is.na(PosCD4_T1)) )),#
+										  	N_CD4_350_ART=	nrow(subset(df.cov, t>=AnyT_T1 & t>=AnyPos_T1 & (is.na(DateDied) | DateDied<t) & t>=CD4_350_T1)),	#
+											N_CD4_l500_ART=	nrow(subset(df.cov, t>=AnyT_T1 & t>=AnyPos_T1 & (is.na(DateDied) | DateDied<t) & t>=CD4_500_T1 & (is.na(CD4_350_T1) |  t<CD4_350_T1))),#
+											N_CD4_g500_ART=	nrow(subset(df.cov, t>=AnyT_T1 & t>=AnyPos_T1 & (is.na(DateDied) | DateDied<t) & t>=PosCD4_T1 &  (t<CD4_500_T1 | is.na(CD4_500_T1)))),#
+											N_CD4_NA_ART= 	nrow(subset(df.cov, t>=AnyT_T1 & t>=AnyPos_T1 & (is.na(DateDied) | DateDied<t) & (t<PosCD4_T1 | is.na(PosCD4_T1)) )),											#
+											), by='t']
+df.cd4cov	<- data.table(t= seq(t.recent.startctime, t.recent.endctime, 1/12))#
+		df.cd4cov	<- df.cd4cov[, list(	N_CD4_350=		nrow(subset(df.cov, t>=AnyPos_T1 & (is.na(DateDied) | DateDied<t) & t>=CD4_350_T1 )),#
+											N_CD4_l500=		nrow(subset(df.cov, t>=AnyPos_T1 & (is.na(DateDied) | DateDied<t) & t>=CD4_500_T1 & (is.na(CD4_350_T1) |  t<CD4_350_T1))),#
+											N_CD4_g500=		nrow(subset(df.cov, t>=AnyPos_T1 & (is.na(DateDied) | DateDied<t) & t>=PosCD4_T1 & (t<CD4_500_T1 | is.na(CD4_500_T1)))),#
+											N_CD4_NA= 		nrow(subset(df.cov, t>=AnyPos_T1 & (is.na(DateDied) | DateDied<t) & (t<PosCD4_T1 | is.na(PosCD4_T1)) )),#
+										  	N_CD4_350_ART=	nrow(subset(df.cov, t>=AnyT_T1 & t>=AnyPos_T1 & (is.na(DateDied) | DateDied<t) & t>=CD4_350_T1)),	#
+											N_CD4_l500_ART=	nrow(subset(df.cov, t>=AnyT_T1 & t>=AnyPos_T1 & (is.na(DateDied) | DateDied<t) & t>=CD4_500_T1 & (is.na(CD4_350_T1) |  t<CD4_350_T1))),#
+											N_CD4_g500_ART=	nrow(subset(df.cov, t>=AnyT_T1 & t>=AnyPos_T1 & (is.na(DateDied) | DateDied<t) & t>=PosCD4_T1 &  (t<CD4_500_T1 | is.na(CD4_500_T1)))),#
+											N_CD4_NA_ART= 	nrow(subset(df.cov, t>=AnyT_T1 & t>=AnyPos_T1 & (is.na(DateDied) | DateDied<t) & (t<PosCD4_T1 | is.na(PosCD4_T1)) ))										#
+											), by='t']#
+		df.cd4cov[, N_CD4_350_NoART:= N_CD4_350-N_CD4_350_ART]#
+		df.cd4cov[, N_CD4_l500_NoART:= N_CD4_l500-N_CD4_l500_ART]#
+		df.cd4cov[, N_CD4_g500_NoART:= N_CD4_g500-N_CD4_g500_ART]
+df.cd4cov[, N_CD4_NA_NoART:= N_CD4_NA-N_CD4_NA_ART]
+set(df.cd4cov, NULL, 't.period', df.cd4cov[, cut(t, breaks=c(-Inf, 2006.5, 2008, 2009.5, 2011), labels=1:4)])
+df.cd4cov
+tmp	<- melt(df.cd4cov, id.vars=c('t'), measure.vars=c('N_CD4_350_NoART','N_CD4_l500_NoART','N_CD4_g500_NoART','N_CD4_NA_NoART'))
+tmp
+ggplot(tmp, aes(x=t, y=value, group=variable, colour=variable)) + geom_line()
+ggplot(tmp, aes(x=t, y=value, group=variable, colour=variable)) + geom_step()
+df.Praw.e0cp	<- subset(runs.risk, is.na(t.period) & method.nodectime=='any' & method.brl=='3pa1H1.35C3V100bInfT7' & method.denom=='SEQ' & method.recentctime==2011 & method.dating=='sasky' & stat=='P.raw.e0cp' & grepl('stageDtl350', coef))#
+			set(df.Praw.e0cp, NULL, 't.period', df.Praw.e0cp[, as.character(factor)])#
+			set(df.Praw.e0cp, NULL, 't.period', df.Praw.e0cp[, factor(substr(t.period, nchar(t.period), nchar(t.period)))])#
+			#df.cd4cov	<- subset(df.cd4cov, select=c(t, N_CD4_350_NoART))#
+			df.cd4me	<- tperiod.info[, list(M_CD4_350_NoART=subset(df.cd4cov, t>=t.period.min & t<t.period.max)[, mean(N_CD4_350_NoART)]), by=t.period]#
+			df.cd4me	<- merge(tperiod.info, df.cd4me, by='t.period')#
+			df.cd4me	<- merge(df.cd4me, df.Praw.e0cp, by='t.period')#
+			tmp			<- lm(M_CD4_350_NoART~v-1, data=df.cd4me)#
+			ans			<- lm(M_CD4_350_NoART~v, data=df.cd4me)#
+			set(df.cd4me, NULL, 'tv', predict(tmp))#
+			set(df.cd4me, NULL, 'tl95.bs', predict(tmp, data.frame(v= df.cd4me$l95.bs)))#
+			set(df.cd4me, NULL, 'tu95.bs', predict(tmp, data.frame(v= df.cd4me$u95.bs)))#
+			set(df.cd4cov, NULL, 't.period', df.cd4cov[, cut(t, breaks=c(-Inf, 2006.5, 2008, 2009.5, 2011), labels=1:4)])#
+			summary(ans)
+library(gtable)#
+			library(grid)#
+			p1	<- ggplot(df.cd4cov) + geom_step(aes(x=t, y=N_CD4_350_NoART), stat='identity', colour="#41B6C4", width=1/12, alpha=0.4) + theme_bw() +#
+					scale_x_continuous(breaks=seq(1997,2014,2), minor_breaks=NULL, expand=c(0,0)) + #
+					scale_y_continuous(breaks=seq(0,3000,250)) +#
+					geom_segment(data=df.cd4me, aes(x=t.period.min, xend=t.period.max, y=M_CD4_350_NoART, yend=M_CD4_350_NoART), col="#41B6C4", size=1.4) +#
+					geom_point(data=df.cd4me, aes(x=(t.period.min+t.period.max)/2, y=tv), col='black', shape=18, size=4) +				#
+					geom_errorbar(data=df.cd4me, aes(x=(t.period.min+t.period.max)/2, ymin=tl95.bs, ymax=tu95.bs), col='black', width=0.5, size=1) +#
+					labs(x='', y='Untreated HIV infected MSM\nwith CD4<350\n( # )') + #
+					facet_grid(.~t.period, scales='free_x', space='free_x') +					#
+					theme(axis.title=element_text(size=18), axis.text.x=element_text(size=14), axis.text.y=element_text(colour="#41B6C4", size=14), strip.background = element_blank(), strip.text = element_blank(), panel.grid.major.y = element_blank(), panel.grid.minor.y = element_blank(), panel.grid.major.x=element_blank(), plot.margin=unit(c(0,2,0,0),"cm"))#
+			p2	<- ggplot(df.cd4cov) + geom_step(aes(x=t, y=N_CD4_350_NoART), stat='identity', colour="#41B6C4", width=1/12, alpha=0.4) + theme_bw() +#
+					scale_x_continuous(breaks=seq(1997,2014,2), minor_breaks=NULL, expand=c(0,0)) + #
+					scale_y_continuous(breaks=predict(tmp, data.frame(v= seq(0, 14, 2)/100)), label=seq(0, 14, 2)) +					#
+					geom_segment(data=df.cd4me, aes(x=t.period.min, xend=t.period.max, y=M_CD4_350_NoART, yend=M_CD4_350_NoART), col="#41B6C4", size=1.4) +#
+					geom_point(data=df.cd4me, aes(x=(t.period.min+t.period.max)/2, y=tv), col='black', shape=18, size=4) +				#
+					geom_errorbar(data=df.cd4me, aes(x=(t.period.min+t.period.max)/2, ymin=tl95.bs, ymax=tu95.bs), col='black', width=0.5, size=1) +#
+					labs(x='', y='Transmissions from\nuntreated men with CD4<350\n( % )') + #
+					facet_grid(.~t.period, scales='free_x', space='free_x') +										#
+					theme(axis.title=element_text(size=18), axis.text.x=element_text(size=14), axis.text.y=element_text(size=14), strip.background = element_blank(), strip.text = element_blank(), panel.grid.major.y = element_blank(), panel.grid.minor.y = element_blank(), panel.grid.major.x=element_blank(), plot.margin=unit(c(0,2,0,0),"cm"))#
+			#	prepare y axis label 	#
+			p2	<- p2 + theme(axis.text.y = element_text(hjust = 0), axis.title.y = element_text(angle = 270)) #
+			#extract gtable#
+			g1	<- ggplot_gtable(ggplot_build(p1))#
+			g2	<- ggplot_gtable(ggplot_build(p2))		#
+			#overlap the panel of the 2nd plot on that of the 1st plot		#
+			pp	<- c(subset(g1$layout, name=="panel", se=t:r)[1, ])#
+			g	<- gtable_add_grob(g1, g2$grobs[[which(g2$layout$name=="panel")[1]]], pp$t, pp$l, pp$b, pp$l)#
+			#extract left axis#
+			ia <- which(g2$layout$name == "axis-l")#
+			ga <- g2$grobs[[ia]]#
+			ax <- ga$children[[2]]#
+			ax$widths <- rev(ax$widths)#
+			ax$grobs <- rev(ax$grobs)#
+			ax$grobs[[1]]$x <- ax$grobs[[1]]$x - unit(1, "npc") + unit(0.15, "cm")#
+			g <- gtable_add_cols(g, g2$widths[g2$layout[ia, ]$l], length(g$widths) - 1)#
+			g <- gtable_add_grob(g, ax, pp$t, length(g$widths) - 1, pp$b)#
+			#extract left axis label		#
+			g 	<- gtable_add_grob(g, g2$grobs[[which(g2$layout$name == "ylab")]], pp$t, length(g$widths), pp$b)#
+			#draw the whole thing		#
+			file<- paste(DATA, '/fisheretal_150105/', 'ATHENA_2014_06_Patient_AllMSM_ARTno_CD4350.pdf',sep='')#
+			pdf(file=file, w=6, h=4) # plot saved by default to Rplots.pdf#
+			grid.newpage()#
+			grid.draw(g)#
+			dev.off()
+df.Praw.e0cp	<- subset(runs.risk, is.na(t.period) & method.nodectime=='any' & method.brl=='3pa1H1.35C3V100bInfT7' & method.denom=='SEQ' & method.recentctime==2011 & method.dating=='sasky' & stat=='P.raw.e0cp' & grepl('stageDtl500', coef))#
+			set(df.Praw.e0cp, NULL, 't.period', df.Praw.e0cp[, as.character(factor)])#
+			set(df.Praw.e0cp, NULL, 't.period', df.Praw.e0cp[, factor(substr(t.period, nchar(t.period), nchar(t.period)))])#
+			df.cd4me	<- tperiod.info[, list(M_CD4_l500_NoART=subset(df.cd4cov, t>=t.period.min & t<t.period.max)[, mean(N_CD4_l500_NoART)]), by=t.period]#
+			df.cd4me	<- merge(tperiod.info, df.cd4me, by='t.period')#
+			df.cd4me	<- merge(df.cd4me, df.Praw.e0cp, by='t.period')#
+			tmp			<- lm(M_CD4_l500_NoART~v-1, data=df.cd4me)#
+			ans			<- lm(M_CD4_l500_NoART~v, data=df.cd4me)#
+			set(df.cd4me, NULL, 'tv', predict(tmp))#
+			set(df.cd4me, NULL, 'tl95.bs', predict(tmp, data.frame(v= df.cd4me$l95.bs)))#
+			set(df.cd4me, NULL, 'tu95.bs', predict(tmp, data.frame(v= df.cd4me$u95.bs)))#
+			summary(ans)
+summary(tmp)
+library(gtable)#
+			library(grid)#
+			p1	<- ggplot(df.cd4cov) + geom_step(aes(x=t, y=N_CD4_l500_NoART), stat='identity', colour="#74A9CF", width=1/12, alpha=0.4) + theme_bw() +#
+					scale_x_continuous(breaks=seq(1997,2014,2), minor_breaks=NULL, expand=c(0,0)) + #
+					scale_y_continuous(breaks=seq(0,3000,250)) +#
+					geom_segment(data=df.cd4me, aes(x=t.period.min, xend=t.period.max, y=M_CD4_l500_NoART, yend=M_CD4_l500_NoART), col="#74A9CF", size=1.4) +#
+					geom_point(data=df.cd4me, aes(x=(t.period.min+t.period.max)/2, y=tv), col='black', shape=18, size=4) +				#
+					geom_errorbar(data=df.cd4me, aes(x=(t.period.min+t.period.max)/2, ymin=tl95.bs, ymax=tu95.bs), col='black', width=0.5, size=1) +#
+					labs(x='', y='Untreated HIV infected MSM\nwith CD4 350-500\n( # )') + #
+					facet_grid(.~t.period, scales='free_x', space='free_x') +					#
+					theme(axis.title=element_text(size=18), axis.text.x=element_text(size=14), axis.text.y=element_text(colour="#74A9CF", size=14), strip.background = element_blank(), strip.text = element_blank(), panel.grid.major.y = element_blank(), panel.grid.minor.y = element_blank(), panel.grid.major.x=element_blank(), plot.margin=unit(c(0,2,0,0),"cm"))#
+			p2	<- ggplot(df.cd4cov) + geom_step(aes(x=t, y=N_CD4_l500_NoART), stat='identity', colour="#74A9CF", width=1/12, alpha=0.4) + theme_bw() +#
+					scale_x_continuous(breaks=seq(1997,2014,2), minor_breaks=NULL, expand=c(0,0)) + #
+					scale_y_continuous(breaks=predict(tmp, data.frame(v= seq(0, 14, 2)/100)), label=seq(0, 14, 2)) +					#
+					geom_segment(data=df.cd4me, aes(x=t.period.min, xend=t.period.max, y=M_CD4_l500_NoART, yend=M_CD4_l500_NoART), col="#74A9CF", size=1.4) +#
+					geom_point(data=df.cd4me, aes(x=(t.period.min+t.period.max)/2, y=tv), col='black', shape=18, size=4) +				#
+					geom_errorbar(data=df.cd4me, aes(x=(t.period.min+t.period.max)/2, ymin=tl95.bs, ymax=tu95.bs), col='black', width=0.5, size=1) +#
+					labs(x='', y='Transmissions from\nuntreated men with CD4 350-500\n( % )') + #
+					facet_grid(.~t.period, scales='free_x', space='free_x') +										#
+					theme(axis.title=element_text(size=18), axis.text.x=element_text(size=14), axis.text.y=element_text(size=14), strip.background = element_blank(), strip.text = element_blank(), panel.grid.major.y = element_blank(), panel.grid.minor.y = element_blank(), panel.grid.major.x=element_blank(), plot.margin=unit(c(0,2,0,0),"cm"))#
+			#	prepare y axis label 	#
+			p2	<- p2 + theme(axis.text.y = element_text(hjust = 0), axis.title.y = element_text(angle = 270)) #
+			#extract gtable#
+			g1	<- ggplot_gtable(ggplot_build(p1))#
+			g2	<- ggplot_gtable(ggplot_build(p2))		#
+			#overlap the panel of the 2nd plot on that of the 1st plot		#
+			pp	<- c(subset(g1$layout, name=="panel", se=t:r)[1, ])#
+			g	<- gtable_add_grob(g1, g2$grobs[[which(g2$layout$name=="panel")[1]]], pp$t, pp$l, pp$b, pp$l)#
+			#extract left axis#
+			ia <- which(g2$layout$name == "axis-l")#
+			ga <- g2$grobs[[ia]]#
+			ax <- ga$children[[2]]#
+			ax$widths <- rev(ax$widths)#
+			ax$grobs <- rev(ax$grobs)#
+			ax$grobs[[1]]$x <- ax$grobs[[1]]$x - unit(1, "npc") + unit(0.15, "cm")#
+			g <- gtable_add_cols(g, g2$widths[g2$layout[ia, ]$l], length(g$widths) - 1)#
+			g <- gtable_add_grob(g, ax, pp$t, length(g$widths) - 1, pp$b)#
+			#extract left axis label		#
+			g 	<- gtable_add_grob(g, g2$grobs[[which(g2$layout$name == "ylab")]], pp$t, length(g$widths), pp$b)#
+			#draw the whole thing		#
+			file<- paste(DATA, '/fisheretal_150105/', 'ATHENA_2014_06_Patient_AllMSM_ARTno_CD4350500.pdf',sep='')#
+			pdf(file=file, w=6, h=4) # plot saved by default to Rplots.pdf#
+			grid.newpage()#
+			grid.draw(g)#
+			dev.off()
+df.Praw.e0cp	<- subset(runs.risk, is.na(t.period) & method.nodectime=='any' & method.brl=='3pa1H1.35C3V100bInfT7' & method.denom=='SEQ' & method.recentctime==2011 & method.dating=='sasky' & stat=='P.raw.e0cp' & grepl('stageDtg500', coef))#
+			set(df.Praw.e0cp, NULL, 't.period', df.Praw.e0cp[, as.character(factor)])#
+			set(df.Praw.e0cp, NULL, 't.period', df.Praw.e0cp[, factor(substr(t.period, nchar(t.period), nchar(t.period)))])#
+			df.cd4me	<- tperiod.info[, list(M_CD4_g500_NoART=subset(df.cd4cov, t>=t.period.min & t<t.period.max)[, mean(N_CD4_g500_NoART)]), by=t.period]#
+			df.cd4me	<- merge(tperiod.info, df.cd4me, by='t.period')#
+			df.cd4me	<- merge(df.cd4me, df.Praw.e0cp, by='t.period')#
+			tmp			<- lm(M_CD4_g500_NoART~v-1, data=df.cd4me)#
+			ans			<- lm(M_CD4_g500_NoART~v, data=df.cd4me)#
+			set(df.cd4me, NULL, 'tv', predict(tmp))#
+			set(df.cd4me, NULL, 'tl95.bs', predict(tmp, data.frame(v= df.cd4me$l95.bs)))#
+			set(df.cd4me, NULL, 'tu95.bs', predict(tmp, data.frame(v= df.cd4me$u95.bs)))
+summary(ans)
+summary(tmp)
+library(gtable)#
+			library(grid)#
+			p1	<- ggplot(df.cd4cov) + geom_step(aes(x=t, y=N_CD4_g500_NoART), stat='identity', colour="#0570B0", width=1/12, alpha=0.4) + theme_bw() +#
+					scale_x_continuous(breaks=seq(1997,2014,2), minor_breaks=NULL, expand=c(0,0)) + #
+					scale_y_continuous(breaks=seq(0,3000,250)) +#
+					geom_segment(data=df.cd4me, aes(x=t.period.min, xend=t.period.max, y=M_CD4_g500_NoART, yend=M_CD4_g500_NoART), col="#0570B0", size=1.4) +#
+					geom_point(data=df.cd4me, aes(x=(t.period.min+t.period.max)/2, y=tv), col='black', shape=18, size=4) +				#
+					geom_errorbar(data=df.cd4me, aes(x=(t.period.min+t.period.max)/2, ymin=tl95.bs, ymax=tu95.bs), col='black', width=0.5, size=1) +#
+					labs(x='', y='Untreated HIV infected MSM\nwith CD4>500\n( # )') + #
+					facet_grid(.~t.period, scales='free_x', space='free_x') +					#
+					theme(axis.title=element_text(size=18), axis.text.x=element_text(size=14), axis.text.y=element_text(colour="#0570B0", size=14), strip.background = element_blank(), strip.text = element_blank(), panel.grid.major.y = element_blank(), panel.grid.minor.y = element_blank(), panel.grid.major.x=element_blank(), plot.margin=unit(c(0,2,0,0),"cm"))#
+			p2	<- ggplot(df.cd4cov) + geom_step(aes(x=t, y=N_CD4_g500_NoART), stat='identity', colour="#0570B0", width=1/12, alpha=0.4) + theme_bw() +#
+					scale_x_continuous(breaks=seq(1997,2014,2), minor_breaks=NULL, expand=c(0,0)) + #
+					scale_y_continuous(breaks=predict(tmp, data.frame(v= seq(0, 14, 2)/100)), label=seq(0, 14, 2)) +					#
+					geom_segment(data=df.cd4me, aes(x=t.period.min, xend=t.period.max, y=M_CD4_g500_NoART, yend=M_CD4_g500_NoART), col="#0570B0", size=1.4) +#
+					geom_point(data=df.cd4me, aes(x=(t.period.min+t.period.max)/2, y=tv), col='black', shape=18, size=4) +				#
+					geom_errorbar(data=df.cd4me, aes(x=(t.period.min+t.period.max)/2, ymin=tl95.bs, ymax=tu95.bs), col='black', width=0.5, size=1) +#
+					labs(x='', y='Transmissions from\nuntreated men with CD4>500\n( % )') + #
+					facet_grid(.~t.period, scales='free_x', space='free_x') +										#
+					theme(axis.title=element_text(size=18), axis.text.x=element_text(size=14), axis.text.y=element_text(size=14), strip.background = element_blank(), strip.text = element_blank(), panel.grid.major.y = element_blank(), panel.grid.minor.y = element_blank(), panel.grid.major.x=element_blank(), plot.margin=unit(c(0,2,0,0),"cm"))#
+			#	prepare y axis label 	#
+			p2	<- p2 + theme(axis.text.y = element_text(hjust = 0), axis.title.y = element_text(angle = 270)) #
+			#extract gtable#
+			g1	<- ggplot_gtable(ggplot_build(p1))#
+			g2	<- ggplot_gtable(ggplot_build(p2))		#
+			#overlap the panel of the 2nd plot on that of the 1st plot		#
+			pp	<- c(subset(g1$layout, name=="panel", se=t:r)[1, ])#
+			g	<- gtable_add_grob(g1, g2$grobs[[which(g2$layout$name=="panel")[1]]], pp$t, pp$l, pp$b, pp$l)#
+			#extract left axis#
+			ia <- which(g2$layout$name == "axis-l")#
+			ga <- g2$grobs[[ia]]#
+			ax <- ga$children[[2]]#
+			ax$widths <- rev(ax$widths)#
+			ax$grobs <- rev(ax$grobs)#
+			ax$grobs[[1]]$x <- ax$grobs[[1]]$x - unit(1, "npc") + unit(0.15, "cm")#
+			g <- gtable_add_cols(g, g2$widths[g2$layout[ia, ]$l], length(g$widths) - 1)#
+			g <- gtable_add_grob(g, ax, pp$t, length(g$widths) - 1, pp$b)#
+			#extract left axis label		#
+			g 	<- gtable_add_grob(g, g2$grobs[[which(g2$layout$name == "ylab")]], pp$t, length(g$widths), pp$b)#
+			#draw the whole thing		#
+			file<- paste(DATA, '/fisheretal_150105/', 'ATHENA_2014_06_Patient_AllMSM_ARTno_CD4g500.pdf',sep='')#
+			pdf(file=file, w=6, h=4) # plot saved by default to Rplots.pdf#
+			grid.newpage()#
+			grid.draw(g)#
+			dev.off()
+df.cd4cov
+ggplot(df.cd4cov, aes(x=t, y=N_CD4_350_NoART+N_CD4_l500_NoART+N_CD4_g500_NoART+N_CD4_NA_NoART)) + geom_line()
+tmp	<- melt(df.cd4cov, id.vars=c('t'), measure.vars=c('N_CD4_350_NoART','N_CD4_l500_NoART','N_CD4_g500_NoART','N_CD4_NA_NoART'))#
+			ggplot(tmp, aes(x=t, y=value, group=variable, colour=variable)) + geom_step()
+tmp	<- melt(df.cd4cov, id.vars=c('t'), measure.vars=c('N_CD4_350_NoART','N_CD4_l500_NoART','N_CD4_g500_NoART','N_CD4_NA_NoART'))#
+			ggplot(tmp, aes(x=t, y=value, group=variable, colour=variable)) + geom_step()
+ggplot(tmp, aes(x=t, y=value, group=variable, colour=variable)) + geom_step()  + facet_grid(variable~.)
+ggplot(tmp, aes(x=t, y=value, group=variable, colour=variable)) + geom_step()  + facet_grid(variable~., margins=TRUE)
+?facet_grid
+ggplot(tmp, aes(x=t, y=value, group=variable, colour=variable)) + geom_step()  + facet_grid(.~variable, margins=TRUE)
+df.cd4cov
+df.cd4cov[, N_NoART:=N_CD4_350_NoART+N_CD4_l500_NoART+N_CD4_g500_NoART+N_CD4_NA_NoART]
+tmp	<- melt(df.cd4cov, id.vars=c('t'), measure.vars=c('N_CD4_350_NoART','N_CD4_l500_NoART','N_CD4_g500_NoART','N_CD4_NA_NoART','N_NoART'))#
+			ggplot(tmp, aes(x=t, y=value, group=variable, colour=variable)) + geom_step()  + facet_grid(.~variable., margins=TRUE)
+tmp
+ggplot(tmp, aes(x=t, y=value, group=variable, colour=variable)) + geom_step()  + facet_grid(.~variable)
+ggplot(tmp, aes(x=t, y=value, group=variable, colour=variable)) + geom_step()  + facet_grid(variable~., scales='free')
+ggplot(tmp, aes(x=t, y=value, group=variable, colour=variable)) + geom_step()  + facet_grid(variable~., scales='free') +#
+					labs(x='', y='diagnosed but untreated MSM') +#
+					scale_x_continuous(breaks=seq(1996,2020,2)) +#
+					theme_bw() + theme(legend.pos='bottom')
+ggplot(tmp, aes(x=t, y=value, group=variable, colour=variable)) + geom_step()  + facet_grid(variable~., scales='free') +#
+					labs(x='', y='diagnosed but untreated MSM') +#
+					scale_x_continuous(breaks=seq(1996,2020,2)) +#
+					theme_bw() + theme(legend.position='bottom')
+ggplot(tmp, aes(x=t, y=value, group=variable, colour=variable)) + geom_step()  + facet_grid(variable~., scales='free') +#
+					labs(x='', y='diagnosed but untreated MSM') +#
+					scale_x_continuous(breaks=seq(1996,2020,2)) +#
+					theme_bw() + theme(legend.position='bottom',strip.background = element_blank(), strip.text = element_blank())
+ggplot(tmp, aes(x=t, y=value, group=variable, colour=variable)) + geom_step()  + facet_grid(variable~., scales='free') +#
+					labs(x='', y='diagnosed but untreated MSM') +#
+					scale_x_continuous(breaks=seq(1996,2020,2)) +#
+					scale_colour_brewer(palette='Set1', name='CD4 count category') +#
+					theme_bw() + theme(legend.position='bottom', axis.text=element_text(size=14), axis.title=element_text(size=18), strip.background = element_blank(), strip.text = element_blank())
+ggplot(tmp, aes(x=t, y=value, group=variable, colour=variable)) + geom_step()  + facet_grid(variable~., scales='free') +#
+					labs(x='', y='diagnosed but untreated MSM') +#
+					scale_x_continuous(breaks=seq(1996,2020,2)) +#
+					scale_y_continuous(limit=c(0,NA)) +#
+					scale_colour_brewer(palette='Set1', name='CD4 count category') +#
+					theme_bw() + theme(legend.position='bottom', axis.text=element_text(size=14), axis.title=element_text(size=18), strip.background = element_blank(), strip.text = element_blank())
+?theme
+ggplot(tmp, aes(x=t, y=value, group=variable, colour=variable)) + geom_step()  + facet_grid(variable~., scales='free') +#
+					labs(x='', y='diagnosed but untreated MSM') +#
+					scale_x_continuous(breaks=seq(1996,2020,2)) +#
+					scale_y_continuous(limit=c(0,NA)) +#
+					scale_colour_brewer(palette='Set1', name='CD4 count category') +#
+					theme_bw() + theme(legend.position='bottom', legend.text=element_text(size=18), axis.text=element_text(size=14), axis.title=element_text(size=18), strip.background = element_blank(), strip.text = element_blank())
+ggplot(tmp, aes(x=t, y=value, group=variable, colour=variable)) + geom_step()  + facet_grid(variable~., scales='free') +#
+					labs(x='', y='diagnosed but untreated MSM') +#
+					scale_x_continuous(breaks=seq(1996,2020,2)) +#
+					scale_y_continuous(limit=c(0,NA)) +#
+					scale_colour_brewer(palette='Set1', name='CD4 count category') +#
+					theme_bw() + theme(legend.position='bottom', legend.title=element_text(size=18), legend.text=element_text(size=18), axis.text=element_text(size=14), axis.title=element_text(size=18), strip.background = element_blank(), strip.text = element_blank())
+?theme
+ggplot(tmp, aes(x=t, y=value, group=variable, colour=variable)) + geom_step()  + facet_grid(variable~., scales='free') +#
+					labs(x='', y='diagnosed but untreated MSM') +#
+					scale_x_continuous(breaks=seq(1996,2020,2)) +#
+					scale_y_continuous(limit=c(0,NA)) +#
+					scale_colour_brewer(palette='Set1', name='CD4 count category') +#
+					theme_bw() + theme(legend.position='bottom', legend.title=element_text(size=18), legend.text=element_text(size=18), axis.text=element_text(size=14), axis.title=element_text(size=18), strip.background = element_blank(), strip.text = element_blank()) +#
+					guides(col=guide_legend(ncol=2))
+?facet_wrap
+ggplot(tmp, aes(x=t, y=value, group=variable, colour=variable)) + geom_step()  + facet_wrap(variable~., scales='free', nrow=3) +#
+					labs(x='', y='diagnosed but untreated MSM') +#
+					scale_x_continuous(breaks=seq(1996,2020,2)) +#
+					scale_y_continuous(limit=c(0,NA)) +#
+					scale_colour_brewer(palette='Set1', name='CD4 count category') +#
+					theme_bw() + theme(legend.position='bottom', legend.title=element_text(size=18), legend.text=element_text(size=18), axis.text=element_text(size=14), axis.title=element_text(size=18), strip.background = element_blank(), strip.text = element_blank()) +#
+					guides(col=guide_legend(ncol=2))
+ggplot(tmp, aes(x=t, y=value, group=variable, colour=variable)) + geom_step()  + facet_wrap(variable~, scales='free', nrow=3) +#
+					labs(x='', y='diagnosed but untreated MSM') +#
+					scale_x_continuous(breaks=seq(1996,2020,2)) +#
+					scale_y_continuous(limit=c(0,NA)) +#
+					scale_colour_brewer(palette='Set1', name='CD4 count category') +#
+					theme_bw() + theme(legend.position='bottom', legend.title=element_text(size=18), legend.text=element_text(size=18), axis.text=element_text(size=14), axis.title=element_text(size=18), strip.background = element_blank(), strip.text = element_blank()) +#
+					guides(col=guide_legend(ncol=2))
+ggplot(tmp, aes(x=t, y=value, group=variable, colour=variable)) + geom_step()  + facet_wrap(variable~., scales='free', nrow=3) +#
+					labs(x='', y='diagnosed but untreated MSM') +#
+					scale_x_continuous(breaks=seq(1996,2020,2)) +#
+					scale_y_continuous(limit=c(0,NA)) +#
+					scale_colour_brewer(palette='Set1', name='CD4 count category') +#
+					theme_bw() + theme(legend.position='bottom', legend.title=element_text(size=18), legend.text=element_text(size=18), axis.text=element_text(size=14), axis.title=element_text(size=18), strip.background = element_blank(), strip.text = element_blank()) +#
+					guides(col=guide_legend(ncol=2))
+ggplot(tmp, aes(x=t, y=value, group=variable, colour=variable)) + geom_step()  + facet_wrap(.~variable, scales='free', nrow=3) +#
+					labs(x='', y='diagnosed but untreated MSM') +#
+					scale_x_continuous(breaks=seq(1996,2020,2)) +#
+					scale_y_continuous(limit=c(0,NA)) +#
+					scale_colour_brewer(palette='Set1', name='CD4 count category') +#
+					theme_bw() + theme(legend.position='bottom', legend.title=element_text(size=18), legend.text=element_text(size=18), axis.text=element_text(size=14), axis.title=element_text(size=18), strip.background = element_blank(), strip.text = element_blank()) +#
+					guides(col=guide_legend(ncol=2))
+ggplot(tmp, aes(x=t, y=value, group=variable, colour=variable)) + geom_step()  + facet_wrap(~variable, scales='free', nrow=3) +#
+					labs(x='', y='diagnosed but untreated MSM') +#
+					scale_x_continuous(breaks=seq(1996,2020,2)) +#
+					scale_y_continuous(limit=c(0,NA)) +#
+					scale_colour_brewer(palette='Set1', name='CD4 count category') +#
+					theme_bw() + theme(legend.position='bottom', legend.title=element_text(size=18), legend.text=element_text(size=18), axis.text=element_text(size=14), axis.title=element_text(size=18), strip.background = element_blank(), strip.text = element_blank()) +#
+					guides(col=guide_legend(ncol=2))
+tmp	<- melt(df.cd4cov, id.vars=c('t'), measure.vars=c('N_CD4_350_NoART','N_CD4_l500_NoART','N_CD4_g500_NoART','N_CD4_NA_NoART','N_NoART'))
+tmp
+merge(tmp, data.table( variable= c('N_CD4_350_NoART','N_CD4_l500_NoART','N_CD4_g500_NoART','N_CD4_NA_NoART','N_NoART'),#
+									variable.legend=c('<350', '350-500','>500','Not measured','(All)')), by='variable')
+tmp	<- merge(tmp, data.table( variable= c('N_CD4_350_NoART','N_CD4_l500_NoART','N_CD4_g500_NoART','N_CD4_NA_NoART','N_NoART'),#
+									variable.legend=c('<350', '350-500','>500','Not measured','(All)')), by='variable')
+ggplot(tmp, aes(x=t, y=value, group=variable.legend, colour=variable.legend)) + geom_step()  + facet_wrap(~variable.legend, scales='free', nrow=3) +#
+					labs(x='', y='diagnosed but untreated MSM') +#
+					scale_x_continuous(breaks=seq(1996,2020,2)) +#
+					scale_y_continuous(limit=c(0,NA)) +#
+					scale_colour_brewer(palette='Set1', name='CD4 count category') +#
+					theme_bw() + theme(legend.position='bottom', legend.title=element_text(size=18), legend.text=element_text(size=18), axis.text=element_text(size=14), axis.title=element_text(size=18), strip.background = element_blank(), strip.text = element_blank()) +#
+					guides(col=guide_legend(ncol=2))
+ggplot(tmp, aes(x=t, y=value, group=variable.legend, colour=variable.legend)) + geom_step(size=1)  + facet_wrap(~variable.legend, scales='free', nrow=3) +#
+					labs(x='', y='diagnosed but untreated MSM') +#
+					scale_x_continuous(breaks=seq(1996,2020,2)) +#
+					scale_y_continuous(limit=c(0,NA)) +#
+					scale_colour_brewer(palette='Set1', name='CD4 count category') +#
+					theme_bw() + theme(legend.position='bottom', legend.title=element_text(size=18), legend.text=element_text(size=18), axis.text=element_text(size=14), axis.title=element_text(size=18), strip.background = element_blank(), strip.text = element_blank()) +#
+					guides(col=guide_legend(ncol=2))
+?theme
+ggplot(tmp, aes(x=t, y=value, group=variable.legend, colour=variable.legend)) + geom_step(size=1)  + facet_wrap(~variable.legend, scales='free', nrow=3) +#
+					labs(x='', y='diagnosed but untreated MSM') +#
+					scale_x_continuous(breaks=seq(1996,2020,2)) +#
+					scale_y_continuous(limit=c(0,NA)) +#
+					scale_colour_brewer(palette='Set1', name='CD4 count category') +#
+					theme_bw() + theme(legend.key.size=unit(11,'mm'), legend.position='bottom', legend.title=element_text(size=18), legend.text=element_text(size=18), axis.text=element_text(size=14), axis.title=element_text(size=18), strip.background = element_blank(), strip.text = element_blank()) +#
+					guides(col=guide_legend(ncol=2))
+tmp	<- melt(df.cd4cov, id.vars=c('t'), measure.vars=c('N_CD4_350_NoART','N_CD4_l500_NoART','N_CD4_g500_NoART','N_CD4_NA_NoART','N_NoART'))#
+			tmp	<- merge(tmp, data.table( variable= factor(c('N_CD4_g500_NoART','N_CD4_l500_NoART','N_CD4_350_NoART','N_CD4_NA_NoART','N_NoART')),#
+									variable.legend=c('>500','350-500','<350', 'Not measured','(All)')), by='variable')
+str(tmp)
+tmp	<- melt(df.cd4cov, id.vars=c('t'), measure.vars=c('N_CD4_350_NoART','N_CD4_l500_NoART','N_CD4_g500_NoART','N_CD4_NA_NoART','N_NoART'))
+tmp
+tmp, NULL, 'variable', tmp[, factor(variable, levels=c('N_CD4_g500_NoART','N_CD4_l500_NoART','N_CD4_350_NoART','N_CD4_NA_NoART','N_NoART'), labels=c('>500','350-500','<350', 'Not measured','(All)'))]
+tmp	<- melt(df.cd4cov, id.vars=c('t'), measure.vars=c('N_CD4_350_NoART','N_CD4_l500_NoART','N_CD4_g500_NoART','N_CD4_NA_NoART','N_NoART'))#
+			set(tmp, NULL, 'variable', tmp[, factor(variable, levels=c('N_CD4_g500_NoART','N_CD4_l500_NoART','N_CD4_350_NoART','N_CD4_NA_NoART','N_NoART'), labels=c('>500','350-500','<350', 'Not measured','(All)')) ])
+tmp
+ggplot(tmp, aes(x=t, y=value, group=variable, colour=variable)) + geom_step(size=1)  + facet_wrap(~variable, scales='free', nrow=3) +#
+					labs(x='', y='diagnosed but untreated MSM') +#
+					scale_x_continuous(breaks=seq(1996,2020,2)) +#
+					scale_y_continuous(limit=c(0,NA)) +#
+					scale_colour_brewer(palette='Set1', name='CD4 count category') +#
+					theme_bw() + theme(legend.key.size=unit(11,'mm'), legend.position='bottom', legend.title=element_text(size=18), legend.text=element_text(size=18), axis.text=element_text(size=14), axis.title=element_text(size=18), strip.background = element_blank(), strip.text = element_blank()) +#
+					guides(col=guide_legend(ncol=2))
+file<- paste(DATA, '/fisheretal_150105/', 'ATHENA_2014_06_Patient_AllMSM_ARTno_by_CD4.pdf',sep='')#
+			ggsave(w=6,h=6,file=file)
+ggsave(w=8,h=8,file=file)
+ggsave(w=10,h=10,file=file)
 require(data.table)#
-	verbose			<- 1#
-	with.plot		<- 1	#
-	pipeline.args	<- NULL#
-	indir			<- system.file(package="rPANGEAHIVsim", "misc")#
-	indir			<- ifelse(indir=='','/Users/Oliver/git/HPTN071sim/raw_trchain',indir)#
-	outdir			<- '/Users/Oliver/git/HPTN071sim/tmp140908'#
-	infile.ind		<- '140716_RUN001_IND.csv'#
-	infile.trm		<- '140716_RUN001_TRM.csv'#
-	infile.args		<- NA#
-	outfile.ind		<- '140716_RUN001_IND.csv'#
-	outfile.trm		<- '140716_RUN001_TRM.csv'#
+	require(ape)#
+	#stop()#
+	resume					<- 1 #
+	indir					<- paste(DATA,"fisheretal_141108",sep='/')#
+	outdir					<- paste(DATA,"fisheretal_141108",sep='/')		#
+	indir					<- paste(DATA,"fisheretal_141221",sep='/')#
+	outdir					<- paste(DATA,"fisheretal_141221",sep='/')		#
+	indir					<- paste(DATA,"fisheretal_150105",sep='/')#
+	outdir					<- paste(DATA,"fisheretal_150105",sep='/')		#
+	infile					<- "ATHENA_2013_03_-DR-RC-SH+LANL_Sequences"#
+	indircov				<- paste(DATA,"fisheretal_data",sep='/')#
+	insignat				<- "Wed_Dec_18_11:37:00_2013"	#
+	outfile					<- infile#
+	infilecov				<- "ATHENA_2013_03_AllSeqPatientCovariates"	#
+	t.period				<- 1/8#
+	t.endctime				<- hivc.db.Date2numeric(as.Date("2013-03-01"))#
+	t.endctime				<- floor(t.endctime) + floor( (t.endctime%%1)*100 %/% (t.period*100) ) * t.period
+files					<- list.files(indir)#
+		files					<- files[ grepl('.R$',files) & grepl('Hypo',files) & grepl('tp4',files)]
+files
+if(!length(files))	stop('cannot find files matching criteria')#
+		runs.opt	<- lapply( files, function(z)#
+				{#
+					print(z)#
+					method.brl			<- regmatches(z, regexpr('Yscore[^_]*',z))#
+					method.brl			<- substr(method.brl, 7, nchar(method.brl))#
+					method.denom		<- regmatches(z, regexpr('denom[[:alnum:]]*',z))#
+					method.denom		<- substr(method.denom, 6, nchar(method.denom))#
+					method.risk			<- regmatches(z, regexpr('[^_]*.R$',z))#
+					method.risk			<- substr(method.risk,1,nchar(method.risk)-2)#
+					method.dating		<- ifelse(grepl('sasky',z),'sasky','gmrf')#
+					method.recentctime	<- ifelse(grepl('2011',z),'2011','2013-03-01')#
+					method.nodectime	<- ifelse(grepl('a',method.brl),'any','map')#
+					data.table(file=z, method.brl=method.brl, method.nodectime=method.nodectime, method.dating=method.dating, method.risk=method.risk, method.denom=method.denom, method.recentctime=method.recentctime)				#
+				})#
+		runs.opt	<- do.call('rbind', runs.opt)#
+		setkey(runs.opt, method.dating, method.brl)	#
+		print(runs.opt)
+tmp			<- lapply(seq_len(nrow(runs.opt)), function(i)#
+				{#
+					tmp	<- paste(indir, runs.opt[i,file], sep='/')#
+					cat(paste('\nprocess file=',runs.opt[i,file]))#
+					tmp	<- load(tmp)					#
+					if(!any(colnames(averted)=='t.period'))#
+						averted[, t.period:= 4]																									#
+					averted[, method.risk:=runs.opt[i,method.risk]]#
+					averted[, method.dating:=runs.opt[i,method.dating]]#
+					averted[, method.nodectime:=runs.opt[i,method.nodectime]]#
+					averted[, method.brl:=runs.opt[i,method.brl ]]#
+					averted[, method.denom:=runs.opt[i,method.denom]]#
+					averted[, method.recentctime:=runs.opt[i,method.recentctime ]]#
+					averted#
+				})#
+		runs.av		<- do.call('rbind', tmp)
+runs.av
+file			<- paste(indir, '/', infile, '_', gsub('/',':',insignat), '_', "method.Hypo.Rdata", sep='')#
+		save(runs.av, file=file)
+runs.av.info	<- runs.av[, list(AV=median(1-Pjx.e0cp.sum.h/Pjx.e0cp.sum)), by='BS']
+runs.av.info	<- runs.av[, list(AV=median(1-Pjx.e0cp.sum.h/Pjx.e0cp.sum)), by=c('method.risk','method.dating','method.nodectime','method.brl','method.denom','method.recentctime','BS')]
+runs.av.info
+subset(runs.av.info, BS<1)[, list(BS=0, AV=median(AV)), by=c('method.risk','method.dating','method.nodectime','method.brl','method.denom','method.recentctime')]
+tmp				<- subset(runs.av.info, BS<1)[, list(BS=0, AV=median(AV)), by=c('method.risk','method.dating','method.nodectime','method.brl','method.denom','method.recentctime')]
+rbind(tmp, subset(runs.av.info, BS>=1))
+runs.av.info	<- rbind(tmp, subset(runs.av.info, BS>=1))
+subset(runs.av.info, BS>=1)[, list(EST=paste('Q',100*c(0.025,0.25,0.75,0.975),sep=''), AV=quantile(AV, probs=c(0.025,0.25,0.75,0.975))), by=c('method.risk','method.dating','method.nodectime','method.brl','method.denom','method.recentctime')]
+runs.av.info	<- subset(runs.av.info, BS>=1)[, list(EST=paste('Q',100*c(0.025,0.25,0.75,0.975),sep=''), AV=quantile(AV, probs=c(0.025,0.25,0.75,0.975))), by=c('method.risk','method.dating','method.nodectime','method.brl','method.denom','method.recentctime')]
+runs.av.info	<- runs.av[, list(AV=median(1-Pjx.e0cp.sum.h/Pjx.e0cp.sum)), by=c('method.risk','method.dating','method.nodectime','method.brl','method.denom','method.recentctime','BS')]#
+	#	get central estimate#
+	tmp				<- subset(runs.av.info, BS<1)[, list(EST='central', AV=median(AV)), by=c('method.risk','method.dating','method.nodectime','method.brl','method.denom','method.recentctime')]#
+	#	get quantile bootstrap estimates#
+	runs.av.info	<- subset(runs.av.info, BS>=1)[, list(EST=paste('Q',100*c(0.025,0.25,0.75,0.975),sep=''), AV=quantile(AV, probs=c(0.025,0.25,0.75,0.975))), by=c('method.risk','method.dating','method.nodectime','method.brl','method.denom','method.recentctime')]#
+#
+	runs.av.info	<- rbind(tmp, runs.av.info)
+runs.av.info
+dcast.data.table(runs.av.info, method.risk~EST, value.var='AV')
+set(runs.av, NULL, 'HYPO', runs.av[, regmatches(method.risk,regexpr('Hypo[[:alnum:]]+', method.risk))])
+set(runs.av.info, NULL, 'HYPO', runs.av.info[, regmatches(method.risk,regexpr('Hypo[[:alnum:]]+', method.risk))])
+dcast.data.table(runs.av.info, HYPO~EST, value.var='AV')
+runs.av.info	<- runs.av[, list(AV=mean(1-Pjx.e0cp.sum.h/Pjx.e0cp.sum)), by=c('method.risk','method.dating','method.nodectime','method.brl','method.denom','method.recentctime','BS')]#
+	#	get central estimate#
+	tmp				<- subset(runs.av.info, BS<1)[, list(EST='central', AV=median(AV)), by=c('method.risk','method.dating','method.nodectime','method.brl','method.denom','method.recentctime')]#
+	#	get quantile bootstrap estimates#
+	runs.av.info	<- subset(runs.av.info, BS>=1)[, list(EST=paste('Q',100*c(0.025,0.25,0.75,0.975),sep=''), AV=quantile(AV, probs=c(0.025,0.25,0.75,0.975))), by=c('method.risk','method.dating','method.nodectime','method.brl','method.denom','method.recentctime')]#
+	runs.av.info	<- rbind(tmp, runs.av.info)#
+	set(runs.av.info, NULL, 'HYPO', runs.av.info[, regmatches(method.risk,regexpr('Hypo[[:alnum:]]+', method.risk))])#
+	dcast.data.table(runs.av.info, HYPO~EST, value.var='AV')
+runs.av.info	<- runs.av[, list(AV=mean(1-Pjx.e0cp.sum.h/Pjx.e0cp.sum)), by=c('method.risk','method.dating','method.nodectime','method.brl','method.denom','method.recentctime','BS')]#
+	#	get central estimate#
+	tmp				<- subset(runs.av.info, BS<1)[, list(EST='central', AV=median(AV)), by=c('method.risk','method.dating','method.nodectime','method.brl','method.denom','method.recentctime')]#
+	#	get quantile bootstrap estimates#
+	runs.av.info	<- subset(runs.av.info, BS>=1)[, list(EST=paste('Q',100*c(0.025,0.25,0.5,0.75,0.975),sep=''), AV=quantile(AV, probs=c(0.025,0.25,0.75,0.975))), by=c('method.risk','method.dating','method.nodectime','method.brl','method.denom','method.recentctime')]#
+	runs.av.info	<- rbind(tmp, runs.av.info)#
+	set(runs.av.info, NULL, 'HYPO', runs.av.info[, regmatches(method.risk,regexpr('Hypo[[:alnum:]]+', method.risk))])
+runs.av.info	<- runs.av[, list(AV=mean(1-Pjx.e0cp.sum.h/Pjx.e0cp.sum)), by=c('method.risk','method.dating','method.nodectime','method.brl','method.denom','method.recentctime','BS')]#
+	#	get central estimate#
+	tmp				<- subset(runs.av.info, BS<1)[, list(EST='central', AV=median(AV)), by=c('method.risk','method.dating','method.nodectime','method.brl','method.denom','method.recentctime')]#
+	#	get quantile bootstrap estimates#
+	runs.av.info	<- subset(runs.av.info, BS>=1)[, list(EST=paste('Q',100*c(0.025,0.25,0.5,0.75,0.975),sep=''), AV=quantile(AV, probs=c(0.025,0.25,0.5,0.75,0.975))), by=c('method.risk','method.dating','method.nodectime','method.brl','method.denom','method.recentctime')]#
+	runs.av.info	<- rbind(tmp, runs.av.info)#
+	set(runs.av.info, NULL, 'HYPO', runs.av.info[, regmatches(method.risk,regexpr('Hypo[[:alnum:]]+', method.risk))])	#
+	runs.av.info	<- dcast.data.table(runs.av.info, HYPO~EST, value.var='AV')
+runs.av.info
+tmp				<- runs.av.info[, which(grepl('TestC', HYPO))]#
+	runs.av.info[tmp, regmatches(HYPO,regexpr('TestC18m|TestC1y|TestC6m', HYPO))]
+set(runs.av.info, NULL, 'TestC', 'No')#
+	set(runs.av.info, NULL, 'TestA', 'No')#
+	set(runs.av.info, NULL, 'PREP', 'No')#
+	set(runs.av.info, NULL, 'ART', 'No')#
+	tmp				<- runs.av.info[, which(grepl('TestC', HYPO))]#
+	set(runs.av.info, tmp, 'TestC', runs.av.info[tmp, regmatches(HYPO,regexpr('TestC18m|TestC1y|TestC6m', HYPO))] )#
+	tmp				<- runs.av.info[, which(grepl('TestA', HYPO))]#
+	set(runs.av.info, tmp, 'TestA', runs.av.info[tmp, regmatches(HYPO,regexpr('TestA18m|TestA1y|TestA6m', HYPO))] )
+runs.av.info
+tmp				<- runs.av.info[, which(grepl('PREP100', HYPO))]#
+	set(runs.av.info, tmp, 'PREP', runs.av.info[tmp, regmatches(HYPO,regexpr('PREP100', HYPO))] )
+runs.av.info
+tmp				<- runs.av.info[, which(grepl('PrEP100', HYPO))]#
+	set(runs.av.info, tmp, 'PREP', runs.av.info[tmp, regmatches(HYPO,regexpr('PrEP100', HYPO))] )
+runs.av.info
+tmp				<- runs.av.info[, which(grepl('ART', HYPO))]#
+	set(runs.av.info, tmp, 'ART', runs.av.info[tmp, regmatches(HYPO,regexpr('ImmediateART|ARTat500', HYPO))] )
+runs.av.info
+runs.av.info
+tmp				<- runs.av.info[, which(grepl('PrEP', HYPO))]#
+	set(runs.av.info, tmp, 'PREP', runs.av.info[tmp, regmatches(HYPO,regexpr('PrEP100|PrEP33|PrEP50', HYPO))] )
+runs.av.info
+tmp				<- data.table(	HYPO	= c('HypoARTat500','HypoImmediateART','HypoRPrEP33', 'HypoTestC18m', 'HypoTestC6m',#
+												'HypoTestC18mImmediateART', 'HypoTestC18mRPrEP100'), #
+									legend	= c('universal ART, CD4<500', 'universal ART, immediate', 'oral PrEP', 'universal Testing, 18 mo', 'universal Testing, 6 mo',#
+												'universal Testing, 18 mo+\nuniversal ART, immediate', 'universal Testing, 18 mo+\noral PrEP'	),#
+								 	levels	= c(0, 0, 0, 1, 1, 2, #
+											   	1, 1))
+tmp				<- data.table(	HYPO	= c('HypoARTat500','HypoImmediateART','HypoRPrEP33', 'HypoTestC18m', 'HypoTestC6m',#
+												'HypoTestC18mImmediateART', 'HypoTestC18mRPrEP100'), #
+									legend	= c('universal ART, CD4<500', 'universal ART, immediate', 'oral PrEP', 'universal Testing, 18 mo', 'universal Testing, 6 mo',#
+												'universal Testing, 18 mo+\nuniversal ART, immediate', 'universal Testing, 18 mo+\noral PrEP'	),#
+								 	levels	= c(0, 0, 0, 1, 2, #
+											   	1, 1))
+tmp
+runs.av.plot	<- merge(runs.av.info, tmp, by='HYPO')
+runs.av.plot
+ggplot( runs.av.plot, aes(x=legend, fill=levels) ) + 			#
+			#scale_fill_manual(values=c("#A6CEE3","#1F78B4","#FDBF6F","#FF7F00"), name='hypothetical interventions\n in time period 09/07-10/12', guide=FALSE) +#
+			geom_boxplot(aes(ymin=Q2.5*100, ymax=Q97.5*100, lower=Q25*100, middle=Q50*100, upper=Q75*100), stat="identity", fatten=4) +#
+			scale_y_continuous(expand=c(0,0), limits=c(0, NA), breaks=seq(0,100,10), minor_breaks=seq(0,100,2)) +#
+			labs(x='', y='Proportion of MSM infections averted\n(%)') + #
+			coord_flip() +			#
+			theme_bw() + theme(legend.position='bottom', legend.title=element_text(size=12), legend.text=element_text(size=12), axis.text.y=element_text(size=12), panel.grid.major.x=element_line(colour="grey70", size=0.6), panel.grid.minor.x=element_line(colour="grey70", size=0.6), panel.grid.major.y=element_blank(), panel.grid.minor.y=element_blank())
+set(runs.av.plot, NULL, 'legend', runs.av.plot[, factor(legend, levels=runs.av.plot$legend, labels=runs.av.plot$legend)])
+setkey(runs.av.plot, DUMMY)
+runs.av.plot[, DUMMY:= -Q50]#
+	setkey(runs.av.plot, DUMMY)
+set(runs.av.plot, NULL, 'legend', runs.av.plot[, factor(legend, levels=runs.av.plot$legend, labels=runs.av.plot$legend)])
+runs.av.plot
+ggplot( runs.av.plot, aes(x=legend, fill=levels) ) + 			#
+			#scale_fill_manual(values=c("#A6CEE3","#1F78B4","#FDBF6F","#FF7F00"), name='hypothetical interventions\n in time period 09/07-10/12', guide=FALSE) +#
+			geom_boxplot(aes(ymin=Q2.5*100, ymax=Q97.5*100, lower=Q25*100, middle=Q50*100, upper=Q75*100), stat="identity", fatten=4) +#
+			scale_y_continuous(expand=c(0,0), limits=c(0, NA), breaks=seq(0,100,10), minor_breaks=seq(0,100,2)) +#
+			labs(x='', y='Proportion of MSM infections averted\n(%)') + #
+			coord_flip() +			#
+			theme_bw() + theme(legend.position='bottom', legend.title=element_text(size=12), legend.text=element_text(size=12), axis.text.y=element_text(size=12), panel.grid.major.x=element_line(colour="grey70", size=0.6), panel.grid.minor.x=element_line(colour="grey70", size=0.6), panel.grid.major.y=element_blank(), panel.grid.minor.y=element_blank())
+runs.av.info	<- runs.av[, list(AV=mean(1-Pjx.e0cp.sum.h/Pjx.e0cp.sum)), by=c('method.risk','method.dating','method.nodectime','method.brl','method.denom','method.recentctime','BS')]#
+	#	get central estimate#
+	tmp				<- subset(runs.av.info, BS<1)[, list(EST='central', AV=median(AV)), by=c('method.risk','method.dating','method.nodectime','method.brl','method.denom','method.recentctime')]#
+	#	get quantile bootstrap estimates#
+	runs.av.info	<- subset(runs.av.info, BS>=1)[, list(EST=paste('Q',100*c(0.025,0.25,0.5,0.75,0.975),sep=''), AV=quantile(AV, probs=c(0.025,0.25,0.5,0.75,0.975))), by=c('method.risk','method.dating','method.nodectime','method.brl','method.denom','method.recentctime')]#
+	runs.av.info	<- rbind(tmp, runs.av.info)#
+	set(runs.av.info, NULL, 'HYPO', runs.av.info[, regmatches(method.risk,regexpr('Hypo[[:alnum:]]+', method.risk))])	#
+	runs.av.info	<- dcast.data.table(runs.av.info, HYPO~EST, value.var='AV')#
+	set(runs.av.info, NULL, 'TestC', 'No')#
+	set(runs.av.info, NULL, 'TestA', 'No')#
+	set(runs.av.info, NULL, 'PREP', 'No')#
+	set(runs.av.info, NULL, 'ART', 'No')#
+	tmp				<- runs.av.info[, which(grepl('TestC', HYPO))]#
+	set(runs.av.info, tmp, 'TestC', runs.av.info[tmp, regmatches(HYPO,regexpr('TestC18m|TestC1y|TestC6m', HYPO))] )#
+	tmp				<- runs.av.info[, which(grepl('TestA', HYPO))]#
+	set(runs.av.info, tmp, 'TestA', runs.av.info[tmp, regmatches(HYPO,regexpr('TestA18m|TestA1y|TestA6m', HYPO))] )#
+	tmp				<- runs.av.info[, which(grepl('PrEP', HYPO))]#
+	set(runs.av.info, tmp, 'PREP', runs.av.info[tmp, regmatches(HYPO,regexpr('PrEP100|PrEP33|PrEP50', HYPO))] )#
+	tmp				<- runs.av.info[, which(grepl('ART', HYPO))]#
+	set(runs.av.info, tmp, 'ART', runs.av.info[tmp, regmatches(HYPO,regexpr('ImmediateART|ARTat500', HYPO))] )#
+	tmp				<- data.table(	HYPO	= c('HypoARTat500','HypoImmediateART','HypoRPrEP33', 'HypoTestC18m', 'HypoTestC6m',#
+												'HypoTestC18mImmediateART', 'HypoTestC18mRPrEP100'), #
+									legend	= c('universal ART, CD4<500', 'universal ART, immediate', 'oral PrEP', 'universal Testing, 18 mo', 'universal Testing, 6 mo',#
+												'universal Testing, 18 mo+\nuniversal ART, immediate', 'universal Testing, 18 mo+\noral PrEP'	),#
+								 	levels	= c(0, 0, 0, 1, 1, #
+											   	1, 1))#
+	runs.av.plot	<- merge(runs.av.info, tmp, by='HYPO')#
+	runs.av.plot[, DUMMY:= -Q50]#
+	setkey(runs.av.plot, DUMMY)#
+	set(runs.av.plot, NULL, 'legend', runs.av.plot[, factor(legend, levels=runs.av.plot$legend, labels=runs.av.plot$legend)])#
+	ggplot( runs.av.plot, aes(x=legend, fill=levels) ) + 			#
+			scale_fill_manual(values=c("#A6CEE3","#1F78B4"), name='hypothetical interventions\n in time period 09/07-10/12', guide=FALSE) +#
+			geom_boxplot(aes(ymin=Q2.5*100, ymax=Q97.5*100, lower=Q25*100, middle=Q50*100, upper=Q75*100), stat="identity", fatten=4) +#
+			scale_y_continuous(expand=c(0,0), limits=c(0, 100), breaks=seq(0,100,10), minor_breaks=seq(0,100,2)) +#
+			labs(x='', y='Proportion of MSM infections averted\n(%)') + #
+			coord_flip() +			#
+			theme_bw() + theme(legend.position='bottom', legend.title=element_text(size=12), legend.text=element_text(size=12), axis.text.y=element_text(size=12), panel.grid.major.x=element_line(colour="grey70", size=0.6), panel.grid.minor.x=element_line(colour="grey70", size=0.6), panel.grid.major.y=element_blank(), panel.grid.minor.y=element_blank())
+ggplot( runs.av.plot, aes(x=legend, fill=levels) ) + 			#
+			#scale_fill_manual(values=c("#A6CEE3","#1F78B4"), name='hypothetical interventions\n in time period 09/07-10/12', guide=FALSE) +#
+			geom_boxplot(aes(ymin=Q2.5*100, ymax=Q97.5*100, lower=Q25*100, middle=Q50*100, upper=Q75*100), stat="identity", fatten=4) +#
+			scale_y_continuous(expand=c(0,0), limits=c(0, 100), breaks=seq(0,100,10), minor_breaks=seq(0,100,2)) +#
+			labs(x='', y='Proportion of MSM infections averted\n(%)') + #
+			coord_flip() +			#
+			theme_bw() + theme(legend.position='bottom', legend.title=element_text(size=12), legend.text=element_text(size=12), axis.text.y=element_text(size=12), panel.grid.major.x=element_line(colour="grey70", size=0.6), panel.grid.minor.x=element_line(colour="grey70", size=0.6), panel.grid.major.y=element_blank(), panel.grid.minor.y=element_blank())
+runs.av.info	<- runs.av[, list(AV=mean(1-Pjx.e0cp.sum.h/Pjx.e0cp.sum)), by=c('method.risk','method.dating','method.nodectime','method.brl','method.denom','method.recentctime','BS')]#
+	#	get central estimate#
+	tmp				<- subset(runs.av.info, BS<1)[, list(EST='central', AV=median(AV)), by=c('method.risk','method.dating','method.nodectime','method.brl','method.denom','method.recentctime')]#
+	#	get quantile bootstrap estimates#
+	runs.av.info	<- subset(runs.av.info, BS>=1)[, list(EST=paste('Q',100*c(0.025,0.25,0.5,0.75,0.975),sep=''), AV=quantile(AV, probs=c(0.025,0.25,0.5,0.75,0.975))), by=c('method.risk','method.dating','method.nodectime','method.brl','method.denom','method.recentctime')]#
+	runs.av.info	<- rbind(tmp, runs.av.info)#
+	set(runs.av.info, NULL, 'HYPO', runs.av.info[, regmatches(method.risk,regexpr('Hypo[[:alnum:]]+', method.risk))])	#
+	runs.av.info	<- dcast.data.table(runs.av.info, HYPO~EST, value.var='AV')#
+	set(runs.av.info, NULL, 'TestC', 'No')#
+	set(runs.av.info, NULL, 'TestA', 'No')#
+	set(runs.av.info, NULL, 'PREP', 'No')#
+	set(runs.av.info, NULL, 'ART', 'No')#
+	tmp				<- runs.av.info[, which(grepl('TestC', HYPO))]#
+	set(runs.av.info, tmp, 'TestC', runs.av.info[tmp, regmatches(HYPO,regexpr('TestC18m|TestC1y|TestC6m', HYPO))] )#
+	tmp				<- runs.av.info[, which(grepl('TestA', HYPO))]#
+	set(runs.av.info, tmp, 'TestA', runs.av.info[tmp, regmatches(HYPO,regexpr('TestA18m|TestA1y|TestA6m', HYPO))] )#
+	tmp				<- runs.av.info[, which(grepl('PrEP', HYPO))]#
+	set(runs.av.info, tmp, 'PREP', runs.av.info[tmp, regmatches(HYPO,regexpr('PrEP100|PrEP33|PrEP50', HYPO))] )#
+	tmp				<- runs.av.info[, which(grepl('ART', HYPO))]#
+	set(runs.av.info, tmp, 'ART', runs.av.info[tmp, regmatches(HYPO,regexpr('ImmediateART|ARTat500', HYPO))] )#
+	tmp				<- data.table(	HYPO	= c('HypoARTat500','HypoImmediateART','HypoRPrEP33', 'HypoTestC18m', 'HypoTestC6m',#
+												'HypoTestC18mImmediateART', 'HypoTestC18mRPrEP100'), #
+									legend	= c('universal ART, CD4<500', 'universal ART, immediate', 'oral PrEP', 'universal Testing, 18 mo', 'universal Testing, 6 mo',#
+												'universal Testing, 18 mo+\nuniversal ART, immediate', 'universal Testing, 18 mo+\noral PrEP'	),#
+								 	levels	= factor(c(0, 0, 0, 1, 1, #
+											   	1, 1)))#
+	runs.av.plot	<- merge(runs.av.info, tmp, by='HYPO')#
+	runs.av.plot[, DUMMY:= -Q50]#
+	setkey(runs.av.plot, DUMMY)#
+	set(runs.av.plot, NULL, 'legend', runs.av.plot[, factor(legend, levels=runs.av.plot$legend, labels=runs.av.plot$legend)])#
+	ggplot( runs.av.plot, aes(x=legend, fill=levels) ) + 			#
+			scale_fill_manual(values=c("#A6CEE3","#1F78B4"), name='hypothetical interventions\n in time period 09/07-10/12', guide=FALSE) +#
+			geom_boxplot(aes(ymin=Q2.5*100, ymax=Q97.5*100, lower=Q25*100, middle=Q50*100, upper=Q75*100), stat="identity", fatten=4) +#
+			scale_y_continuous(expand=c(0,0), limits=c(0, 100), breaks=seq(0,100,10), minor_breaks=seq(0,100,2)) +#
+			labs(x='', y='Proportion of MSM infections averted\n(%)') + #
+			coord_flip() +			#
+			theme_bw() + theme(legend.position='bottom', legend.title=element_text(size=12), legend.text=element_text(size=12), axis.text.y=element_text(size=12), panel.grid.major.x=element_line(colour="grey70", size=0.6), panel.grid.minor.x=element_line(colour="grey70", size=0.6), panel.grid.major.y=element_blank(), panel.grid.minor.y=element_blank())
+ggplot( runs.av.plot, aes(x=legend, fill=levels) ) + 			#
+			scale_fill_manual(values=c("#A6CEE3","#FDBF6F"), name='hypothetical interventions\n in time period 09/07-10/12', guide=FALSE) +#
+			geom_boxplot(aes(ymin=Q2.5*100, ymax=Q97.5*100, lower=Q25*100, middle=Q50*100, upper=Q75*100), stat="identity", fatten=4) +#
+			scale_y_continuous(expand=c(0,0), limits=c(0, 100), breaks=seq(0,100,10), minor_breaks=seq(0,100,5)) +#
+			labs(x='', y='Proportion of MSM infections averted\n(%)') + #
+			coord_flip() +			#
+			theme_bw() + theme(legend.position='bottom', legend.title=element_text(size=12), legend.text=element_text(size=12), axis.text.y=element_text(size=12), panel.grid.major.x=element_line(colour="grey70", size=0.6), panel.grid.minor.x=element_line(colour="grey70", size=0.6), panel.grid.major.y=element_blank(), panel.grid.minor.y=element_blank())
+runs.av.info
+runs.av.info	<- runs.av[, list(AV=mean(1-Pjx.e0cp.sum.h/Pjx.e0cp.sum)), by=c('method.risk','method.dating','method.nodectime','method.brl','method.denom','method.recentctime','BS')]#
+	#	get central estimate#
+	tmp				<- subset(runs.av.info, BS<1)[, list(EST='central', AV=median(AV)), by=c('method.risk','method.dating','method.nodectime','method.brl','method.denom','method.recentctime')]#
+	#	get quantile bootstrap estimates#
+	runs.av.info	<- subset(runs.av.info, BS>=1)[, list(EST=paste('Q',100*c(0.025,0.25,0.5,0.75,0.975),sep=''), AV=quantile(AV, probs=c(0.025,0.25,0.5,0.75,0.975))), by=c('method.risk','method.dating','method.nodectime','method.brl','method.denom','method.recentctime')]#
+	runs.av.info	<- rbind(tmp, runs.av.info)#
+	set(runs.av.info, NULL, 'HYPO', runs.av.info[, regmatches(method.risk,regexpr('Hypo[[:alnum:]]+', method.risk))])	#
+	runs.av.info	<- dcast.data.table(runs.av.info, HYPO~EST, value.var='AV')#
+	set(runs.av.info, NULL, 'TestC', 'No')#
+	set(runs.av.info, NULL, 'TestA', 'No')#
+	set(runs.av.info, NULL, 'PREP', 'No')#
+	set(runs.av.info, NULL, 'ART', 'No')#
+	tmp				<- runs.av.info[, which(grepl('TestC', HYPO))]#
+	set(runs.av.info, tmp, 'TestC', runs.av.info[tmp, regmatches(HYPO,regexpr('TestC18m|TestC1y|TestC6m', HYPO))] )#
+	tmp				<- runs.av.info[, which(grepl('TestA', HYPO))]#
+	set(runs.av.info, tmp, 'TestA', runs.av.info[tmp, regmatches(HYPO,regexpr('TestA18m|TestA1y|TestA6m', HYPO))] )#
+	tmp				<- runs.av.info[, which(grepl('PrEP', HYPO))]#
+	set(runs.av.info, tmp, 'PREP', runs.av.info[tmp, regmatches(HYPO,regexpr('PrEP100|PrEP33|PrEP50', HYPO))] )#
+	tmp				<- runs.av.info[, which(grepl('ART', HYPO))]#
+	set(runs.av.info, tmp, 'ART', runs.av.info[tmp, regmatches(HYPO,regexpr('ImmediateART|ARTat500', HYPO))] )#
+	tmp				<- data.table(	HYPO	= c('HypoARTat500','HypoImmediateART','HypoRPrEP33', 'HypoTestC18m', 'HypoTestC6m',#
+												'HypoRPrEP33ImmediateART','HypoTestC18mImmediateART', 'HypoTestC18mRPrEP100'), #
+									legend	= c('universal ART, CD4<500', 'universal ART, immediate', 'oral PrEP', 'universal Testing, every 18 mo', 'universal Testing, every 6 mo',#
+												'oral PrEP +\nuniversal ART, immediate','universal Testing, every 18 mo +\nuniversal ART, immediate', 'universal Testing, every 18 mo +\noral PrEP'	),#
+								 	levels	= factor(c(0, 0, 0, 1, 1, #
+											   	0, 1, 1)))#
+	runs.av.plot	<- merge(runs.av.info, tmp, by='HYPO')#
+	runs.av.plot[, DUMMY:= -Q50]#
+	setkey(runs.av.plot, DUMMY)#
+	set(runs.av.plot, NULL, 'legend', runs.av.plot[, factor(legend, levels=runs.av.plot$legend, labels=runs.av.plot$legend)])#
+	ggplot( runs.av.plot, aes(x=legend, fill=levels) ) + 			#
+			scale_fill_manual(values=c("#A6CEE3","#FDBF6F"), name='hypothetical interventions\n in time period 09/07-10/12', guide=FALSE) +#
+			geom_boxplot(aes(ymin=Q2.5*100, ymax=Q97.5*100, lower=Q25*100, middle=Q50*100, upper=Q75*100), stat="identity", fatten=4) +#
+			scale_y_continuous(expand=c(0,0), limits=c(0, 100), breaks=seq(0,100,10), minor_breaks=seq(0,100,5)) +#
+			labs(x='', y='Proportion of MSM infections averted\n(%)') + #
+			coord_flip() +			#
+			theme_bw() + theme(legend.position='bottom', legend.title=element_text(size=12), legend.text=element_text(size=12), axis.text.y=element_text(size=12), panel.grid.major.x=element_line(colour="grey70", size=0.6), panel.grid.minor.x=element_line(colour="grey70", size=0.6), panel.grid.major.y=element_blank(), panel.grid.minor.y=element_blank())
+file			<- paste(outdir, '/', infile, '_', gsub('/',':',insignat), '_', "method.HypoAverted.pdf", sep='')
+file
+ggsave(file=file, w=8, h=3)
+ggsave(file=file, w=8, h=5)
+0.33*.044
+0.33*.44
+runs.av.plot
+runs.av.info
+YXe
+runs.av.infp
+runs.av.info
+YXf						<- copy(YXe$YXf)#
+		tmp						<- copy(YXe$X.tables$cens.table)#
+		setkey(tmp, stat, t.period, risk, factor)#
+		ct						<- unique(tmp)#
+		tmp2					<- copy(YXe$X.tables$cens.table.bs)#
+		setkey(tmp2, stat, t.period, risk, factor)#
+		ctb						<- unique(tmp2)#
+		tmp						<- project.athena.Fisheretal.censoring.model(ct, ctb, plot.file=NA )#
+		ct						<- copy(tmp$ctn)	#
+		setkey(ct, t.period, risk, factor)#
+		tmp						<- ct[, seq_len( length(n.adj)/length(unique(factor)) )]#
+		ct[, bs:=rep(tmp, nrow(ct)/length(tmp))]		#subset this for BS run					#
+		YX						<- copy(YXe$YX)	#
+		YX.h					<- copy(YXe$YX)	#
+		set( YX, NULL, 'stage', YX[, CD4c.tperiod] )#
+		set( YX.h, NULL, 'stage', YX.h[, CD4c.tperiod] )#
+		X.tables				<- copy(YXe$X.tables)	#
+		nt.table				<- X.tables$nt.table#
+		nt.table.h				<- copy(X.tables$nt.table)#
+		cat(paste('\nusing method',method.realloc))#
+		df.trinfo				<<- NULL #
+		df.uinfo				<<- NULL#
+		if(grepl('Test',method.realloc))#
+		{			#
+			tmp					<- project.athena.Fisheretal.Hypo.ReallocUToDiag.getYXetc( YX.h, nt.table.h, method.risk, predict.t2inf, t2inf.args, df.all, YXf=YXf, th.starttime=2008.5, th.endtime=2011, t.period=t.period, method.realloc=method.realloc, method.sample= 'stage=prop, y=median, t=start')			#
+			YX.h				<- copy(tmp$YX.h)#
+			nt.table.h			<- copy(tmp$nt.table.h)#
+			tmp					<- tmp$df.uinfo		#not NULL -- need this for reallocate.handler.cens#
+			df.uinfo			<<- copy(tmp)#
+		}#
+		if(grepl('ART',method.realloc))#
+		{#
+			tmp					<- project.athena.Fisheretal.Hypo.ReallocDiagToART.getYXetc(YX.h, nt.table.h, method.risk, YXf=YXf, t.firstsuppressed=t.firstsuppressed, method.realloc=method.realloc, method.sample='pair, stage=prop, y=median')#
+			YX.h				<- copy(tmp$YX.h)#
+			nt.table.h			<- copy(tmp$nt.table.h)				#
+		}#
+		if(grepl('PrEP',method.realloc))#
+		{#
+			p.reachable			<- as.numeric(substring( regmatches(method.realloc,regexpr('RPrEP[0-9]+', method.realloc)), 6))/100#
+			cat(paste('\nsetting p.reachable=', p.reachable))#
+			tmp					<- project.athena.Fisheretal.Hypo.ReallocUToNone.getYXetc(YX.h, nt.table.h, method.risk, predict.t2inf, t2inf.args, df.all, p.reachable=p.reachable, th.starttime=2008.5, t.period=t.period, method.sample= 'stage=prop, y=median')#
+			YX.h				<- copy(tmp$YX.h)#
+			nt.table.h			<- copy(tmp$nt.table.h)#
+			tmp					<- tmp$df.trinfo		#not NULL -- need this for reallocate.handler.cens#
+			df.trinfo			<<- copy(tmp)#
+		}#
+		##
+		#	prepare nt.table for YX and YX.hypothetical#
+		#	#
+		risk.df					<- data.table(risk='stage',factor=YXe$YX[, levels(stage)], risk.ref='stage', factor.ref=paste('ART.suA.Y',4,sep='.'))#
+		set(risk.df, NULL, c('risk.ref','factor.ref','coef.ref'), 'None')#
+		nt.table				<- project.athena.Fisheretal.Wallinga.prep.nttable(nt.table, YX=YX)#
+		nt.table.h				<- project.athena.Fisheretal.Wallinga.prep.nttable(nt.table.h, YX=YX.h)#
+		stopifnot(!nrow(subset(nt.table.h, X.msm.e0<X.seq)))#
+		nt.table				<- project.athena.Fisheretal.Wallinga.censoring(ct, nt.table)#
+		#	use same censoring adjustment for nt.table.h ( we only have cens.table for YX, so that s all we can do )#
+		reallocate.handler.cens	<- project.athena.Fisheretal.Hypo.ReallocHandler.cens(method.realloc)#
+		nt.table.h				<- project.athena.Fisheretal.Wallinga.censoring(ct, nt.table.h, reallocate.handler.cens=reallocate.handler.cens)#
+		#	get censoring and sampling adjustments YX.hypothetical #
+		adj.h		<- nt.table.h[, list(YX=sum(YX), X.clu=sum(X.clu), X.seq=sum(X.seq), X.msm.e0=sum(X.msm.e0), X.msm.e0cp=sum(X.msm.e0cp), nRec=length(unique(Patient))), by=c('risk','factor')]#
+		tmp			<- ifelse(grepl('clu',method.risk), 'X.clu', 'X.seq')#
+		adj.h[, PYs:= adj.h[[tmp]]]#
+		adj.h[, PTx:= adj.h[, YX] / adj.h[[tmp]]]#
+		adj.h[, Sx.e0:= PYs/X.msm.e0]					#
+		adj.h[, Sx.e0cp:= PYs/X.msm.e0cp]#
+		set(adj.h, adj.h[, which(!is.finite(Sx.e0))], 'Sx.e0', 1)#
+		set(adj.h, adj.h[, which(!is.finite(Sx.e0cp))], 'Sx.e0cp', 1)#
+		set(adj.h, adj.h[, which(!is.finite(PTx))], 'PTx', 1)#
+		risk.df.h	<- merge(risk.df, subset(adj.h, select=c(risk, factor, PYs, PTx, X.msm.e0, X.msm.e0cp)), by=c('risk','factor'))#
+		nt.table.h	<- merge(nt.table.h, subset(adj.h, select=c(risk, factor, Sx.e0, Sx.e0cp)), by=c('risk','factor'))#
+		#	get censoring and sampling adjustments YX #
+		adj			<- nt.table[, list(YX=sum(YX), X.clu=sum(X.clu), X.seq=sum(X.seq), X.msm.e0=sum(X.msm.e0), X.msm.e0cp=sum(X.msm.e0cp), nRec=length(unique(Patient))), by=c('risk','factor')]#
+		tmp			<- ifelse(grepl('clu',method.risk), 'X.clu', 'X.seq')#
+		adj[, PYs:= adj[[tmp]]]#
+		adj[, PTx:= adj[, YX] / adj[[tmp]]]#
+		adj[, Sx.e0:= PYs/X.msm.e0]					#
+		adj[, Sx.e0cp:= PYs/X.msm.e0cp]#
+		set(adj, adj[, which(!is.finite(Sx.e0))], 'Sx.e0', 1)#
+		set(adj, adj[, which(!is.finite(Sx.e0cp))], 'Sx.e0cp', 1)#
+		set(adj, adj[, which(!is.finite(PTx))], 'PTx', 1)#
+		risk.df		<- merge(risk.df, subset(adj, select=c(risk, factor, PYs, PTx, X.msm.e0, X.msm.e0cp)), by=c('risk','factor'))#
+		nt.table	<- merge(nt.table, subset(adj, select=c(risk, factor, Sx.e0, Sx.e0cp)), by=c('risk','factor'))	#
+		##
+		set(risk.df, NULL, 'risk', risk.df[, as.character(risk)])#
+		set(risk.df, NULL, 'factor', risk.df[, as.character(factor)])	#
+		set(nt.table, NULL, 'risk', nt.table[, as.character(risk)])#
+		set(nt.table, NULL, 'factor', nt.table[, as.character(factor)])#
+		set(nt.table, NULL, 'Patient', nt.table[, as.character(Patient)])#
+		set(nt.table, NULL, 'YX', NULL)#
+		set(risk.df.h, NULL, 'risk', risk.df.h[, as.character(risk)])#
+		set(risk.df.h, NULL, 'factor', risk.df.h[, as.character(factor)])	#
+		set(nt.table.h, NULL, 'risk', nt.table.h[, as.character(risk)])#
+		set(nt.table.h, NULL, 'factor', nt.table.h[, as.character(factor)])#
+		set(nt.table.h, NULL, 'Patient', nt.table.h[, as.character(Patient)])#
+		set(nt.table.h, NULL, 'YX', NULL)	#
+		#				#
+		missing		<- project.athena.Fisheretal.Wallinga.prep.expmissing(nt.table, risk.df, YX, YXf, use.YXf=use.YXf, method.missingy='y=median')#
+		missing.h	<- project.athena.Fisheretal.Wallinga.prep.expmissing(nt.table.h, risk.df.h, YX.h, YXf, use.YXf=use.YXf, method.missingy='y=median')#
+		#if(!is.na(method.reallocate))#
+		#	stopifnot( !nrow(subset(missing.h, grepl(method.reallocate,factor) & (YX.n>0 | YXm.sum.e0>0 | YXm.sum.e0cp>0))) )	#
+		#	calculate proportion of recipients averted#
+		averted		<- missing[, 	list(	Pjx.e0cp.sum= sum((yYX.sum+YXm.sum.e0cp)*YX.w)), by=c('risk','Patient')]#
+		tmp			<- missing.h[, 	list(	Pjx.e0cp.sum.h= sum((yYX.sum+YXm.sum.e0cp)*YX.w)), by=c('risk','Patient')]#
+		averted		<- merge(averted, tmp, by=c('risk','Patient'), all.x=1)#
+		set(averted, averted[, which(is.na(Pjx.e0cp.sum.h))], 'Pjx.e0cp.sum.h', 0)#
+		tmp			<- averted[, which(Pjx.e0cp.sum<Pjx.e0cp.sum.h)]#
+		tmp			<- averted[, which(round(Pjx.e0cp.sum,d=2)<round(Pjx.e0cp.sum.h,d=2))]#
+		cat(paste('\nFound Patients with Pjx.e0cp.sum<Pjx.e0cp.sum.h, n=',length(tmp)))#
+		set(averted, tmp, 'Pjx.e0cp.sum.h', averted[tmp, Pjx.e0cp.sum])
+YXe
+runs.av.info
+z<- load('~/git/phylodesign/pkg/inst/misc/popart.propacute.131025.R')
+z
+df.prop
+subset(df.prop, country=='SA' & arm=='A')
+subset(df.prop, country=='SA' & arm=='A')[, mean(E2E)]
+subset(df.prop, country=='SA' & arm=='C')
+subset(df.prop, country=='SA' & arm=='C')[, mean(E2E)]
+subset(df.prop, country=='SA' & arm=='A' & target=='central')[, mean(E2E)]
+subset(df.prop, country=='SA' & arm=='A' & target=='central')
+require(data.table)#
+	require(ape)#
+	#stop()#
+	resume					<- 1 #
+	indir					<- paste(DATA,"fisheretal_141108",sep='/')#
+	outdir					<- paste(DATA,"fisheretal_141108",sep='/')		#
+	indir					<- paste(DATA,"fisheretal_141221",sep='/')#
+	outdir					<- paste(DATA,"fisheretal_141221",sep='/')		#
+	indir					<- paste(DATA,"fisheretal_150105",sep='/')#
+	outdir					<- paste(DATA,"fisheretal_150105",sep='/')		#
+	infile					<- "ATHENA_2013_03_-DR-RC-SH+LANL_Sequences"#
+	indircov				<- paste(DATA,"fisheretal_data",sep='/')#
+	insignat				<- "Wed_Dec_18_11:37:00_2013"	#
+	outfile					<- infile#
+	infilecov				<- "ATHENA_2013_03_AllSeqPatientCovariates"	#
+	t.period				<- 1/8#
+	t.endctime				<- hivc.db.Date2numeric(as.Date("2013-03-01"))#
+	t.endctime				<- floor(t.endctime) + floor( (t.endctime%%1)*100 %/% (t.period*100) ) * t.period
+files					<- list.files(indir)#
+		files					<- files[ sapply(files, function(x) grepl('.R$',x) ) ]	#
+		if(!length(files))	stop('cannot find files matching criteria')#
+		runs.opt	<- lapply( files, function(z)#
+				{#
+					print(z)#
+					method.brl			<- regmatches(z, regexpr('Yscore[^_]*',z))#
+					method.brl			<- substr(method.brl, 7, nchar(method.brl))#
+					method.denom		<- regmatches(z, regexpr('denom[[:alnum:]]*',z))#
+					method.denom		<- substr(method.denom, 6, nchar(method.denom))#
+					method.risk			<- regmatches(z, regexpr('[^_]*.R$',z))#
+					method.risk			<- substr(method.risk,1,nchar(method.risk)-2)#
+					method.dating		<- ifelse(grepl('sasky',z),'sasky','gmrf')#
+					method.recentctime	<- ifelse(grepl('2011',z),'2011','2013-03-01')#
+					method.nodectime	<- ifelse(grepl('a',method.brl),'any','map')#
+					data.table(file=z, method.brl=method.brl, method.nodectime=method.nodectime, method.dating=method.dating, method.risk=method.risk, method.denom=method.denom, method.recentctime=method.recentctime)				#
+				})#
+		runs.opt	<- do.call('rbind', runs.opt)#
+		setkey(runs.opt, method.dating, method.brl)	#
+		runs.opt	<- subset(runs.opt, !is.na(file))#
+		runs.opt	<- subset(runs.opt, !grepl('beforepool',file) & !grepl('Hypo',file))#
+		print(runs.opt)
+tmp			<- lapply(seq_len(nrow(runs.opt)), function(i)#
+				{#
+					tmp	<- paste(indir, runs.opt[i,file], sep='/')#
+					cat(paste('\nprocess file=',runs.opt[i,file]))#
+					tmp	<- load(tmp)#
+					ans	<- ans$risk#
+					if(!any(colnames(ans)=='t.period'))#
+						ans[, t.period:= NA_character_]										#
+					set(ans, NULL, 'factor', ans[, as.character(factor)])											#
+					ans[, method.risk:=runs.opt[i,method.risk]]#
+					ans[, method.dating:=runs.opt[i,method.dating]]#
+					ans[, method.nodectime:=runs.opt[i,method.nodectime]]#
+					ans[, method.brl:=runs.opt[i,method.brl ]]#
+					ans[, method.denom:=runs.opt[i,method.denom]]#
+					ans[, method.recentctime:=runs.opt[i,method.recentctime ]]#
+					ans#
+				})#
+		runs.risk	<- do.call('rbind', tmp)		#
+		#	load risk.bs estimates#
+		tmp			<- lapply(seq_len(nrow(runs.opt)), function(i)#
+				{#
+					tmp	<- paste(indir, runs.opt[i,file], sep='/')#
+					cat(paste('\nprocess file=',runs.opt[i,file]))#
+					tmp	<- load(tmp)#
+					ans	<- ans$risk.bs#
+					if(!any(colnames(ans)=='t.period'))#
+						ans[, t.period:= NA_character_]										#
+					set(ans, NULL, 'factor', ans[, as.character(factor)])											#
+					ans[, method.risk:=runs.opt[i,method.risk]]#
+					ans[, method.dating:=runs.opt[i,method.dating]]#
+					ans[, method.nodectime:=runs.opt[i,method.nodectime]]#
+					ans[, method.brl:=runs.opt[i,method.brl ]]#
+					ans[, method.denom:=runs.opt[i,method.denom]]#
+					ans[, method.recentctime:=runs.opt[i,method.recentctime ]]#
+					ans#
+				})#
+		runs.riskbs	<- do.call('rbind', tmp)#
+		#	get pooled proportions across all tp#
+		tmp			<- lapply( runs.risk[, unique(method.brl)], function(METHOD.BRL)#
+				{#
+					df		<- subset( runs.risk, !grepl('ARTstarted|GroupsUDA|Hypo', method.risk) & method.brl==METHOD.BRL)#
+					df.bs	<- subset( runs.riskbs, !grepl('ARTstarted|GroupsUDA|Hypo', method.risk) & method.brl==METHOD.BRL)#
+					project.athena.Fisheretal.sensitivity.pool.TPALL(df, df.bs)			#
+				})#
+		tmp			<- do.call('rbind', tmp)#
+		tmp[, bs:=NULL]#
+		runs.risk	<- rbind( runs.risk, tmp, use.names=TRUE )#
+		file			<- paste(indir, '/', infile, '_', gsub('/',':',insignat), '_', "method.risks.Rdata", sep='')#
+		save(runs.risk, file=file)#
+		#	reduce runs.opt to files for which we have a table#
+		runs.opt	<- subset(runs.opt, !grepl('ARTstarted', method.risk) & !grepl('GroupsUDA', method.risk) )#
+		#	load risk tables#
+		tmp			<- lapply(seq_len(nrow(runs.opt)), function(i)#
+				{#
+					tmp	<- paste(indir, runs.opt[i,file], sep='/')#
+					cat(paste('\nprocess file=',runs.opt[i,file]))#
+					tmp	<- load(tmp)					#
+					ans	<- ans$X.tables$risk.table#
+					if(!any(colnames(ans)=='p'))#
+						ans	<- merge(ans, ans[, list(risk=risk, factor=factor, p= n/sum(n)  ), by='stat'], by=c('risk','factor','stat'))#
+					ans[, method.risk:=runs.opt[i,method.risk]]#
+					ans[, method.dating:=runs.opt[i,method.dating]]#
+					ans[, method.nodectime:=runs.opt[i,method.nodectime]]#
+					ans[, method.brl:=runs.opt[i,method.brl ]]#
+					ans[, method.denom:=runs.opt[i,method.denom]]#
+					ans[, method.recentctime:=runs.opt[i,method.recentctime ]]#
+					ans#
+				})#
+		runs.table	<- do.call('rbind', tmp)#
+		set(runs.table, NULL, 'n', runs.table[, n*t.period])#
+		#	add number recipient#
+		tmp			<- subset( runs.risk, stat%in%c('nRec','nRecLkl'), select=c(stat, risk, factor, v, method.risk, method.dating, method.nodectime,   method.brl, method.denom, method.recentctime) )#
+		setnames(tmp, 'v','n')#
+		runs.table	<- rbind(runs.table, tmp, fill=TRUE)#
+		#	add expected missing#
+		tmp			<- subset( runs.risk, stat%in%c('Sx.e0cp'), select=c(stat, risk, factor, v, l95.bs,  u95.bs, method.risk, method.dating, method.nodectime,   method.brl, method.denom, method.recentctime) )#
+		setnames(tmp, 'v','n')#
+		runs.table	<- rbind(runs.table, tmp, fill=TRUE)#
+		#	add adjusted potential transmission intervals#
+		tmp			<- subset( runs.risk, stat%in%c('X.msm.e0cp'), select=c(stat, risk, factor, v, l95.bs,  u95.bs, method.risk, method.dating, method.nodectime,   method.brl, method.denom, method.recentctime) )#
+		setnames(tmp, 'v','n')#
+		runs.table	<- rbind(runs.table, tmp, fill=TRUE)#
+		#	add median likelihood of direct HIV transmission#
+		tmp			<- lapply(seq_len(nrow(runs.opt)), function(i)#
+				{#
+					tmp	<- paste(indir, runs.opt[i,file], sep='/')#
+					cat(paste('\nprocess file=',runs.opt[i,file]))#
+					load(tmp)#
+					ans	<- ans$YX[, list(p= median(score.Y)), by='stage']#
+					setnames(ans, 'stage', 'factor')#
+					ans[, risk:='stage']#
+					ans[, stat:='LkL']#
+					ans[, method.risk:=runs.opt[i,method.risk]]#
+					ans[, method.dating:=runs.opt[i,method.dating]]#
+					ans[, method.nodectime:=runs.opt[i,method.nodectime]]#
+					ans[, method.brl:=runs.opt[i,method.brl ]]#
+					ans[, method.denom:=runs.opt[i,method.denom]]#
+					ans[, method.recentctime:=runs.opt[i,method.recentctime ]]#
+					ans#
+				})#
+		tmp			<- do.call('rbind', tmp)#
+		runs.table	<- rbind(runs.table, tmp, fill=TRUE)#
+		file			<- paste(indir, '/', infile, '_', gsub('/',':',insignat), '_', "method.table.Rdata", sep='')#
+		save(runs.table, file=file)
+require(data.table)#
+	require(ape)#
+	require(grid)#
+	require(reshape2)#
+	require(ggplot2)#
+	#stop()#
+	resume					<- 1 #
+	indir					<- paste(DATA,"fisheretal_141221",sep='/')#
+	outdir					<- paste(DATA,"fisheretal_141221",sep='/')		#
+	indir					<- paste(DATA,"fisheretal_150105",sep='/')#
+	outdir					<- paste(DATA,"fisheretal_150105",sep='/')		#
+	infile					<- "ATHENA_2013_03_-DR-RC-SH+LANL_Sequences"#
+	indircov				<- paste(DATA,"fisheretal_data",sep='/')#
+	insignat				<- "Wed_Dec_18_11:37:00_2013"	#
+	infilecov				<- "ATHENA_2013_03_AllSeqPatientCovariates"	#
+	t.period				<- 1/8#
+	t.endctime				<- hivc.db.Date2numeric(as.Date("2013-03-01"))#
+	t.endctime				<- floor(t.endctime) + floor( (t.endctime%%1)*100 %/% (t.period*100) ) * t.period#
+	file				<- paste(outdir, '/', infile, '_', gsub('/',':',insignat), '_', "method.risks.Rdata", sep='')		#
+	readAttempt			<- try(suppressWarnings(load(file)))	#
 	##
-	if(exists("argv"))#
+	tperiod.info<- as.data.table(structure(list(t.period = structure(1:4, .Label = c("1", "2", "3", "4"), class = "factor"), t.period.min = c(1996.5, 2006.5, 2008, 2009.5), t.period.max = c(2006.45, 2007.99, 2009.45, 2010.999)), row.names = c(NA, -4L), class = "data.frame", .Names = c("t.period", "t.period.min", "t.period.max")))#
+	set(tperiod.info, NULL, 't.period.min', tperiod.info[,  paste(floor(t.period.min), floor( 1+(t.period.min%%1)*12 ), sep='-')] )#
+	set(tperiod.info, NULL, 't.period.max', tperiod.info[,  paste(floor(t.period.max), floor( 1+(t.period.max%%1)*12 ), sep='-')] )	#
+	set(tperiod.info, NULL, 't.period.min', tperiod.info[, factor(t.period.min, levels=c('1996-7','2006-7','2008-1','2009-7'), labels=c('96/07','\n\n06/07','08/01','\n\n09/07'))])#
+	set(tperiod.info, NULL, 't.period.max', tperiod.info[, factor(t.period.max, levels=c('2006-6','2007-12','2009-6','2010-12'), labels=c('06/06','07/12','09/06','10/12'))])#
+	#	updated stages#
+	#	set up factor legends#
+	factor.color	<- c(	"#990000","#EF6548","#FDBB84",#
+							"#0C2C84","#0570B0","#74A9CF","#41B6C4","#35978F",  #
+							"#FCC5C0","#F768A1","#7A0177",#
+							"#1A9850","#A6D96A")#
+	factor.long		<- c(	'Undiagnosed,\n Recent infection\n at diagnosis',	#
+							'Undiagnosed,\n Chronic infection\n at diagnosis',#
+							'Undiagnosed,\n Unknown if recent',#
+							'Diagnosed < 3mo,\n Recent infection\n at diagnosis',					#
+							'Diagnosed,\n CD4 progression to >500',#
+							'Diagnosed,\n CD4 progression to [350-500]',#
+							'Diagnosed,\n CD4 progression to <350',			#
+							'Diagnosed,\n No CD4 measured',#
+							'ART initiated,\n Before first viral suppression',													#
+							'ART initiated,\n After first viral suppression\nNo viral load measured',		#
+							'ART initiated,\n After first viral suppression\nNo viral suppression',	#
+							'ART initiated,\n After first viral suppression\nViral suppression, 1 observation',#
+							'ART initiated,\n After first viral suppression\nViral suppression, >1 observations')#
+	levels			<- c("UA","U","UAna","DA","Dtg500","Dtl500","Dtl350","Dt.NA","ART.NotYetFirstSu","ART.vlNA","ART.suA.N","ART.suA.Y1","ART.suA.Y2")#
+	factors			<- data.table( factor.legend= factor(factor.long, levels=factor.long), factor=factor(levels, levels=levels), factor.color=factor.color, method.risk='m2Cwmx')
+method.DENOM	<- 'SEQ'#
+	method.BRL		<- '3pa1H1.35C1V100bInfT7'#
+	method.RISK		<- 'm2Cwmx.wtn.tp'#
+	method.WEIGHT	<- ''#
+	method.DATING	<- 'sasky'#
+	tmp				<- subset(factors, grepl('m2Cwmx',method.risk), select=c(factor, factor.legend, factor.color))#
+	stat.select		<- c(	'P.raw','P.raw.e0','P.raw.e0cp'	)#
+	outfile			<- infile#
+	project.athena.Fisheretal.sensitivity.getfigures.m2(runs.risk, method.DENOM, method.BRL, method.RISK, method.WEIGHT, method.DATING,  tmp, stat.select, outfile, tperiod.info=tperiod.info)		#
+	method.RISK		<- "m2Cwmx.wtn"#
+	project.athena.Fisheretal.sensitivity.getfigures.RR(runs.risk, method.DENOM, method.BRL, method.RISK, method.WEIGHT, method.DATING,  tmp, stat.select, outfile, tperiod.info=tperiod.info)#
+	project.athena.Fisheretal.sensitivity.tables.m2.prop(runs.risk, method.DENOM, method.BRL, method.RISK, method.WEIGHT, method.DATING, tmp, stat.select, outfile, tperiod.info=tperiod.info)
+method.DENOM	<- 'SEQ'#
+	method.BRL		<- '3pa1H1.35C2V100bInfT7'#
+	method.RISK		<- 'm2Cwmx.wtn.tp'#
+	method.WEIGHT	<- ''#
+	method.DATING	<- 'sasky'#
+	tmp				<- subset(factors, grepl('m2Cwmx',method.risk), select=c(factor, factor.legend, factor.color))#
+	stat.select		<- c(	'P.raw','P.raw.e0','P.raw.e0cp'	)#
+	outfile			<- infile#
+	project.athena.Fisheretal.sensitivity.getfigures.m2(runs.risk, method.DENOM, method.BRL, method.RISK, method.WEIGHT, method.DATING,  tmp, stat.select, outfile, tperiod.info=tperiod.info)		#
+	method.RISK		<- "m2Cwmx.wtn"#
+	project.athena.Fisheretal.sensitivity.getfigures.RR(runs.risk, method.DENOM, method.BRL, method.RISK, method.WEIGHT, method.DATING,  tmp, stat.select, outfile, tperiod.info=tperiod.info)#
+	project.athena.Fisheretal.sensitivity.tables.m2.prop(runs.risk, method.DENOM, method.BRL, method.RISK, method.WEIGHT, method.DATING, tmp, stat.select, outfile, tperiod.info=tperiod.info)
+YXe
+YXf						<- copy(YXe$YXf)#
+		tmp						<- copy(YXe$X.tables$cens.table)#
+		setkey(tmp, stat, t.period, risk, factor)#
+		ct						<- unique(tmp)#
+		tmp2					<- copy(YXe$X.tables$cens.table.bs)#
+		setkey(tmp2, stat, t.period, risk, factor)#
+		ctb						<- unique(tmp2)#
+		tmp						<- project.athena.Fisheretal.censoring.model(ct, ctb, plot.file=NA )#
+		ct						<- copy(tmp$ctn)	#
+		setkey(ct, t.period, risk, factor)#
+		tmp						<- ct[, seq_len( length(n.adj)/length(unique(factor)) )]#
+		ct[, bs:=rep(tmp, nrow(ct)/length(tmp))]		#subset this for BS run
+YX						<- copy(YXe$YX)	#
+					YX.h					<- copy(YXe$YX)	#
+					set( YX, NULL, 'stage', YX[, CD4c.tperiod] )#
+					set( YX.h, NULL, 'stage', YX.h[, CD4c.tperiod] )#
+					X.tables				<- copy(YXe$X.tables)	#
+					nt.table				<- X.tables$nt.table#
+					nt.table.h				<- copy(X.tables$nt.table)#
+					cat(paste('\nusing method',method.realloc))#
+					df.trinfo				<<- NULL #
+					df.uinfo				<<- NULL
+system.file(package="hivclust", "ext", "beast2.jar")
+require(devtools)
+install_github("ntncmch/SSMinR")
+install_github("ntncmch/SSMinR")
+verbose			<- 1#
+	with.plot		<- 1#
+	label.sep		<- '|'	#
+	##
+	#	read I/O#
+	##
+	indir.epi		<- '/Users/Oliver/git/HPTN071sim/tmp140914/TrChains'#
+	infile.epi		<- '140716_RUN001_SAVE.R'	#
+	indir.vts		<- '/Users/Oliver/git/HPTN071sim/tmp140914/VirusTreeSimulator'#
+	infile.prefix	<- '140716_RUN001_'	#
+	infile.args		<- '/Users/Oliver/git/HPTN071sim/tmp140914/140716_RUN001_PipeArgs.R'#
+	outdir.sg		<- '/Users/Oliver/git/HPTN071sim/tmp140914/SeqGen'
+indir.epi="/Users/Oliver/git/HPTN071sim/tmp151030-o5111DI/TrChains" #
+infile.epi="150127_RUN001-o5111DI_SAVE.R" #
+indir.vts="/Users/Oliver/git/HPTN071sim/tmp151030-o5111DI/VirusTreeSimulator" #
+infile.prefix="150127_RUN001-o5111DI_" #
+infile.args="/Users/Oliver/git/HPTN071sim/tmp151030-o5111DI/150127_RUN001-o5111DI_PipeArgs.R" #
+outdir.sg="/Users/Oliver/git/HPTN071sim/tmp151030-o5111DI/SeqGen"
+if(verbose)#
 	{#
-		#	args input#
-		tmp<- na.omit(sapply(argv,function(arg)#
-						{	switch(substr(arg,2,6),#
-									indir= return(substr(arg,8,nchar(arg))),NA)	}))#
-		if(length(tmp)>0) indir<- tmp[1]		#
-		tmp<- na.omit(sapply(argv,function(arg)#
-						{	switch(substr(arg,2,11),#
-									infile.ind= return(substr(arg,13,nchar(arg))),NA)	}))#
-		if(length(tmp)>0) infile.ind<- tmp[1]#
-		tmp<- na.omit(sapply(argv,function(arg)#
-						{	switch(substr(arg,2,11),#
-									infile.trm= return(substr(arg,13,nchar(arg))),NA)	}))#
-		if(length(tmp)>0) infile.trm<- tmp[1]#
-		tmp<- na.omit(sapply(argv,function(arg)#
-						{	switch(substr(arg,2,12),#
-									infile.args= return(substr(arg,14,nchar(arg))),NA)	}))#
-		if(length(tmp)>0) infile.args<- tmp[1]#
-		#	args output#
-		tmp<- na.omit(sapply(argv,function(arg)#
-						{	switch(substr(arg,2,7),#
-									outdir= return(substr(arg,9,nchar(arg))),NA)	}))#
-		if(length(tmp)>0) outdir<- tmp[1]		#
-		tmp<- na.omit(sapply(argv,function(arg)#
-						{	switch(substr(arg,2,12),#
-									outfile.ind= return(substr(arg,14,nchar(arg))),NA)	}))#
-		if(length(tmp)>0) outfile.ind<- tmp[1]#
-		tmp<- na.omit(sapply(argv,function(arg)#
-						{	switch(substr(arg,2,12),#
-									outfile.trm= return(substr(arg,14,nchar(arg))),NA)	}))#
-		if(length(tmp)>0) outfile.trm<- tmp[1]		#
-	}#
-	if(verbose)#
-	{#
-		cat('\ninput args\n',paste(indir, infile.ind, infile.trm, outdir, outfile.ind, outfile.trm, sep='\n'))#
+		cat('\ninput args\n',paste(indir.epi, infile.epi, indir.vts, infile.prefix, outdir.sg, sep='\n'))#
 	}	#
 	if(!is.na(infile.args))#
 	{#
@@ -108,1628 +1360,238 @@ require(data.table)#
 	{#
 		cat('\nCould not find pipeline.args, generating default')#
 		pipeline.args	<- rPANGEAHIVsim.pipeline.args()#
-	}#
-	stopifnot( all( c('yr.start', 'yr.end', 's.seed', 's.PREV.min', 's.PREV.max', 'epi.dt', 'epi.import')%in%pipeline.args[, stat] ) )#
+	}	#
+	stopifnot( all( c('s.seed','wher.mu','wher.sigma','bwerm.mu','bwerm.sigma')%in%pipeline.args[, stat] ) )#
 	##
-	infile.ind	<- paste(indir, '/', infile.ind, sep='')#
-	infile.trm	<- paste(indir, '/', infile.trm, sep='')#
-	outfile.ind	<- paste(outdir, '/', outfile.ind, sep='')#
-	outfile.trm	<- paste(outdir, '/', outfile.trm, sep='')#
-	#	set seed#
+	#	setup samplers#
+	##
+	cat(paste('\ncreate sampler of evolutionary rates'))#
+	#	create sampler of within host evolutionary rates#
+	rER.pol			<- PANGEA.WithinHostEvolutionaryRate.create.sampler.v1(wher.mu=pipeline.args['wher.mu',][, as.numeric(v)], wher.sigma=pipeline.args['wher.sigma',][, as.numeric(v)])#
+	#	create sampler of between host evolutionary rate dampener#
+	tmp				<- PANGEA.TransmissionEdgeEvolutionaryRate.create.sampler(er.meanlog=pipeline.args['bwerm.mu',][, as.numeric(v)], er.sdlog=pipeline.args['bwerm.sigma',][, as.numeric(v)])#
+	rERbw			<- tmp$rERbw#
+	rERbw.args		<- tmp$rERbw.args#
+	#	create sampler of ancestral sequences#
+	cat(paste('\ncreate sampler of ancestral sequences'))#
+	tmp				<- PANGEA.RootSeq.create.sampler(root.ctime.grace= 0.5, sample.grace= 3 )#
+	rANCSEQ			<- tmp$rANCSEQ#
+	rANCSEQ.args	<- tmp$rANCSEQ.args 	#
+	#	read GTR parameters#
+	log.df			<- PANGEA.GTR.params()#
+	if(pipeline.args['dbg.rER',][, as.numeric(v)]==1 )#
+	{#
+		cat(paste('\nSetting mus to mean per gene and codon_pos'))#
+		tmp		<- log.df[, list(mu= mean(mu)), by=c('GENE','CODON_POS')]#
+		#tmp[, ER:=mu*log.df$meanRate[1]]#
+		log.df	<- merge( subset(log.df, select=which(colnames(log.df)!='mu')), tmp, by=c('GENE','CODON_POS'))		#
+	}		#
+	if( pipeline.args['dbg.GTRparam',][, as.numeric(v)]==1 )#
+	{#
+		cat(paste('\nSetting GTR parameters to MEAN (except mu)'))#
+		tmp		<- mean	#
+		log.df	<- log.df[, list(state=state, mu=mu, alpha=tmp(alpha), at=tmp(at), ac=tmp(ac), cg=tmp(cg), ag=tmp(ag), gt=tmp(gt), meanRate=tmp(meanRate), a=tmp(a), c=tmp(c),  g=tmp(g), t=tmp(t) ), by=c('GENE','CODON_POS')]		#
+	}		#
+	log.df[, IDX:= seq_len(nrow(log.df))]#
+	log.df[, FILE:=NULL]	#
+	##
+	##
+	##
+	file		<- paste(indir.epi, '/', infile.epi, sep='')#
+	load(file)	#expect "df.epi"    "df.trms"   "df.inds"   "df.sample"#
+	#	#
+	infiles		<- list.files(indir.vts)#
+	tmp			<- paste('^',infile.prefix,'.*nex$',sep='')#
+	infiles		<- infiles[ grepl(tmp, infiles)  ]	#
+	if(!length(infiles))	stop('cannot find files matching criteria')#
+	##
 	set.seed( pipeline.args['s.seed',][, as.numeric(v)] )#
 	##
-	df.trm	<- as.data.table(read.csv(infile.trm, stringsAsFactors=FALSE, sep=' ', dec='.'))#
-	setnames(df.trm, c("IdInfector","IdInfected","TimeOfInfection","IsInfectorAcute"), c('IDTR','IDREC','TIME_TR','TR_ACUTE'))		#
-	#	transmissions happen either at baseline, or at unique times.#
-	#	the epi simulation allocates transmissions in 1/48 of a year, so draw a uniform number if there are more transmission per TIME_TR#
-	df.trm	<- df.trm[, {#
-				z<- TIME_TR#
-				if(TIME_TR>pipeline.args['yr.start',][, as.numeric(v)] & length(IDTR)>1)#
-					z<- sort(runif(length(IDTR), z, min(pipeline.args['yr.end',][, as.numeric(v)], z+pipeline.args['epi.dt',][, as.numeric(v)])))#
-				list(IDTR=IDTR, IDREC=IDREC, TIME_TR.new=z, TR_ACUTE=TR_ACUTE, l=length(IDTR))#
-			}, by='TIME_TR']#
-	df.trm[, TIME_TR:=NULL]#
-	setnames(df.trm, 'TIME_TR.new', 'TIME_TR')
-tmp		<- subset(df.trm, TIME_TR>pipeline.args['yr.start',][, as.numeric(v)])#
-	stopifnot( nrow(tmp)==tmp[,length(unique(TIME_TR))] )
-df.trm
-tmp		<- df.trm[, which(IDTR=='-1')]
-set(df.trm, tmp, 'IDTR', rev(-seq_along(trm)))
-set(df.trm, tmp, 'IDTR', rev(-seq_along(tmp)))
-df.trm
-df.ind	<- as.data.table(read.csv(infile.ind, stringsAsFactors=FALSE))		#
-	setnames(df.ind, c("Id","Gender","DoB","DateOfDeath","RiskGroup","Circumcised"), c('IDPOP','GENDER','DOB','DOD','RISK','CIRCM'))#
-	set(df.ind, df.ind[, which(CIRCM=='')], 'CIRCM', NA_character_)#
-	set(df.ind, NULL, 'CIRCM', df.ind[, factor(CIRCM)])#
-	set(df.ind, NULL, 'GENDER', df.ind[, factor(GENDER)])#
-	set(df.ind, NULL, 'RISK', df.ind[, factor(RISK)])
-df.ind
-set(df.ind, df.ind[, which(DOD==-1)], 'DOD', pipeline.args['yr.end',][, as.numeric(v)]+1.)#
-	tmp			<- subset(df.trm, select=c(IDREC, TIME_TR))#
-	setnames(tmp, 'IDREC','IDPOP')#
-	df.ind		<- merge(df.ind, tmp, by='IDPOP', all.x=TRUE)
-df.ind
-cat(paste('\nFound individuals with a valid record, n=', nrow(df.ind)))#
-	cat(paste('\nFound individuals with an infection event, n=', nrow(subset(df.ind,!is.na(TIME_TR)))))#
-	cat(paste('\nFound index cases, n=', nrow(subset(df.ind,IDPOP<0))))
-cat(paste('\nFound transmissions, n=', nrow(df.trm)))#
-	cat(paste('\nTotal transmitters, n=', df.trm[, length(unique(IDTR))]))
-df.trm
-tmp		<- subset( df.trm, TIME_TR>=as.numeric( pipeline.args['yr.end',][, as.numeric(v)] ) )[, IDREC]#
-	df.trm	<- subset( df.trm, TIME_TR<as.numeric( pipeline.args['yr.end',][, as.numeric(v)] ) )
-df.trm
-tmp
-df.ind	<- subset(df.ind, !IDPOP%in%tmp)#
-	df.ind	<- subset(df.ind, is.na(DOB) | DOB<pipeline.args['yr.end',][, as.numeric(v)] )#
-	cat(paste('\nFound individuals born before',pipeline.args['yr.end',][, as.numeric(v)],', n=', nrow(df.ind)))#
-	cat(paste('\nFound transmissions before',pipeline.args['yr.end',][, as.numeric(v)],', n=', nrow(df.trm)))#
-	cat(paste('\nTotal transmitters, n=', df.trm[, length(unique(IDTR))]))		#
-	stopifnot( length(setdiff( df.trm[, IDTR], df.ind[, IDPOP] ))==0 )#
-	stopifnot( length(setdiff( df.trm[, IDREC], df.ind[, IDPOP] ))==0 )
-stopifnot( length(setdiff( subset(df.trm, IDTR>0)[, IDTR], df.ind[, IDPOP] ))==0 )
-tmp		<- PANGEA.ImportSimulator(df.ind, df.trm, epi.import= pipeline.args['epi.import',][,as.numeric(v)])
-tmp		<- subset(df.ind, select=c(IDPOP, TIME_TR))#
-	setnames(tmp, c('IDPOP','TIME_TR'), c('IDTR','IDTR_TIME_INFECTED') )#
-	setkey(tmp, IDTR)
-tmp
-df.ind
-df.ind[, range(TIME_TR,na.rm=TRUE)]
-merge(df.trm, unique(tmp), by='IDTR', all.x=TRUE)
-df.trm	<- merge(df.trm, unique(tmp), by='IDTR', all.x=TRUE)
-df.trm
-df.ind
-tmp		<- PANGEA.ImportSimulator(df.ind, df.trm, epi.import= pipeline.args['epi.import',][,as.numeric(v)])
-set.seed( pipeline.args['s.seed',][, as.numeric(v)] )#
+	#	read from VirusTreeSimulator and convert branch lengths in time to branch lengths in subst/site#
 	##
-	df.trm	<- as.data.table(read.csv(infile.trm, stringsAsFactors=FALSE, sep=' ', dec='.'))#
-	setnames(df.trm, c("IdInfector","IdInfected","TimeOfInfection","IsInfectorAcute"), c('IDTR','IDREC','TIME_TR','TR_ACUTE'))		#
-	#	transmissions happen either at baseline, or at unique times.#
-	#	the epi simulation allocates transmissions in 1/48 of a year, so draw a uniform number if there are more transmission per TIME_TR#
-	df.trm	<- df.trm[, {#
-				z<- TIME_TR#
-				if(TIME_TR>pipeline.args['yr.start',][, as.numeric(v)] & length(IDTR)>1)#
-					z<- sort(runif(length(IDTR), z, min(pipeline.args['yr.end',][, as.numeric(v)], z+pipeline.args['epi.dt',][, as.numeric(v)])))#
-				list(IDTR=IDTR, IDREC=IDREC, TIME_TR.new=z, TR_ACUTE=TR_ACUTE, l=length(IDTR))#
-			}, by='TIME_TR']#
-	df.trm[, TIME_TR:=NULL]#
-	setnames(df.trm, 'TIME_TR.new', 'TIME_TR')	#
-	#	set baseline cases as negative ID#
-	tmp		<- df.trm[, which(IDTR=='-1')]#
-	cat(paste('\nFound index cases, n=', length(tmp)))
-rev(-seq_along(tmp))
-set(df.trm, tmp, 'IDTR', rev(-seq_along(tmp)))#
-	#	check that all transmission times except baseline are unique#
-	tmp		<- subset(df.trm, TIME_TR>pipeline.args['yr.start',][, as.numeric(v)])#
-	stopifnot( nrow(tmp)==tmp[,length(unique(TIME_TR))] )	#
-	cat(paste('\nFound transmissions, n=', nrow(df.trm)))#
-	cat(paste('\nTotal transmitters, n=', df.trm[, length(unique(IDTR))]))
-df.trm
-df.ind	<- as.data.table(read.csv(infile.ind, stringsAsFactors=FALSE))		#
-	setnames(df.ind, c("Id","Gender","DoB","DateOfDeath","RiskGroup","Circumcised"), c('IDPOP','GENDER','DOB','DOD','RISK','CIRCM'))#
-	set(df.ind, df.ind[, which(CIRCM=='')], 'CIRCM', NA_character_)#
-	set(df.ind, NULL, 'CIRCM', df.ind[, factor(CIRCM)])#
-	set(df.ind, NULL, 'GENDER', df.ind[, factor(GENDER)])#
-	set(df.ind, NULL, 'RISK', df.ind[, factor(RISK)])	#
-	set(df.ind, df.ind[, which(DOD==-1)], 'DOD', pipeline.args['yr.end',][, as.numeric(v)]+1.)#
-	tmp			<- subset(df.trm, select=c(IDREC, TIME_TR))#
-	setnames(tmp, 'IDREC','IDPOP')#
-	df.ind		<- merge(df.ind, tmp, by='IDPOP', all.x=TRUE)#
-	cat(paste('\nFound individuals with a valid record, n=', nrow(df.ind)))#
-	cat(paste('\nFound individuals with an infection event, n=', nrow(subset(df.ind,!is.na(TIME_TR)))))#
-	cat(paste('\nFound index cases, n=', nrow(subset(df.ind,IDPOP<0))))#
-	#	add time of infection of transmitter to df.trm	#
-	tmp		<- subset(df.ind, select=c(IDPOP, TIME_TR))#
-	setnames(tmp, c('IDPOP','TIME_TR'), c('IDTR','IDTR_TIME_INFECTED') )#
-	setkey(tmp, IDTR)
-tmp
-df.trm	<- merge(df.trm, unique(tmp), by='IDTR', all.x=TRUE)		#
-	##
-	#	reduce to time frame of interest#
-	##
-	tmp		<- subset( df.trm, TIME_TR>=as.numeric( pipeline.args['yr.end',][, as.numeric(v)] ) )[, IDREC]
-tmp
-df.trm
-subset( df.trm, TIME_TR<as.numeric( pipeline.args['yr.end',][, as.numeric(v)] ) )
-df.trm	<- subset( df.trm, TIME_TR<as.numeric( pipeline.args['yr.end',][, as.numeric(v)] ) )#
-	df.ind	<- subset(df.ind, !IDPOP%in%tmp)#
-	df.ind	<- subset(df.ind, is.na(DOB) | DOB<pipeline.args['yr.end',][, as.numeric(v)] )#
-	cat(paste('\nFound individuals born before',pipeline.args['yr.end',][, as.numeric(v)],', n=', nrow(df.ind)))#
-	cat(paste('\nFound transmissions before',pipeline.args['yr.end',][, as.numeric(v)],', n=', nrow(df.trm)))#
-	cat(paste('\nTotal transmitters, n=', df.trm[, length(unique(IDTR))]))		#
-	stopifnot( length(setdiff( subset(df.trm, IDTR>0)[, IDTR], df.ind[, IDPOP] ))==0 )#
-	stopifnot( length(setdiff( df.trm[, IDREC], df.ind[, IDPOP] ))==0 )
-epi.import= pipeline.args['epi.import',][,as.numeric(v)]
-epi.import
-tmp		<- df.trm[, which(IDTR>0)]	  #
-	cat(paste('\nFound transmissions within population, n=', length(tmp)))
-tmp2	<- round(nrow(df.trm)*epi.import) - ( nrow(df.trm)-length(tmp)-1 )#
-	tmp2	<- max(tmp2, 0)#
-	cat(paste('\nRe-setting infecteds as index cases after imports, n=', tmp2))
-stopifnot(length(tmp)>1)#
-	stopifnot(length(tmp2)>=0)#
-	tmp2	<- as.integer(sample( tmp, tmp2, replace=FALSE ))	#
-	#	update df.trm#
-	setkey(df.trm, TIME_TR)#
-	set(df.trm, tmp2, 'IDTR', df.trm[, min(IDTR)]-rev(seq_along(tmp2)) )
-df.trm
-tmp		<- subset(df.trm, select=c(IDTR, IDTR_TIME_INFECTED))#
-	setnames(tmp, c('IDTR', 'IDTR_TIME_INFECTED'), c('IDPOP', 'TIME_TR'))#
-	tmp2	<- subset(df.trm, select=c(IDREC, TIME_TR))#
-	setnames(tmp2, 'IDREC', 'IDPOP')#
-	tmp		<- rbind( tmp, tmp2 )#
-	setkey(tmp, IDPOP)
-tmp
-df.ind	<- merge( df.ind, unique(tmp), by=c('IDPOP','TIME_TR'), all.x=TRUE, all.y=TRUE )#
-	#	#
-	cat(paste('\nProportion of imported transmissions, p=', (nrow(subset(df.trm, IDTR<0))-1)/nrow(df.trm) ))#
-	stopifnot( length(setdiff(df.trm[, IDTR], df.ind[, IDPOP]))==0 )#
-	stopifnot( length(setdiff(df.trm[, IDREC], df.ind[, IDPOP]))==0 )
-tmp<- list(df.ind=df.ind, df.trm=df.trm)
-df.trm	<- tmp$df.trm#
-	df.ind	<- tmp$df.ind
-df.trm
-tmp		<- df.trm[, which(is.na(IDTR_TIME_INFECTED))]	#
-	set( df.trm, tmp, 'IDTR_TIME_INFECTED', df.trm[tmp, runif(1, TIME_TR-5, TIME_TR)] )
-df.trm
-set( df.trm, tmp, 'IDTR_TIME_INFECTED', df.trm[tmp, runif(length(tmp), TIME_TR-5, TIME_TR)] )
-df.trm
-tmp			<- subset( df.trm, IDTR<0, select=IDTR )#
-	tmp2		<- rnorm(2*nrow(tmp), 1960, 7)#
-	tmp2		<- tmp2[ tmp2>1940 & tmp2<1980]#
-	stopifnot( nrow(tmp)<=length(tmp2) )#
-	length(tmp2)<- nrow(tmp)	#
-	set(tmp, NULL, 'IDTR_TIME_INFECTED.new', tmp2 )
-tmp
-df.trm		<- merge( df.trm, tmp, by='IDTR', all.x=TRUE )#
-	tmp2		<- df.trm[, which(!is.na(IDTR_TIME_INFECTED.new) & IDTR_TIME_INFECTED<IDTR_TIME_INFECTED.new)]#
-	set(df.trm, tmp2, 'IDTR_TIME_INFECTED.new', df.trm[tmp2, IDTR_TIME_INFECTED])#
-	#	#
-	tmp2		<- df.trm[, which(!is.na(IDTR_TIME_INFECTED.new))]#
-	set(df.trm, tmp2, 'IDTR_TIME_INFECTED', df.trm[tmp2, IDTR_TIME_INFECTED.new])#
-	df.trm[, IDTR_TIME_INFECTED.new:=NULL]#
-	#	#
-	stopifnot( nrow(subset(df.trm, TIME_TR<IDTR_TIME_INFECTED))==0 )#
-	stopifnot( nrow(subset(df.trm, is.na(TIME_TR)))==0 )#
-	stopifnot( nrow(subset(df.trm, is.na(IDTR_TIME_INFECTED)))==0 )
-tmp			<- subset( df.trm, IDTR<0, select=c(IDTR, IDTR_TIME_INFECTED) )#
-	setnames(tmp, c('IDTR','IDTR_TIME_INFECTED'), c('IDPOP','IDTR_TIME_INFECTED.new'))#
-	df.ind		<- merge(df.ind, tmp, by='IDPOP', all.x=TRUE)#
-	tmp2		<- df.ind[, which(!is.na(IDTR_TIME_INFECTED.new))]#
-	set(df.ind, tmp2, 'TIME_TR', df.ind[tmp2, IDTR_TIME_INFECTED.new])#
-	df.ind[, IDTR_TIME_INFECTED.new:=NULL]
-PANGEA.ImportSimulator.SimulateStartingTimeOfIndexCase<- function(df.ind, df.trm)#
-{#
-	#	add transmission time for index case -- this is 40 years back in time so we can sample a starting sequence #
-	#	and then generate a long branch to the transmission chain in the population. No hack. :-)#
-	tmp			<- subset( df.trm, IDTR<0, select=IDTR )#
-	tmp2		<- rnorm(2*nrow(tmp), 1960, 7)#
-	tmp2		<- tmp2[ tmp2>1940 & tmp2<1980]#
-	stopifnot( nrow(tmp)<=length(tmp2) )#
-	length(tmp2)<- nrow(tmp)	#
-	set(tmp, NULL, 'IDTR_TIME_INFECTED.new', tmp2 )#
-	##
-	df.trm		<- merge( df.trm, tmp, by='IDTR', all.x=TRUE )#
-	tmp2		<- df.trm[, which(!is.na(IDTR_TIME_INFECTED.new) & IDTR_TIME_INFECTED<IDTR_TIME_INFECTED.new)]#
-	set(df.trm, tmp2, 'IDTR_TIME_INFECTED.new', df.trm[tmp2, IDTR_TIME_INFECTED])#
-	#	#
-	tmp2		<- df.trm[, which(!is.na(IDTR_TIME_INFECTED.new))]#
-	set(df.trm, tmp2, 'IDTR_TIME_INFECTED', df.trm[tmp2, IDTR_TIME_INFECTED.new])#
-	df.trm[, IDTR_TIME_INFECTED.new:=NULL]#
-	#	#
-	stopifnot( nrow(subset(df.trm, TIME_TR<IDTR_TIME_INFECTED))==0 )#
-	stopifnot( nrow(subset(df.trm, is.na(TIME_TR)))==0 )#
-	stopifnot( nrow(subset(df.trm, is.na(IDTR_TIME_INFECTED)))==0 )#
-	##
-	tmp			<- subset( df.trm, IDTR<0, select=c(IDTR, IDTR_TIME_INFECTED) )#
-	setnames(tmp, c('IDTR','IDTR_TIME_INFECTED'), c('IDPOP','IDTR_TIME_INFECTED.new'))#
-	df.ind		<- merge(df.ind, tmp, by='IDPOP', all.x=TRUE)#
-	tmp2		<- df.ind[, which(!is.na(IDTR_TIME_INFECTED.new))]#
-	set(df.ind, tmp2, 'TIME_TR', df.ind[tmp2, IDTR_TIME_INFECTED.new])#
-	df.ind[, IDTR_TIME_INFECTED.new:=NULL]#
-	list(df.ind=df.ind, df.trm=df.trm)#
-}#
-##--------------------------------------------------------------------------------------------------------#
-#	simulate imports during the epidemic	#
-#	olli originally written 11-09-2014#
-##--------------------------------------------------------------------------------------------------------#
-PANGEA.ImportSimulator.SimulateIndexCase<- function(df.ind, df.trm, epi.import)#
-{	#
-	#	model imports by re-assigning a fraction of infecteds as 'index cases'#
-	#	assume there are no imports at the moment, and that we know the time of infection of the imports#
-	tmp		<- df.trm[, which(IDTR>0)]	  #
-	cat(paste('\nFound transmissions within population, n=', length(tmp)))#
-	tmp2	<- round(nrow(df.trm)*epi.import) - ( nrow(df.trm)-length(tmp)-1 )#
-	tmp2	<- max(tmp2, 0)#
-	cat(paste('\nRe-setting infecteds as index cases after imports, n=', tmp2))#
-	stopifnot(length(tmp)>1)#
-	stopifnot(length(tmp2)>=0)#
-	tmp2	<- as.integer(sample( tmp, tmp2, replace=FALSE ))	#
-	#	update df.trm#
-	setkey(df.trm, TIME_TR)#
-	set(df.trm, tmp2, 'IDTR', df.trm[, min(IDTR)]-rev(seq_along(tmp2)) )#
-	#	update df.ind#
-	tmp		<- subset(df.trm, select=c(IDTR, IDTR_TIME_INFECTED))#
-	setnames(tmp, c('IDTR', 'IDTR_TIME_INFECTED'), c('IDPOP', 'TIME_TR'))#
-	tmp2	<- subset(df.trm, select=c(IDREC, TIME_TR))#
-	setnames(tmp2, 'IDREC', 'IDPOP')#
-	tmp		<- rbind( tmp, tmp2 )#
-	setkey(tmp, IDPOP)#
-	df.ind	<- merge( df.ind, unique(tmp), by=c('IDPOP','TIME_TR'), all.x=TRUE, all.y=TRUE )#
-	#	#
-	cat(paste('\nProportion of imported transmissions, p=', (nrow(subset(df.trm, IDTR<0))-1)/nrow(df.trm) ))#
-	stopifnot( length(setdiff(df.trm[, IDTR], df.ind[, IDPOP]))==0 )#
-	stopifnot( length(setdiff(df.trm[, IDREC], df.ind[, IDPOP]))==0 )#
-	list(df.ind=df.ind, df.trm=df.trm)#
-}
-set.seed( pipeline.args['s.seed',][, as.numeric(v)] )#
-	##
-	#	prepare transmissions#
-	#	#
-	df.trm	<- as.data.table(read.csv(infile.trm, stringsAsFactors=FALSE, sep=' ', dec='.'))#
-	setnames(df.trm, c("IdInfector","IdInfected","TimeOfInfection","IsInfectorAcute"), c('IDTR','IDREC','TIME_TR','TR_ACUTE'))		#
-	#	transmissions happen either at baseline, or at unique times.#
-	#	the epi simulation allocates transmissions in 1/48 of a year, so draw a uniform number if there are more transmission per TIME_TR#
-	df.trm	<- df.trm[, {#
-				z<- TIME_TR#
-				if(TIME_TR>pipeline.args['yr.start',][, as.numeric(v)] & length(IDTR)>1)#
-					z<- sort(runif(length(IDTR), z, min(pipeline.args['yr.end',][, as.numeric(v)], z+pipeline.args['epi.dt',][, as.numeric(v)])))#
-				list(IDTR=IDTR, IDREC=IDREC, TIME_TR.new=z, TR_ACUTE=TR_ACUTE, l=length(IDTR))#
-			}, by='TIME_TR']#
-	df.trm[, TIME_TR:=NULL]#
-	setnames(df.trm, 'TIME_TR.new', 'TIME_TR')	#
-	#	set baseline cases as negative ID#
-	tmp		<- df.trm[, which(IDTR=='-1')]#
-	cat(paste('\nFound index cases, n=', length(tmp)))#
-	set(df.trm, tmp, 'IDTR', rev(-seq_along(tmp)))#
-	#	check that all transmission times except baseline are unique#
-	tmp		<- subset(df.trm, TIME_TR>pipeline.args['yr.start',][, as.numeric(v)])#
-	stopifnot( nrow(tmp)==tmp[,length(unique(TIME_TR))] )	#
-	cat(paste('\nFound transmissions, n=', nrow(df.trm)))#
-	cat(paste('\nTotal transmitters, n=', df.trm[, length(unique(IDTR))]))#
-	##
-	#	prepare patient metavariables#
-	##
-	df.ind	<- as.data.table(read.csv(infile.ind, stringsAsFactors=FALSE))		#
-	setnames(df.ind, c("Id","Gender","DoB","DateOfDeath","RiskGroup","Circumcised"), c('IDPOP','GENDER','DOB','DOD','RISK','CIRCM'))#
-	set(df.ind, df.ind[, which(CIRCM=='')], 'CIRCM', NA_character_)#
-	set(df.ind, NULL, 'CIRCM', df.ind[, factor(CIRCM)])#
-	set(df.ind, NULL, 'GENDER', df.ind[, factor(GENDER)])#
-	set(df.ind, NULL, 'RISK', df.ind[, factor(RISK)])	#
-	set(df.ind, df.ind[, which(DOD==-1)], 'DOD', pipeline.args['yr.end',][, as.numeric(v)]+1.)#
-	tmp			<- subset(df.trm, select=c(IDREC, TIME_TR))#
-	setnames(tmp, 'IDREC','IDPOP')#
-	df.ind		<- merge(df.ind, tmp, by='IDPOP', all.x=TRUE)#
-	cat(paste('\nFound individuals with a valid record, n=', nrow(df.ind)))#
-	cat(paste('\nFound individuals with an infection event, n=', nrow(subset(df.ind,!is.na(TIME_TR)))))#
-	cat(paste('\nFound index cases, n=', nrow(subset(df.ind,IDPOP<0))))#
-	#	add time of infection of transmitter to df.trm	#
-	tmp		<- subset(df.ind, select=c(IDPOP, TIME_TR))#
-	setnames(tmp, c('IDPOP','TIME_TR'), c('IDTR','IDTR_TIME_INFECTED') )#
-	setkey(tmp, IDTR)#
-	df.trm	<- merge(df.trm, unique(tmp), by='IDTR', all.x=TRUE)		#
-	##
-	#	reduce to time frame of interest#
-	##
-	tmp		<- subset( df.trm, TIME_TR>=as.numeric( pipeline.args['yr.end',][, as.numeric(v)] ) )[, IDREC]#
-	df.trm	<- subset( df.trm, TIME_TR<as.numeric( pipeline.args['yr.end',][, as.numeric(v)] ) )#
-	df.ind	<- subset(df.ind, !IDPOP%in%tmp)#
-	df.ind	<- subset(df.ind, is.na(DOB) | DOB<pipeline.args['yr.end',][, as.numeric(v)] )#
-	cat(paste('\nFound individuals born before',pipeline.args['yr.end',][, as.numeric(v)],', n=', nrow(df.ind)))#
-	cat(paste('\nFound transmissions before',pipeline.args['yr.end',][, as.numeric(v)],', n=', nrow(df.trm)))#
-	cat(paste('\nTotal transmitters, n=', df.trm[, length(unique(IDTR))]))		#
-	stopifnot( length(setdiff( subset(df.trm, IDTR>0)[, IDTR], df.ind[, IDPOP] ))==0 )#
-	stopifnot( length(setdiff( df.trm[, IDREC], df.ind[, IDPOP] ))==0 )#
-	#	simulate a fraction of transmissions to be imports#
-	tmp		<- PANGEA.ImportSimulator.SimulateIndexCase(df.ind, df.trm, epi.import= pipeline.args['epi.import',][,as.numeric(v)])#
-	df.trm	<- tmp$df.trm#
-	df.ind	<- tmp$df.ind#
-	##
-	#	set infection times for index case#
-	##
-	#	add IDTR_TIME_INFECTED for baseline cases#
-	tmp		<- df.trm[, which(is.na(IDTR_TIME_INFECTED))]	#
-	set( df.trm, tmp, 'IDTR_TIME_INFECTED', df.trm[tmp, runif(length(tmp), TIME_TR-5, TIME_TR)] )#
-	tmp		<- PANGEA.ImportSimulator.SimulateStartingTimeOfIndexCase(df.ind, df.trm)#
-	df.trm	<- tmp$df.trm#
-	df.ind	<- tmp$df.ind
-df.ind
-suppressWarnings( df.trm[, YR:= df.trm[, floor(TIME_TR)]] )#
-	df.epi		<- df.trm[, list(INC=length(IDREC), IMPORT=length(which(IDTR<0))), by='YR']#
-	tmp			<- df.epi[, 	{#
-				alive		<- which( floor(df.ind[['DOB']])<=YR  &  ceiling(df.ind[['DOD']])>YR )#
-				infected	<- which( floor(df.ind[['DOB']])<=YR  &  ceiling(df.ind[['DOD']])>YR  &  floor(df.ind[['TIME_TR']])<=YR )#
-				list(POP=length(alive), PREV=length(infected))				#
-			},by='YR']#
-	df.epi		<- merge( tmp, df.epi, by='YR' )	#
-	set(df.epi, NULL, 'PREVp', df.epi[, PREV/POP])	#
-	set(df.epi, NULL, 'INCp', df.epi[, INC/POP])#
-	set(df.epi, NULL, 'IMPORTp', df.epi[, IMPORT/INC])#
-	# 	SAMPLING PROBABILITIES and TOTALS PER YEAR#
-	##
-	#	Can we detect a 25% or 50% reduction in HIV incidence in the most recent 2 or 3 years #
-	#	with 1%, 5%, 10% of all recent incident cases sampled?#
-	##
-	#	suppose exponentially increasing sampling over time#
-	#	the number of incident cases sampled is the total sampled in that year * the proportion of incident cases out of all non-sampled cases to date#
-	#	TODO this needs to be changed to fix the proportion of sequences sampled from incident#
-	df.sample	<- subset( df.epi, YR>= pipeline.args['yr.start',][, as.numeric(v)] & YR<pipeline.args['yr.end',][, as.numeric(v)] )#
-	#	exponential rate of increasing s.TOTAL (total sampling rate) per year#
-	tmp			<- log( 1+pipeline.args['s.PREV.max',][, as.numeric(v)]-pipeline.args['s.PREV.min',][, as.numeric(v)] ) / df.sample[, diff(range(YR))]#
-	tmp			<- df.sample[, exp( tmp*(YR-min(YR)) ) - 1 + pipeline.args['s.PREV.min',][, as.numeric(v)] ]#
-	set(df.sample, NULL, 's.CUMTOTAL', tmp)		#
-	set(df.sample, NULL, 's.n.CUMTOTAL', df.sample[, round(PREV*s.CUMTOTAL)])#
-	set(df.sample, NULL, 's.n.TOTAL', c(df.sample[1, s.n.CUMTOTAL], df.sample[, diff(s.n.CUMTOTAL)]))	#
-	set(df.sample, NULL, 's.n.INC', df.sample[, round(INC/(PREV-s.n.CUMTOTAL) * s.n.TOTAL)])#
-	set(df.sample, NULL, 's.n.notINC', df.sample[, round(s.n.TOTAL-s.n.INC)])	#
-	cat(paste('\n total number of sequences sampled=', df.sample[, sum( s.n.TOTAL )]))#
-	cat(paste('\n prop of sequences sampled among HIV+=', df.sample[, sum( s.n.TOTAL )] / df.sample[, rev(PREV)[1]]))		#
-	cat(paste('\n total number of incident sequences to sample=', df.sample[, sum( s.n.INC )]))#
-	cat(paste('\n total number of non-incident sequences to sample=', df.sample[, sum( s.n.notINC )]))	#
-	#	SAMPLE INFECTED INDIVIDUALS BASED ON NUMBERS PER YEAR#
-	##
-	#	sample incident cases by year#
-	df.inds	<- copy(df.ind)#
-	tmp		<- subset(df.trm, YR>= pipeline.args['yr.start',][, as.numeric(v)])#
-	tmp		<- tmp[, {#
-							z	<- df.sample[['s.n.INC']][ which(df.sample[['YR']]==YR) ]#
-							z	<- sample(seq_along(IDREC), z)#
-							list( 	IDPOP=IDREC[z], TIME_TR=TIME_TR[z], #
-									TIME_SEQ=TIME_TR[z]+rexp(length(z), rate=1/(3*30))/365, #
-									INCIDENT_SEQ=rep('Y',length(z) ) )#
-						}, by='YR']#
-	df.inds	<- merge(df.inds, subset(tmp, select=c(IDPOP, TIME_SEQ, INCIDENT_SEQ)), by='IDPOP', all.x=1)#
-	cat(paste('\n total number of incident sequences sampled=', df.inds[, length(which(!is.na(TIME_SEQ)))] ))	#
-	#	sample non-incident cases by year#
-	for(yr in df.sample[, YR])		#TODO took out [-1] because there are s.n.notINC for DSPS in 1980#
-	{#
-		#	of all infected and not incident and not yet sampled, sample#
-		cat(paste('\nadd non-incident samples in year',yr))#
-		tmp		<- subset(df.inds, is.na(TIME_SEQ) & floor(DOB)<=yr & ceiling(DOD)>yr & floor(TIME_TR)<yr)#
-		cat(paste('\navailable non-sampled non-incident cases in year=',nrow(tmp)))#
-		tmp2	<- df.sample[['s.n.notINC']][ which(df.sample[['YR']]==yr) ]#
-		tmp2	<- sample(seq_len(nrow(tmp)), tmp2)#
-		#	set variables in df.inds#
-		tmp		<- data.table(IDPOP= tmp[tmp2, IDPOP], TIME_SEQ=runif(length(tmp2), min=yr, max=yr+1), INCIDENT_SEQ=rep('N',length(tmp2) ))#
-		cat(paste('\nsampled non-incident cases in year=',nrow(tmp)))#
-		tmp2	<- sapply(tmp[,IDPOP], function(x) df.inds[,which(IDPOP==x)])#
-		set(df.inds, tmp2, 'TIME_SEQ', tmp[,TIME_SEQ])#
-		set(df.inds, tmp2, 'INCIDENT_SEQ', tmp[,INCIDENT_SEQ])		#
-	}#
-	cat(paste('\n total number of HIV+ in df.inds=', nrow(subset(df.inds, !is.na(TIME_TR)))))#
-	cat(paste('\n total number of sampled HIV+ in df.inds=', nrow(subset(df.inds, !is.na(TIME_TR) & !is.na(TIME_SEQ)))))
-df.epi
-pipeline.args
-pipeline.args	<- rPANGEAHIVsim.pipeline.args( yr.start=1980, yr.end=2020, seed=42, s.PREV.min=0.01, s.PREV.max=0.2, epi.dt=1/48, epi.import=0.1)
-suppressWarnings( df.trm[, YR:= df.trm[, floor(TIME_TR)]] )#
-	df.epi		<- df.trm[, list(INC=length(IDREC), IMPORT=length(which(IDTR<0))), by='YR']#
-	tmp			<- df.epi[, 	{#
-				alive		<- which( floor(df.ind[['DOB']])<=YR  &  ceiling(df.ind[['DOD']])>YR )#
-				infected	<- which( floor(df.ind[['DOB']])<=YR  &  ceiling(df.ind[['DOD']])>YR  &  floor(df.ind[['TIME_TR']])<=YR )#
-				list(POP=length(alive), PREV=length(infected))				#
-			},by='YR']#
-	df.epi		<- merge( tmp, df.epi, by='YR' )	#
-	set(df.epi, NULL, 'PREVp', df.epi[, PREV/POP])	#
-	set(df.epi, NULL, 'INCp', df.epi[, INC/POP])#
-	set(df.epi, NULL, 'IMPORTp', df.epi[, IMPORT/INC])#
-	# 	SAMPLING PROBABILITIES and TOTALS PER YEAR#
-	##
-	#	Can we detect a 25% or 50% reduction in HIV incidence in the most recent 2 or 3 years #
-	#	with 1%, 5%, 10% of all recent incident cases sampled?#
-	##
-	#	suppose exponentially increasing sampling over time#
-	#	the number of incident cases sampled is the total sampled in that year * the proportion of incident cases out of all non-sampled cases to date#
-	#	TODO this needs to be changed to fix the proportion of sequences sampled from incident#
-	df.sample	<- subset( df.epi, YR>= pipeline.args['yr.start',][, as.numeric(v)] & YR<pipeline.args['yr.end',][, as.numeric(v)] )#
-	#	exponential rate of increasing s.TOTAL (total sampling rate) per year#
-	tmp			<- log( 1+pipeline.args['s.PREV.max',][, as.numeric(v)]-pipeline.args['s.PREV.min',][, as.numeric(v)] ) / df.sample[, diff(range(YR))]#
-	tmp			<- df.sample[, exp( tmp*(YR-min(YR)) ) - 1 + pipeline.args['s.PREV.min',][, as.numeric(v)] ]#
-	set(df.sample, NULL, 's.CUMTOTAL', tmp)		#
-	set(df.sample, NULL, 's.n.CUMTOTAL', df.sample[, round(PREV*s.CUMTOTAL)])#
-	set(df.sample, NULL, 's.n.TOTAL', c(df.sample[1, s.n.CUMTOTAL], df.sample[, diff(s.n.CUMTOTAL)]))	#
-	set(df.sample, NULL, 's.n.INC', df.sample[, round(INC/(PREV-s.n.CUMTOTAL) * s.n.TOTAL)])#
-	set(df.sample, NULL, 's.n.notINC', df.sample[, round(s.n.TOTAL-s.n.INC)])	#
-	cat(paste('\n total number of sequences sampled=', df.sample[, sum( s.n.TOTAL )]))#
-	cat(paste('\n prop of sequences sampled among HIV+=', df.sample[, sum( s.n.TOTAL )] / df.sample[, rev(PREV)[1]]))		#
-	cat(paste('\n total number of incident sequences to sample=', df.sample[, sum( s.n.INC )]))#
-	cat(paste('\n total number of non-incident sequences to sample=', df.sample[, sum( s.n.notINC )]))
-df.inds	<- copy(df.ind)#
-	tmp		<- subset(df.trm, YR>= pipeline.args['yr.start',][, as.numeric(v)])#
-	tmp		<- tmp[, {#
-							z	<- df.sample[['s.n.INC']][ which(df.sample[['YR']]==YR) ]#
-							z	<- sample(seq_along(IDREC), z)#
-							list( 	IDPOP=IDREC[z], TIME_TR=TIME_TR[z], #
-									TIME_SEQ=TIME_TR[z]+rexp(length(z), rate=1/(3*30))/365, #
-									INCIDENT_SEQ=rep('Y',length(z) ) )#
-						}, by='YR']#
-	df.inds	<- merge(df.inds, subset(tmp, select=c(IDPOP, TIME_SEQ, INCIDENT_SEQ)), by='IDPOP', all.x=1)#
-	cat(paste('\n total number of incident sequences sampled=', df.inds[, length(which(!is.na(TIME_SEQ)))] ))	#
-	#	sample non-incident cases by year#
-	for(yr in df.sample[, YR])		#TODO took out [-1] because there are s.n.notINC for DSPS in 1980#
-	{#
-		#	of all infected and not incident and not yet sampled, sample#
-		cat(paste('\nadd non-incident samples in year',yr))#
-		tmp		<- subset(df.inds, is.na(TIME_SEQ) & floor(DOB)<=yr & ceiling(DOD)>yr & floor(TIME_TR)<yr)#
-		cat(paste('\navailable non-sampled non-incident cases in year=',nrow(tmp)))#
-		tmp2	<- df.sample[['s.n.notINC']][ which(df.sample[['YR']]==yr) ]#
-		tmp2	<- sample(seq_len(nrow(tmp)), tmp2)#
-		#	set variables in df.inds#
-		tmp		<- data.table(IDPOP= tmp[tmp2, IDPOP], TIME_SEQ=runif(length(tmp2), min=yr, max=yr+1), INCIDENT_SEQ=rep('N',length(tmp2) ))#
-		cat(paste('\nsampled non-incident cases in year=',nrow(tmp)))#
-		tmp2	<- sapply(tmp[,IDPOP], function(x) df.inds[,which(IDPOP==x)])#
-		set(df.inds, tmp2, 'TIME_SEQ', tmp[,TIME_SEQ])#
-		set(df.inds, tmp2, 'INCIDENT_SEQ', tmp[,INCIDENT_SEQ])		#
-	}#
-	cat(paste('\n total number of HIV+ in df.inds=', nrow(subset(df.inds, !is.na(TIME_TR)))))#
-	cat(paste('\n total number of sampled HIV+ in df.inds=', nrow(subset(df.inds, !is.na(TIME_TR) & !is.na(TIME_SEQ)))))
-set(df.inds, NULL, 'TIME_SEQYR', df.inds[, floor(TIME_SEQ)])#
-	tmp	<- subset(df.inds, !is.na(TIME_SEQ))[, list(s.n.TOTAL=length(IDPOP)), by='TIME_SEQYR']#
-	setkey(tmp, TIME_SEQYR)#
-	set(tmp,NULL,'s.n.CUMTOTAL',tmp[, cumsum(s.n.TOTAL)])#
-	stopifnot(  tmp[,tail(s.n.CUMTOTAL,1)]==df.sample[, tail(s.n.CUMTOTAL,1)] ) #
-	#	set sampling in df.trm#
-	tmp		<- subset( df.inds, !is.na(TIME_SEQ), select=c(IDPOP, TIME_SEQ) )#
-	setnames(tmp, c('IDPOP','TIME_SEQ'), c('IDREC','SAMPLED_REC'))#
-	df.trms	<- merge(df.trm, tmp, by='IDREC', all.x=TRUE)#
-	setnames(tmp, c('IDREC','SAMPLED_REC'), c('IDTR','SAMPLED_TR'))#
-	df.trms	<- merge(df.trms, tmp, by='IDTR', all.x=TRUE)
-require(igraph)#
-	#	cluster with index case#
-	tmp			<- subset(df.trms, select=c(IDTR, IDREC))			#
-	tmp			<- graph.data.frame(tmp, directed=TRUE, vertices=NULL)#
-	tmp			<- data.table(IDPOP=as.integer(V(tmp)$name), CLU=clusters(tmp, mode="weak")$membership)#
-	tmp2		<- tmp[, list(CLU_SIZE=length(IDPOP)), by='CLU']#
-	setkey(tmp2, CLU_SIZE)#
-	tmp2[, IDCLU:=rev(seq_len(nrow(tmp2)))]#
-	tmp			<- subset( merge(tmp, tmp2, by='CLU'), select=c(IDPOP, IDCLU) )#
-	setnames(tmp, 'IDPOP', 'IDREC')#
-	df.trms		<- merge( df.trms, tmp, by='IDREC', all.x=TRUE )#
-	stopifnot( nrow(subset(df.trms, is.na(IDCLU)))==0 )#
-	cat(paste('\nFound transmission clusters, n=', df.trms[, length(unique(IDCLU))]))#
-	#	add IDCLU to df.inds#
-	tmp			<- subset( df.trms, select=c(IDREC, IDTR, IDCLU) )#
-	tmp			<- subset( melt(tmp, id.var='IDCLU', value.name='IDPOP'), select=c(IDPOP, IDCLU))#
-	setkey(tmp, IDPOP, IDCLU)#
-	tmp			<- unique(tmp)#
-	df.inds		<- merge( df.inds, tmp, by='IDPOP', all.x=TRUE )
-df.inds
-df.trm
-require(ggplot2)#
-		require(reshape2)#
-		#	plot numbers sampled, prevalent, incident#
-		set(df.sample, NULL, 'POP', df.sample[, as.real(POP)])#
-		set(df.sample, NULL, 'PREV', df.sample[, as.real(PREV)])#
-		set(df.sample, NULL, 'INC', df.sample[, as.real(INC)])#
-		tmp	<- data.table(	stat=c('POP','PREV','INC','IMPORTp','s.n.TOTAL','s.n.INC','s.n.notINC'), #
-				stat.long=c('population size','HIV infected', 'HIV incident', 'Proportion incident\nimported', 'Total\nsequenced', 'Total\nincident\nsequenced', 'Total\nnon-incident\nsequenced'))#
-		tmp	<- merge(	melt(df.sample, id.vars='YR', measure.vars=c('POP','PREV','INC','IMPORTp','s.n.TOTAL','s.n.INC','s.n.notINC'), variable.name='stat', value.name='v'),#
-				tmp, by='stat' )#
-		ggplot(tmp, aes(x=YR, y=v, group=stat.long)) + geom_point() +#
-				scale_x_continuous(name='year', breaks=seq(1980,2020,2)) + scale_y_continuous(name='total')	+#
-				facet_grid(stat.long ~ ., scales='free_y', margins=FALSE)#
-		file<- paste(substr(outfile.ind, 1, nchar(outfile.ind)-7),'INFO_Totals.pdf',sep='')#
-		cat(paste('\nPlotting to file',file))#
-		ggsave(file=file, w=16, h=8)#
-		#	plot distribution between transmission time and sequencing time#
-		tmp	<- subset(df.inds, !is.na(TIME_SEQ))#
-		set(tmp, NULL, 'TIME_TO_SEQ', tmp[, TIME_SEQ-TIME_TR])#
-		ggplot(tmp, aes(x=TIME_TO_SEQ)) + geom_histogram(binwidth=1) + #
-				scale_x_continuous(name='time from transmission to sequence sampling\n(years)', breaks=seq(0,100,2))#
-		file<- paste(substr(outfile.ind, 1, nchar(outfile.ind)-7),'INFO_Time2Seq.pdf',sep='')#
-		ggsave(file=file, w=8, h=8)
-df.inds
-df.trms
-ggplot(df.trms, aes(x=IDTR)) + geom_histogram(binwidth=1)
-ggplot(df.trms, aes(x=IDTR)) + geom_histogram()
-df.trms[, list(N= length(IDREC)), by='IDTR']
-tmp	<- df.trms[, list(N= length(IDREC)), by='IDTR']#
-		ggplot(tmp, aes(x=N)) + geom_histogram(binwidth=1)
-ggplot(tmp, aes(x=N)) + geom_histogram(binwidth=1, aes(y= ..density..))
-ggplot(tmp, aes(x=N)) + geom_histogram(binwidth=1, aes(y= ..density..)) +#
-				scale_x_continuous(name='recipients per source case\n(number)', breaks=seq(0,100,1))
-ggplot(tmp, aes(x=N)) + geom_histogram(binwidth=1, aes(y= ..density..)) +#
-				scale_x_continuous(name='recipients per source case\n(number)', breaks=seq(1,100,1)+0.5, label=seq(1,100,1))
-?geom_histogram
-ggplot(tmp, aes(x=N)) + geom_histogram(binwidth=1, aes(y= ..density..)) +#
-				scale_x_continuous(name='recipients per source case\n(number)', breaks=seq(1,100,1)+0.5, label=seq(1,100,1)) +#
-				scale_y_continuous(breaks=seq(0,1,0.1))
-ggplot(tmp, aes(x=N)) + geom_histogram(binwidth=1, aes(y= ..density..)) +#
-				scale_x_continuous(name='recipients per source case\n(number)', breaks=seq(1,100,1)+0.5, label=seq(1,100,1)) +#
-				scale_y_continuous(breaks=seq(0,1,0.05))
-file<- paste(substr(outfile.ind, 1, nchar(outfile.ind)-7),'INFO_RecSource.pdf',sep='')#
-		ggsave(file=file, w=8, h=8)
-file
-df.inds
-subset(df.inds, !is.na(TIME_TR) & IDPOP>0)
-subset(df.inds, !is.na(TIME_TR) & IDPOP>0, select=c(TIME_TR, DOD))
-tmp	<- subset(df.inds, !is.na(TIME_TR) & IDPOP>0, select=c(TIME_TR, DOD))#
-		ggplot(tmp, aes(x=DOD-TIME_TR)) + geom_histogram(aes(y= ..density..))
-ggplot(tmp, aes(x=DOD-TIME_TR)) + geom_histogram(binwidth=2, aes(y= ..density..))
-ggplot(tmp, aes(x=DOD-TIME_TR)) + geom_histogram(binwidth=1, aes(y= ..density..))
-ggplot(tmp, aes(x=DOD-TIME_TR)) + geom_histogram(binwidth=1, aes(y= ..density..)) +#
-				scale_x_continuous(name='time to death for HIV+\n(years)', breaks=seq(1,100,2)) +
-ggplot(tmp, aes(x=DOD-TIME_TR)) + geom_histogram(binwidth=1, aes(y= ..density..)) +#
-				scale_x_continuous(name='time to death for HIV+\n(years)', breaks=seq(1,100,2))
-file<- paste(substr(outfile.ind, 1, nchar(outfile.ind)-7),'INFO_T2DeathForInf.pdf',sep='')#
-		ggsave(file=file, w=8, h=8)
-file
-set.seed( pipeline.args['s.seed',][, as.numeric(v)] )#
-	##
-	#	prepare transmissions#
-	#	#
-	df.trm	<- as.data.table(read.csv(infile.trm, stringsAsFactors=FALSE, sep=' ', dec='.'))#
-	setnames(df.trm, c("IdInfector","IdInfected","TimeOfInfection","IsInfectorAcute"), c('IDTR','IDREC','TIME_TR','TR_ACUTE'))		#
-	#	transmissions happen either at baseline, or at unique times.#
-	#	the epi simulation allocates transmissions in 1/48 of a year, so draw a uniform number if there are more transmission per TIME_TR#
-	df.trm	<- df.trm[, {#
-				z<- TIME_TR#
-				if(TIME_TR>pipeline.args['yr.start',][, as.numeric(v)] & length(IDTR)>1)#
-					z<- sort(runif(length(IDTR), z, min(pipeline.args['yr.end',][, as.numeric(v)], z+pipeline.args['epi.dt',][, as.numeric(v)])))#
-				list(IDTR=IDTR, IDREC=IDREC, TIME_TR.new=z, TR_ACUTE=TR_ACUTE, l=length(IDTR))#
-			}, by='TIME_TR']#
-	df.trm[, TIME_TR:=NULL]#
-	setnames(df.trm, 'TIME_TR.new', 'TIME_TR')	#
-	#	set baseline cases as negative ID#
-	tmp		<- df.trm[, which(IDTR=='-1')]#
-	cat(paste('\nFound index cases, n=', length(tmp)))#
-	set(df.trm, tmp, 'IDTR', rev(-seq_along(tmp)))#
-	#	check that all transmission times except baseline are unique#
-	tmp		<- subset(df.trm, TIME_TR>pipeline.args['yr.start',][, as.numeric(v)])#
-	stopifnot( nrow(tmp)==tmp[,length(unique(TIME_TR))] )	#
-	cat(paste('\nFound transmissions, n=', nrow(df.trm)))#
-	cat(paste('\nTotal transmitters, n=', df.trm[, length(unique(IDTR))]))#
-	##
-	#	prepare patient metavariables#
-	##
-	df.ind	<- as.data.table(read.csv(infile.ind, stringsAsFactors=FALSE))		#
-	setnames(df.ind, c("Id","Gender","DoB","DateOfDeath","RiskGroup","Circumcised"), c('IDPOP','GENDER','DOB','DOD','RISK','CIRCM'))#
-	set(df.ind, df.ind[, which(CIRCM=='')], 'CIRCM', NA_character_)#
-	set(df.ind, NULL, 'CIRCM', df.ind[, factor(CIRCM)])#
-	set(df.ind, NULL, 'GENDER', df.ind[, factor(GENDER)])#
-	set(df.ind, NULL, 'RISK', df.ind[, factor(RISK)])	#
-	set(df.ind, df.ind[, which(DOD==-1)], 'DOD', pipeline.args['yr.end',][, as.numeric(v)]+1.)#
-	tmp			<- subset(df.trm, select=c(IDREC, TIME_TR))#
-	setnames(tmp, 'IDREC','IDPOP')#
-	df.ind		<- merge(df.ind, tmp, by='IDPOP', all.x=TRUE)#
-	cat(paste('\nFound individuals with a valid record, n=', nrow(df.ind)))#
-	cat(paste('\nFound individuals with an infection event, n=', nrow(subset(df.ind,!is.na(TIME_TR)))))#
-	cat(paste('\nFound index cases, n=', nrow(subset(df.ind,IDPOP<0))))#
-	#	add time of infection of transmitter to df.trm	#
-	tmp		<- subset(df.ind, select=c(IDPOP, TIME_TR))#
-	setnames(tmp, c('IDPOP','TIME_TR'), c('IDTR','IDTR_TIME_INFECTED') )#
-	setkey(tmp, IDTR)#
-	df.trm	<- merge(df.trm, unique(tmp), by='IDTR', all.x=TRUE)		#
-	##
-	#	reduce to time frame of interest#
-	##
-	tmp		<- subset( df.trm, TIME_TR>=as.numeric( pipeline.args['yr.end',][, as.numeric(v)] ) )[, IDREC]#
-	df.trm	<- subset( df.trm, TIME_TR<as.numeric( pipeline.args['yr.end',][, as.numeric(v)] ) )#
-	df.ind	<- subset(df.ind, !IDPOP%in%tmp)#
-	df.ind	<- subset(df.ind, is.na(DOB) | DOB<pipeline.args['yr.end',][, as.numeric(v)] )#
-	cat(paste('\nFound individuals born before',pipeline.args['yr.end',][, as.numeric(v)],', n=', nrow(df.ind)))#
-	cat(paste('\nFound transmissions before',pipeline.args['yr.end',][, as.numeric(v)],', n=', nrow(df.trm)))#
-	cat(paste('\nTotal transmitters, n=', df.trm[, length(unique(IDTR))]))		#
-	stopifnot( length(setdiff( subset(df.trm, IDTR>0)[, IDTR], df.ind[, IDPOP] ))==0 )#
-	stopifnot( length(setdiff( df.trm[, IDREC], df.ind[, IDPOP] ))==0 )
-df.trm
-df.ind
-tmp		<- PANGEA.ImportSimulator.SimulateIndexCase(df.ind, df.trm, epi.import= pipeline.args['epi.import',][,as.numeric(v)])#
-	df.trm	<- tmp$df.trm#
-	df.ind	<- tmp$df.ind
-tmp		<- df.trm[, which(is.na(IDTR_TIME_INFECTED))]	#
-	set( df.trm, tmp, 'IDTR_TIME_INFECTED', df.trm[tmp, runif(length(tmp), TIME_TR-5, TIME_TR)] )#
-	tmp		<- PANGEA.ImportSimulator.SimulateStartingTimeOfIndexCase(df.ind, df.trm)#
-	df.trm	<- tmp$df.trm#
-	df.ind	<- tmp$df.ind
-suppressWarnings( df.trm[, YR:= df.trm[, floor(TIME_TR)]] )#
-	df.epi		<- df.trm[, list(INC=length(IDREC), IMPORT=length(which(IDTR<0))), by='YR']#
-	tmp			<- df.epi[, 	{#
-				alive		<- which( floor(df.ind[['DOB']])<=YR  &  ceiling(df.ind[['DOD']])>YR )#
-				infected	<- which( floor(df.ind[['DOB']])<=YR  &  ceiling(df.ind[['DOD']])>YR  &  floor(df.ind[['TIME_TR']])<=YR )#
-				list(POP=length(alive), PREV=length(infected))				#
-			},by='YR']#
-	df.epi		<- merge( tmp, df.epi, by='YR' )	#
-	set(df.epi, NULL, 'PREVp', df.epi[, PREV/POP])	#
-	set(df.epi, NULL, 'INCp', df.epi[, INC/POP])#
-	set(df.epi, NULL, 'IMPORTp', df.epi[, IMPORT/INC])#
-	# 	SAMPLING PROBABILITIES and TOTALS PER YEAR#
-	##
-	#	Can we detect a 25% or 50% reduction in HIV incidence in the most recent 2 or 3 years #
-	#	with 1%, 5%, 10% of all recent incident cases sampled?#
-	##
-	#	suppose exponentially increasing sampling over time#
-	#	the number of incident cases sampled is the total sampled in that year * the proportion of incident cases out of all non-sampled cases to date#
-	#	TODO this needs to be changed to fix the proportion of sequences sampled from incident#
-	df.sample	<- subset( df.epi, YR>= pipeline.args['yr.start',][, as.numeric(v)] & YR<pipeline.args['yr.end',][, as.numeric(v)] )#
-	#	exponential rate of increasing s.TOTAL (total sampling rate) per year#
-	tmp			<- log( 1+pipeline.args['s.PREV.max',][, as.numeric(v)]-pipeline.args['s.PREV.min',][, as.numeric(v)] ) / df.sample[, diff(range(YR))]#
-	tmp			<- df.sample[, exp( tmp*(YR-min(YR)) ) - 1 + pipeline.args['s.PREV.min',][, as.numeric(v)] ]#
-	set(df.sample, NULL, 's.CUMTOTAL', tmp)		#
-	set(df.sample, NULL, 's.n.CUMTOTAL', df.sample[, round(PREV*s.CUMTOTAL)])#
-	set(df.sample, NULL, 's.n.TOTAL', c(df.sample[1, s.n.CUMTOTAL], df.sample[, diff(s.n.CUMTOTAL)]))	#
-	set(df.sample, NULL, 's.n.INC', df.sample[, round(INC/(PREV-s.n.CUMTOTAL) * s.n.TOTAL)])#
-	set(df.sample, NULL, 's.n.notINC', df.sample[, round(s.n.TOTAL-s.n.INC)])	#
-	cat(paste('\n total number of sequences sampled=', df.sample[, sum( s.n.TOTAL )]))#
-	cat(paste('\n prop of sequences sampled among HIV+=', df.sample[, sum( s.n.TOTAL )] / df.sample[, rev(PREV)[1]]))		#
-	cat(paste('\n total number of incident sequences to sample=', df.sample[, sum( s.n.INC )]))#
-	cat(paste('\n total number of non-incident sequences to sample=', df.sample[, sum( s.n.notINC )]))
-df.sample
-6953*0.2
-indir		<- '/Users/Oliver/git/HPTN071sim/tmp140910/140716_RUN001_INTERNAL'  #
-	outdir		<- '/Users/Oliver/git/HPTN071sim/tmp140910/140716_RUN001_INTERNAL'#
-	infile		<- list.files(indir, '.*INTERNAL.R$', full.names=TRUE)
-infile
-pwd
-CODE.HOME
-CODE.HOME	<<- "/Users/Oliver/git/HPTN071sim/source/rPANGEAHIVsim"
-roxygenize(CODE.HOME)
-library(roxygen2)
-roxygenize(CODE.HOME)
-require(phytools)#
-	tree.id.labelsep		<- '|'#
-	tree.id.label.idx.ctime	<- 4 #
-	indir		<- '/Users/Oliver/git/HPTN071sim/tmp140910/140716_RUN001_INTERNAL'  #
-	outdir		<- '/Users/Oliver/git/HPTN071sim/tmp140910/140716_RUN001_INTERNAL'#
-	infile		<- list.files(indir, '.*INTERNAL.R$', full.names=FALSE)#
-	stopifnot(length(infile)==1)#
-	#	load simulated data#
-	file			<- paste(indir, '/', infile, sep='')#
-	cat(paste('\nLoading file', file))#
-	load(file)		#expect "df.epi"    "df.trms"   "df.inds"   "df.sample" "df.seq"#
-	#	load aligned HXB2 as outgroup#
-	load('/Users/Oliver/git/HPTN071sim/data_rootseq/PANGEA_SSAfg_140806_HXB2outgroup.R')	#
-	file			<- system.file(package="rPANGEAHIVsim", "misc",'PANGEA_SSAfg_HXB2outgroup.R')#
-	cat(paste('\nLoading outgroup seq from file', file))#
-	load(file)		#expect "outgroup.seq.gag" "outgroup.seq.pol" "outgroup.seq.env"
-str(df.seq)
-tmp				<- tolower(do.call('rbind',strsplit(df.seq[, GAG],'')))#
-	rownames(tmp)	<- df.seq[, LABEL]#
-	df.seq.gag		<- as.DNAbin(tmp)#
-	tmp				<- tolower(do.call('rbind',strsplit(df.seq[, POL],'')))#
-	rownames(tmp)	<- df.seq[, LABEL]#
-	df.seq.pol		<- as.DNAbin(tmp)	#
-	tmp				<- tolower(do.call('rbind',strsplit(df.seq[, ENV],'')))#
-	rownames(tmp)	<- df.seq[, LABEL]#
-	df.seq.env		<- as.DNAbin(tmp)#
-	#get R2 for df.seq.pol#
-	df.seq			<- df.seq.pol#
-	df.seq			<- rbind(df.seq, outgroup.seq.pol[, seq_len(ncol(df.seq))])#
-	#	get NJ tree	#
-	tmp				<- dist.dna(df.seq)#
-	nj				<- nj(tmp)#
-	tmp				<- which(nj$tip.label=="HXB2")#
-	nj				<- reroot(nj, tmp, nj$edge.length[which(nj$edge[,2]==tmp)])#
-	nj				<- ladderize(nj)
-file			<- paste( outdir, '/', substr(infile,1,nchar(infile)-20),'INFO_simu_NJ.pdf', sep='' )	#
-	pdf(file=file, w=10, h=150)#
-	plot(nj, show.tip=TRUE, cex=0.5)#
-	add.scale.bar()#
-	dev.off()
-nj				<- drop.tip(nj,'HXB2')#
-	tmp				<- node.depth.edgelength(nj)#
-	nj.info			<- data.table(LABEL=nj$tip.label, ROOT2TIP=tmp[seq_len(Ntip(nj))] )#
-	set(nj.info, NULL, 'CALENDAR_TIME', nj.info[, as.numeric(sapply(strsplit(LABEL, tree.id.labelsep, fixed=TRUE),'[[',tree.id.label.idx.ctime))] )#
-	tmp				<- lm(ROOT2TIP~CALENDAR_TIME, data=nj.info)		 #
-	set( nj.info, NULL, 'ROOT2TIP_LM', predict(tmp, type='response') ) 	#
-	tmp2			<- c( R2=round(summary(tmp)$r.squared,d=3), SLOPE= as.numeric(round(coef(tmp)['CALENDAR_TIME'],d=4)), TMRCA=as.numeric(round( -coef(tmp)['(Intercept)']/coef(tmp)['CALENDAR_TIME'], d=1 )) )#
-	ggplot(nj.info, aes(x=CALENDAR_TIME, y=ROOT2TIP)) + geom_point(alpha=0.5) + geom_line(aes(y=ROOT2TIP_LM)) +#
-			#scale_x_continuous(breaks=seq(1980,2020,2)) +						#
-			labs(x='Sequence sampling date', y='root-to-tip divergence') +#
-			annotate("text", x=nj.info[, min(CALENDAR_TIME)], y=nj.info[, 0.9*max(ROOT2TIP)], label=paste("R2=", tmp2['R2'],'\nSlope=',tmp2['SLOPE'],'\nTMRCA=',tmp2['TMRCA'], sep=''), hjust = 0, size = 4) +#
-			theme(legend.position=c(0,1), legend.justification=c(0,1))
-ggplot(nj.info, aes(x=CALENDAR_TIME, y=ROOT2TIP)) + geom_point(alpha=0.5) + geom_line(aes(y=ROOT2TIP_LM)) +#
-			#scale_x_continuous(breaks=seq(1980,2020,2)) +						#
-			labs(x='Sequence sampling date', y='root-to-tip divergence\n(HIV-1 pol sequences)') +#
-			annotate("text", x=nj.info[, min(CALENDAR_TIME)], y=nj.info[, 0.9*max(ROOT2TIP)], label=paste("R2=", tmp2['R2'],'\nSlope=',tmp2['SLOPE'],'\nTMRCA=',tmp2['TMRCA'], sep=''), hjust = 0, size = 4) +#
-			theme(legend.position=c(0,1), legend.justification=c(0,1))
-file			<- paste( outdir, '/', substr(infile,1,nchar(infile)-20),'INFO_simu_polR2.pdf', sep='' )#
-	ggsave(file=file, w=10, h=6)
-require(phytools)#
-	tree.id.labelsep		<- '|'#
-	tree.id.label.idx.ctime	<- 4 #
-	indir		<- '/Users/Oliver/git/HPTN071sim/tmp140910/140716_RUN001_INTERNAL'  #
-	outdir		<- '/Users/Oliver/git/HPTN071sim/tmp140910/140716_RUN001_INTERNAL'#
-	infile		<- list.files(indir, '.*INTERNAL.R$', full.names=FALSE)#
-	stopifnot(length(infile)==1)#
-	#	load simulated data#
-	file			<- paste(indir, '/', infile, sep='')#
-	cat(paste('\nLoading file', file))#
-	load(file)		#expect "df.epi"    "df.trms"   "df.inds"   "df.sample" "df.seq"#
-	#	load outgroup sequences#
-	file			<- system.file(package="rPANGEAHIVsim", "misc",'PANGEA_SSAfg_HXB2outgroup.R')#
-	cat(paste('\nLoading outgroup seq from file', file))#
-	load(file)		#expect "outgroup.seq.gag" "outgroup.seq.pol" "outgroup.seq.env"#
-	tmp				<- tolower(do.call('rbind',strsplit(df.seq[, GAG],'')))#
-	rownames(tmp)	<- df.seq[, LABEL]#
-	df.seq.gag		<- as.DNAbin(tmp)#
-	tmp				<- tolower(do.call('rbind',strsplit(df.seq[, POL],'')))#
-	rownames(tmp)	<- df.seq[, LABEL]#
-	df.seq.pol		<- as.DNAbin(tmp)	#
-	tmp				<- tolower(do.call('rbind',strsplit(df.seq[, ENV],'')))#
-	rownames(tmp)	<- df.seq[, LABEL]#
-	df.seq.env		<- as.DNAbin(tmp)#
-	##
-	#	get R2 for df.seq.pol#
-	##
-	seq				<- df.seq.pol#
-	seq				<- rbind(seq, outgroup.seq.pol[, seq_len(ncol(seq))])#
-	#	get NJ tree	#
-	tmp				<- dist.dna(seq)#
-	nj				<- nj(tmp)#
-	tmp				<- which(nj$tip.label=="HXB2")#
-	nj				<- reroot(nj, tmp, nj$edge.length[which(nj$edge[,2]==tmp)])#
-	nj				<- ladderize(nj)		#
-	file			<- paste( outdir, '/', substr(infile,1,nchar(infile)-20),'INFO_simu_NJpol.pdf', sep='' )	#
-	pdf(file=file, w=10, h=150)#
-	plot(nj, show.tip=TRUE, cex=0.5)#
-	add.scale.bar()#
-	dev.off()			#
-	#	get root to tip divergence#
-	nj				<- drop.tip(nj,'HXB2')#
-	tmp				<- node.depth.edgelength(nj)#
-	nj.info			<- data.table(LABEL=nj$tip.label, ROOT2TIP=tmp[seq_len(Ntip(nj))] )#
-	set(nj.info, NULL, 'CALENDAR_TIME', nj.info[, as.numeric(sapply(strsplit(LABEL, tree.id.labelsep, fixed=TRUE),'[[',tree.id.label.idx.ctime))] )#
-	tmp				<- lm(ROOT2TIP~CALENDAR_TIME, data=nj.info)		 #
-	set( nj.info, NULL, 'ROOT2TIP_LM', predict(tmp, type='response') ) 	#
-	tmp2			<- c( R2=round(summary(tmp)$r.squared,d=3), SLOPE= as.numeric(round(coef(tmp)['CALENDAR_TIME'],d=4)), TMRCA=as.numeric(round( -coef(tmp)['(Intercept)']/coef(tmp)['CALENDAR_TIME'], d=1 )) )#
-	ggplot(nj.info, aes(x=CALENDAR_TIME, y=ROOT2TIP)) + geom_point(alpha=0.5) + geom_line(aes(y=ROOT2TIP_LM)) +#
-			#scale_x_continuous(breaks=seq(1980,2020,2)) +						#
-			labs(x='Sequence sampling date', y='root-to-tip divergence\n(HIV-1 pol sequences)') +#
-			annotate("text", x=nj.info[, min(CALENDAR_TIME)], y=nj.info[, 0.9*max(ROOT2TIP)], label=paste("R2=", tmp2['R2'],'\nSlope=',tmp2['SLOPE'],'\nTMRCA=',tmp2['TMRCA'], sep=''), hjust = 0, size = 4) +#
-			theme(legend.position=c(0,1), legend.justification=c(0,1))		#
-	file			<- paste( outdir, '/', substr(infile,1,nchar(infile)-20),'INFO_simu_NJpolR2.pdf', sep='' )#
-	ggsave(file=file, w=10, h=6)
-seq				<- cbind(df.seq.gag,df.seq.pol,df.seq.env)
-df.seq.gag
-outgroup.seq.gag
-tmp				<- cbind(outgroup.seq.gag[,1:ncol(df.seq.gag)], outgroup.seq.pol, outgroup.seq.env)
-tmp
-seq				<- rbind(seq,tmp)
-tmp				<- dist.dna(seq)#
-	nj				<- nj(tmp)#
-	tmp				<- which(nj$tip.label=="HXB2")#
-	nj				<- reroot(nj, tmp, nj$edge.length[which(nj$edge[,2]==tmp)])#
-	nj				<- ladderize(nj)		#
-	file			<- paste( outdir, '/', substr(infile,1,nchar(infile)-20),'INFO_simu_NJ.pdf', sep='' )	#
-	pdf(file=file, w=10, h=150)#
-	plot(nj, show.tip=TRUE, cex=0.5)#
-	add.scale.bar()#
-	dev.off()
-nj				<- drop.tip(nj,'HXB2')#
-	tmp				<- node.depth.edgelength(nj)#
-	nj.info			<- data.table(LABEL=nj$tip.label, ROOT2TIP=tmp[seq_len(Ntip(nj))] )#
-	set(nj.info, NULL, 'CALENDAR_TIME', nj.info[, as.numeric(sapply(strsplit(LABEL, tree.id.labelsep, fixed=TRUE),'[[',tree.id.label.idx.ctime))] )#
-	tmp				<- lm(ROOT2TIP~CALENDAR_TIME, data=nj.info)		 #
-	set( nj.info, NULL, 'ROOT2TIP_LM', predict(tmp, type='response') ) 	#
-	tmp2			<- c( R2=round(summary(tmp)$r.squared,d=3), SLOPE= as.numeric(round(coef(tmp)['CALENDAR_TIME'],d=4)), TMRCA=as.numeric(round( -coef(tmp)['(Intercept)']/coef(tmp)['CALENDAR_TIME'], d=1 )) )#
-	ggplot(nj.info, aes(x=CALENDAR_TIME, y=ROOT2TIP)) + geom_point(alpha=0.5) + geom_line(aes(y=ROOT2TIP_LM)) +#
-			#scale_x_continuous(breaks=seq(1980,2020,2)) +						#
-			labs(x='Sequence sampling date', y='root-to-tip divergence\n(HIV-1 concatenated sequences)') +#
-			annotate("text", x=nj.info[, min(CALENDAR_TIME)], y=nj.info[, 0.9*max(ROOT2TIP)], label=paste("R2=", tmp2['R2'],'\nSlope=',tmp2['SLOPE'],'\nTMRCA=',tmp2['TMRCA'], sep=''), hjust = 0, size = 4) +#
-			theme(legend.position=c(0,1), legend.justification=c(0,1))		#
-	file			<- paste( outdir, '/', substr(infile,1,nchar(infile)-20),'INFO_simu_NJR2.pdf', sep='' )
-ggsave(file=file, w=10, h=6)
-require(phytools)#
-	tree.id.labelsep		<- '|'#
-	tree.id.label.idx.ctime	<- 4 #
-	indir		<- '/Users/Oliver/git/HPTN071sim/tmp140910/140716_RUN001_INTERNAL'  #
-	outdir		<- '/Users/Oliver/git/HPTN071sim/tmp140910/140716_RUN001_INTERNAL'#
-	infile		<- list.files(indir, '.*INTERNAL.R$', full.names=FALSE)#
-	stopifnot(length(infile)==1)#
-	#	load simulated data#
-	file			<- paste(indir, '/', infile, sep='')#
-	cat(paste('\nLoading file', file))#
-	load(file)		#expect "df.epi"    "df.trms"   "df.inds"   "df.sample" "df.seq"#
-	#	load outgroup sequences#
-	file			<- system.file(package="rPANGEAHIVsim", "misc",'PANGEA_SSAfg_HXB2outgroup.R')#
-	cat(paste('\nLoading outgroup seq from file', file))#
-	load(file)		#expect "outgroup.seq.gag" "outgroup.seq.pol" "outgroup.seq.env"#
-	tmp				<- tolower(do.call('rbind',strsplit(df.seq[, GAG],'')))#
-	rownames(tmp)	<- df.seq[, LABEL]#
-	df.seq.gag		<- as.DNAbin(tmp)#
-	tmp				<- tolower(do.call('rbind',strsplit(df.seq[, POL],'')))#
-	rownames(tmp)	<- df.seq[, LABEL]#
-	df.seq.pol		<- as.DNAbin(tmp)	#
-	tmp				<- tolower(do.call('rbind',strsplit(df.seq[, ENV],'')))#
-	rownames(tmp)	<- df.seq[, LABEL]#
-	df.seq.env		<- as.DNAbin(tmp)#
-	##
-	#	get R2 for df.seq.pol#
-	##
-	seq				<- df.seq.pol#
-	seq				<- rbind(seq, outgroup.seq.pol[, seq_len(ncol(seq))])
-require(hivclust)
-indir
-seq
-infile.seq.sig	<- "Sun_Sep_14_12/59/06_2013"#
-#
-	infile.seq		<- paste(substr(infile,1,nchar(infile)-20),'INFO_simu_polseq_',gsub('/',':',infile.seq.sig),'.R',sep='')
-infile.seq
-infile.seq.sig	<- "Sun_Sep_14_12/59/06_2013"#
-	infile.seq		<- paste(substr(infile,1,nchar(infile)-20),'INFO_simu_polseq',sep='')#
-	file			<- paste( outdir, '/', infile.seq,'_',gsub('/',':',infile.seq.sig),'.R', sep='' )
-file
-infile.seq
-cmd				<- hivc.cmd.examl.bootstrap.on.one.machine(indir, infile, infile.seq.sig, infile.seq.sig, bs.from=0, bs.to=0, verbose=1)
-cat(cmd)
-infile.seq.sig	<- "Sun_Sep_14_12/59/06_2013"#
-	infile.seq		<- paste(substr(infile,1,nchar(infile)-20),'INFO_simu_polseq',sep='')#
-	file			<- paste( outdir, '/', infile.seq,'_',gsub('/',':',infile.seq.sig),'.R', sep='' )#
-	#	run ExaML#
-	cmd				<- hivc.cmd.examl.bootstrap.on.one.machine(indir, infile.seq, infile.seq.sig, infile.seq.sig, bs.from=0, bs.to=0, verbose=1)
-cat(cmd)
-setwd("/Users/Oliver/git/hivclust/pkg"); source("misc/hivclu.startme.R")
-infile.seq.sig	<- "Sun_Sep_14_12/59/06_2013"#
-	infile.seq		<- paste(substr(infile,1,nchar(infile)-20),'INFO_simu_polseq',sep='')#
-	file			<- paste( outdir, '/', infile.seq,'_',gsub('/',':',infile.seq.sig),'.R', sep='' )#
-	#	run ExaML#
-	cmd				<- hivc.cmd.examl.bootstrap.on.one.machine(indir, infile.seq, infile.seq.sig, infile.seq.sig, bs.from=0, bs.to=0, verbose=1)
-cat(cmd)
-tmp				<- paste(strsplit(date(),split=' ')[[1]],collapse='_',sep='')#
-	outfile			<- paste("exa",tmp,sep='.')
-outfile
-cmd.hpccaller(outdir, paste("exa",paste(strsplit(date(),split=' ')[[1]],collapse='_',sep=''),sep='.'), cmd)
-HIVC.CODE.HOME
-HIVC.CODE.HOME<- "/Users/Oliver/git/hivclust"
-PR.FIRSTSEQ		<- paste(HIVC.CODE.HOME,"pkg/misc/hivclu.startme.R -exe=FIRSTSEQ",sep='/')#
-#
-#' @export#
-PR.GENDISTMAT	<- paste(HIVC.CODE.HOME,"pkg/misc/hivclu.startme.R -exe=GENDISTMAT",sep='/')#
-#
-#' @export#
-PR.PRECLUST		<- paste(HIVC.CODE.HOME,"pkg/misc/hivclu.startme.R -exe=PRECLUST",sep='/')#
-#
-#' @export#
-PR.CLUST		<- paste(HIVC.CODE.HOME,"pkg/misc/hivclu.startme.R -exe=CLUST",sep='/')#
-#
-#' @export#
-PR.CLUSTTPTN	<- paste(HIVC.CODE.HOME,"pkg/misc/hivclu.startme.R -exe=CLUSTTPTN",sep='/')#
-#
-#' @export#
-PR.CLUSTMSM		<- paste(HIVC.CODE.HOME,"pkg/misc/hivclu.startme.R -exe=CLUSTMSM",sep='/')#
-#
-#' @export#
-PR.EXAML.BSCREATE	<- paste(HIVC.CODE.HOME,"pkg/misc/hivclu.startme.R -exe=BOOTSTRAPSEQ",sep='/')#
-#
-#' @export#
-PR.RECOMB.3SEQ	<- system.file(package="hivclust", "ext", "3seq") #
-#
-#' @export#
-PR.RECOMB.PROCESS3SEQOUTPUT	<- paste(HIVC.CODE.HOME,"pkg/misc/hivclu.startme.R -exe=RECOMB.PROCESS3SEQOUT",sep='/')#
-#
-#' @export#
-PR.RECOMB.CHECKCANDIDATES	<- paste(HIVC.CODE.HOME,"pkg/misc/hivclu.startme.R -exe=RECOMB.CHECKCANDIDATES",sep='/')#
-#
-#' @export#
-PR.RECOMB.PLOTINCONGRUENCE	<- paste(HIVC.CODE.HOME,"pkg/misc/hivclu.startme.R -exe=RECOMB.PLOTINCONGRUENCE",sep='/')#
-#
-#' @export#
-PR.EXAML.PARSER	<- system.file(package="hivclust", "ext", "ExaML-parser") #
-#
-#' @export#
-PR.EXAML.STARTTREE	<- system.file(package="hivclust", "ext", "ExaML-parsimonator")#
-#
-#' @export#
-PR.EXAML.EXAML	<- system.file(package="hivclust", "ext", "examl")#
-#
-#' @export#
-PR.EXAML.BS		<- system.file(package="hivclust", "ext", "ExaML-raxml")#
-#
-#' @export#
-PR.BEAST		<- {tmp<- c("/Applications/BEAST_1.7.5/bin/beast","beast"); names(tmp)<- c("debug","cx1.hpc.ic.ac.uk"); tmp } #
-#
-#' @export#
-PR.BEASTMCC		<- {tmp<- c("/Applications/BEAST_1.7.5/bin/treeannotator","treeannotator"); names(tmp)<- c("debug","cx1.hpc.ic.ac.uk"); tmp }#
-#
-#' @export#
-PR.BEASTEVALRUN	<- paste(HIVC.CODE.HOME,"pkg/misc/hivclu.startme.R -exe=BEASTEVALRUN",sep='/')#
-#
-#' @export#
-PR.BEASTPOOLRUN	<- paste(HIVC.CODE.HOME,"pkg/misc/hivclu.startme.R -exe=BEASTPOOLRUN",sep='/')#
-#
-#' @export#
-PR.BEAST2		<- system.file(package="hivclust", "ext", "beast2.jar") #
-#
-#' @export#
-PR.BEAST2SA		<- system.file(package="hivclust", "ext", "beast2-SA.jar")#
-#
-#' @export#
-PR.BEAST2.CLUTREES.PIPE	<- paste(HIVC.CODE.HOME,"pkg/misc/hivclu.startme.R -exe=BEAST2.PIPE.CLUTREES",sep='/')#
-#
-#' @export#
-PR.BEAST2CLUTREES	<- paste(HIVC.CODE.HOME,"pkg/misc/hivclu.startme.R -exe=BEAST2.CLUTREES",sep='/')#
-#
-#' @export#
-PR.BEASTPARSER	<- paste(HIVC.CODE.HOME,"pkg/misc/hivclu.startme.R -exe=BEAST.READNEXUS",sep='/')#
-#
-#' @export#
-PR.BEAST2CLUPOSTERIOR	<- paste(HIVC.CODE.HOME,"pkg/misc/hivclu.startme.R -exe=BEAST2.CLUPOSTERIOR",sep='/')#
-#
-#' @export#
-PR.BEAST2.PLOTCLUTREES	<- paste(HIVC.CODE.HOME,"pkg/misc/hivclu.startme.R -exe=BEAST2.PLOTCLUTREES",sep='/')#
-#
-#' @export#
-PR.PH.DISTTIPS	<- paste(HIVC.CODE.HOME,"pkg/misc/hivclu.startme.R -exe=PH.DISTTIPS",sep='/')#
-#
-#' @export#
-PR.BETAREG.ESTRISK		<- paste(HIVC.CODE.HOME,"pkg/misc/hivclu.startme.R -exe=BETAREG.ESTRISK",sep='/')#
-#
-#' @export#
-HPC.NPROC		<- {tmp<- c(1,4); names(tmp)<- c("debug","cx1.hpc.ic.ac.uk"); tmp}#
-#
-#' @export#
-HPC.MPIRUN		<- {tmp<- c("mpirun","mpiexec"); names(tmp)<- c("debug","cx1.hpc.ic.ac.uk"); tmp}#
-#
-#' @export#
-HPC.CX1.IMPERIAL<- "cx1.hpc.ic.ac.uk"		#this is set to system('domainname',intern=T) for the hpc cluster of choice#
-#
-#' @export#
-HPC.MEM			<- "1750mb"#
-#
-#' @export#
-HPC.LOAD		<- "module load intel-suite mpi R/2.15 raxml examl/2013-05-09 beast/1.8.0 beagle-lib/2014-07-30"
-infile.seq.sig	<- "Sun_Sep_14_12/59/06_2013"#
-	infile.seq		<- paste(substr(infile,1,nchar(infile)-20),'INFO_simu_polseq',sep='')#
-	file			<- paste( outdir, '/', infile.seq,'_',gsub('/',':',infile.seq.sig),'.R', sep='' )#
-	#	run ExaML#
-	cmd				<- hivc.cmd.examl.bootstrap.on.one.machine(indir, infile.seq, infile.seq.sig, infile.seq.sig, bs.from=0, bs.to=0, verbose=1)
-cat(cmd)
-cmd.hpccaller(outdir, paste("exa",paste(strsplit(date(),split=' ')[[1]],collapse='_',sep=''),sep='.'), cmd)
-infile.seq.sig	<- "Sun_Sep_14_12:59:06_2013"#
-	infile.seq		<- paste(substr(infile,1,nchar(infile)-20),'INFO_simu_polseq',sep='')#
-	file			<- paste( outdir, '/', infile.seq,'_',gsub('/',':',infile.seq.sig),'.R', sep='' )#
-	#	run ExaML#
-	cmd				<- hivc.cmd.examl.bootstrap.on.one.machine(indir, infile.seq, infile.seq.sig, infile.seq.sig, bs.from=0, bs.to=0, verbose=1)#
-	cmd.hpccaller(outdir, paste("exa",paste(strsplit(date(),split=' ')[[1]],collapse='_',sep=''),sep='.'), cmd)
-seq
-file
-save(seq, file=file)
-indir			<- system.file(package="rPANGEAHIVsim", "misc")#
-indir			<- ifelse(indir=='','/Users/Oliver/git/HPTN071sim/raw_trchain',indir)#
-#	re-name the following:#
-tmpdir			<- '/Users/Oliver/git/HPTN071sim/tmp140914'#
-dir.create(tmpdir, showWarnings=FALSE)#
-#	simulation input files from the epi-simulator#
-infile.ind		<- '140716_RUN001_IND.csv'#
-infile.trm		<- '140716_RUN001_TRM.csv'#
-#	input arguments for the pipeline#
-pipeline.args	<- rPANGEAHIVsim.pipeline.args( yr.start=1980, yr.end=2020, seed=42, s.PREV.min=0.01, s.PREV.max=0.2, epi.dt=1/48, epi.import=0.1 )	#
-#	#
-#	call simulation pipeline#
-#	this generates a UNIX batch file if no HPC system is detected, or#
-#	this generates and runs a qsub file if an HPC system is detected #
-##
-file			<- rPANGEAHIVsim.pipeline(indir, infile.ind, infile.trm, tmpdir, pipeline.args=pipeline.args)#
-cat(file)
-rPANGEAHIVsim.pipeline<- function(indir, infile.ind, infile.trm, outdir, pipeline.args=rPANGEAHIVsim.pipeline.args() )#
-{#
-	verbose			<- 1#
-	infile.args		<- paste(outdir,'/',substr(infile.trm, 1, nchar(infile.trm)-7), 'PipeArgs.R',sep='')#
-	save(pipeline.args, file=infile.args)#
-	##
-	if(verbose)#
-	{#
-		cat('\ninput args\n',paste(indir, infile.ind, infile.trm, outdir, sep='\n'))#
-	}	#
-	##
-	#	pipeline start#
-	#	#
-	##	sample sequences and draw imports #
-	cmd				<- "########################################################
-########################################################
-########################################################
-##
-# start: run rPANGEAHIVsim.pipeline#
-##
-########################################################
-########################################################
-#######################################################"		#
-	outdir.TrChain	<- paste(outdir,'/TrChains',sep='')#
-	cmd				<- paste(cmd, '\nmkdir -p ', outdir.TrChain,sep='')#
-	if(pipeline.args['epi.model'][,v]=='HPTN071')#
-	{#
-		cmd			<- paste(cmd, cmd.HPTN071.input.parser.v2(indir, infile.trm, infile.ind, infile.args, outdir.TrChain,  infile.trm, infile.ind), sep='\n')	#
-	}	#
-	if(pipeline.args['epi.model'][,v]=='DSPS')#
-	{#
-		infile.ind	<- gsub('TRM','IND',infile.trm)#
-		cmd			<- paste(cmd, cmd.DSPS.input.parser.v2(indir, infile.trm, infile.args, outdir.TrChain,  infile.trm, infile.ind), sep='\n')		#
-	}#
-	##	run virus tree simulator#
-	outdir.VTS		<- paste(outdir,'/VirusTreeSimulator',sep='')#
-	cmd				<- paste(cmd, 'mkdir -p ', outdir.VTS,sep='')#
-	outfile			<- substr(infile.ind, 1, nchar(infile.ind)-7)#
-	prog.args		<- paste('-demoModel Logistic -N0 ',pipeline.args['v.N0tau',][,v] ,' -growthRate ', pipeline.args['v.r',][,v],' -t50 ',pipeline.args['v.T50',][,v], sep='')	#
-	cmd				<- paste(cmd, cmd.VirusTreeSimulator(outdir.TrChain, infile.trm, infile.ind, outdir.VTS, outfile, prog.args=prog.args), sep='\n')	#
-	##	create seq gen input files #
-	outdir.SG		<- paste(outdir,'/SeqGen',sep='')#
-	cmd				<- paste(cmd, 'mkdir -p ', outdir.SG,sep='')#
-	infile.epi		<- paste( substr(infile.ind, 1, nchar(infile.ind)-7),'SAVE.R', sep='' )#
-	infile.vts		<- substr(infile.ind, 1, nchar(infile.ind)-7)#
-	cmd				<- paste(cmd, cmd.SeqGen.createInputFiles(outdir.TrChain, infile.epi, outdir.VTS, infile.vts, infile.args, outdir.SG), sep='\n')#
-	##	run SeqGen	#
-	outfile			<- substr(infile.ind, 1, nchar(infile.ind)-7)#
-	cmd				<- paste(cmd, cmd.SeqGen.run(outdir.SG, infile.args, outfile, outdir), sep='')#
-	##	clean up#
-	cmd				<- paste(cmd,'rm -rf ',outdir.TrChain,' ', outdir.VTS,' ', outdir.SG,'\n',sep='')#
-	cmd				<- paste(cmd,"########################################################
-########################################################
-########################################################
-##
-# end: run rPANGEAHIVsim.pipeline#
-##
-########################################################
-########################################################
-#######################################################\n",sep='')#
-	if(verbose)#
-		cat(cmd)#
-	outfile			<- paste("pngea",paste(strsplit(date(),split=' ')[[1]],collapse='_',sep=''),sep='.')	#
-	cmd.hpccaller(outdir, outfile, cmd)	#
-}
-indir			<- system.file(package="rPANGEAHIVsim", "misc")#
-indir			<- ifelse(indir=='','/Users/Oliver/git/HPTN071sim/raw_trchain',indir)#
-#	re-name the following:#
-tmpdir			<- '/Users/Oliver/git/HPTN071sim/tmp140914'#
-dir.create(tmpdir, showWarnings=FALSE)#
-#	simulation input files from the epi-simulator#
-infile.ind		<- '140716_RUN001_IND.csv'#
-infile.trm		<- '140716_RUN001_TRM.csv'#
-#	input arguments for the pipeline#
-pipeline.args	<- rPANGEAHIVsim.pipeline.args( yr.start=1980, yr.end=2020, seed=42, s.PREV.min=0.01, s.PREV.max=0.2, epi.dt=1/48, epi.import=0.1 )	#
-#	#
-#	call simulation pipeline#
-#	this generates a UNIX batch file if no HPC system is detected, or#
-#	this generates and runs a qsub file if an HPC system is detected #
-##
-file			<- rPANGEAHIVsim.pipeline(indir, infile.ind, infile.trm, tmpdir, pipeline.args=pipeline.args)#
-cat(file)
-rPANGEAHIVsim.pipeline<- function(indir, infile.ind, infile.trm, outdir, pipeline.args=rPANGEAHIVsim.pipeline.args() )#
-{#
-	verbose			<- 1#
-	infile.args		<- paste(outdir,'/',substr(infile.trm, 1, nchar(infile.trm)-7), 'PipeArgs.R',sep='')#
-	save(pipeline.args, file=infile.args)#
-	##
-	if(verbose)#
-	{#
-		cat('\ninput args\n',paste(indir, infile.ind, infile.trm, outdir, sep='\n'))#
-	}	#
-	##
-	#	pipeline start#
-	#	#
-	##	sample sequences and draw imports #
-	cmd				<- "########################################################
-########################################################
-########################################################
-##
-# start: run rPANGEAHIVsim.pipeline#
-##
-########################################################
-########################################################
-#######################################################"		#
-	outdir.TrChain	<- paste(outdir,'/TrChains',sep='')#
-	cmd				<- paste(cmd, '\nmkdir -p ', outdir.TrChain,sep='')#
-	if(pipeline.args['epi.model'][,v]=='HPTN071')#
-	{#
-		cmd			<- paste(cmd, cmd.HPTN071.input.parser.v2(indir, infile.trm, infile.ind, infile.args, outdir.TrChain,  infile.trm, infile.ind), sep='\n')	#
-	}	#
-	if(pipeline.args['epi.model'][,v]=='DSPS')#
-	{#
-		infile.ind	<- gsub('TRM','IND',infile.trm)#
-		cmd			<- paste(cmd, cmd.DSPS.input.parser.v2(indir, infile.trm, infile.args, outdir.TrChain,  infile.trm, infile.ind), sep='\n')		#
-	}#
-	##	run virus tree simulator#
-	outdir.VTS		<- paste(outdir,'/VirusTreeSimulator',sep='')#
-	cmd				<- paste(cmd, 'mkdir -p ', outdir.VTS,sep='')#
-	outfile			<- substr(infile.ind, 1, nchar(infile.ind)-7)#
-	prog.args		<- paste('-demoModel Logistic -N0 ',pipeline.args['v.N0tau',][,v] ,' -growthRate ', pipeline.args['v.r',][,v],' -t50 ',pipeline.args['v.T50',][,v], sep='')	#
-	cmd				<- paste(cmd, cmd.VirusTreeSimulator(outdir.TrChain, infile.trm, infile.ind, outdir.VTS, outfile, prog.args=prog.args), sep='\n')	#
-	##	create seq gen input files #
-	outdir.SG		<- paste(outdir,'/SeqGen',sep='')#
-	cmd				<- paste(cmd, 'mkdir -p ', outdir.SG,sep='')#
-	infile.epi		<- paste( substr(infile.ind, 1, nchar(infile.ind)-7),'SAVE.R', sep='' )#
-	infile.vts		<- substr(infile.ind, 1, nchar(infile.ind)-7)#
-	cmd				<- paste(cmd, cmd.SeqGen.createInputFiles(outdir.TrChain, infile.epi, outdir.VTS, infile.vts, infile.args, outdir.SG), sep='\n')#
-	##	run SeqGen	#
-	outfile			<- substr(infile.ind, 1, nchar(infile.ind)-7)#
-	cmd				<- paste(cmd, cmd.SeqGen.run(outdir.SG, outfile, infile.args, outdir), sep='')#
-	##	clean up#
-	cmd				<- paste(cmd,'rm -rf ',outdir.TrChain,' ', outdir.VTS,' ', outdir.SG,'\n',sep='')#
-	cmd				<- paste(cmd,"########################################################
-########################################################
-########################################################
-##
-# end: run rPANGEAHIVsim.pipeline#
-##
-########################################################
-########################################################
-#######################################################\n",sep='')#
-	if(verbose)#
-		cat(cmd)#
-	outfile			<- paste("pngea",paste(strsplit(date(),split=' ')[[1]],collapse='_',sep=''),sep='.')	#
-	cmd.hpccaller(outdir, outfile, cmd)	#
-}
-indir			<- system.file(package="rPANGEAHIVsim", "misc")#
-indir			<- ifelse(indir=='','/Users/Oliver/git/HPTN071sim/raw_trchain',indir)#
-#	re-name the following:#
-tmpdir			<- '/Users/Oliver/git/HPTN071sim/tmp140914'#
-dir.create(tmpdir, showWarnings=FALSE)#
-#	simulation input files from the epi-simulator#
-infile.ind		<- '140716_RUN001_IND.csv'#
-infile.trm		<- '140716_RUN001_TRM.csv'#
-#	input arguments for the pipeline#
-pipeline.args	<- rPANGEAHIVsim.pipeline.args( yr.start=1980, yr.end=2020, seed=42, s.PREV.min=0.01, s.PREV.max=0.2, epi.dt=1/48, epi.import=0.1 )	#
-#	#
-#	call simulation pipeline#
-#	this generates a UNIX batch file if no HPC system is detected, or#
-#	this generates and runs a qsub file if an HPC system is detected #
-##
-file			<- rPANGEAHIVsim.pipeline(indir, infile.ind, infile.trm, tmpdir, pipeline.args=pipeline.args)#
-cat(file)
-indir			<- system.file(package="rPANGEAHIVsim", "misc")#
-#	re-name the following:#
-tmpdir			<- '/Users/Oliver/git/HPTN071sim/tmp140912'#
-dir.create(tmpdir, showWarnings=FALSE)#
-#	simulation input files from the epi-simulator#
-infile.trm		<- '140911_DSPS_RUN002_TRM.csv'#
-infile.ind		<- NULL#
-#	input arguments for the pipeline#
-pipeline.args	<- rPANGEAHIVsim.pipeline.args( yr.start=1980, yr.end=2020, seed=42, s.PREV.min=0.01, s.PREV.max=0.70, epi.model='DSPS', epi.dt=1/48, epi.import=0.1 )	#
-infile.args		<- paste(tmpdir,'/',substr(infile.trm, 1, nchar(infile.trm)-7), 'PipeArgs.R',sep='')#
-save(pipeline.args, file=infile.args)#
-#	#
-#	call simulation pipeline#
-#	this generates a UNIX batch file if no HPC system is detected, or#
-#	this generates and runs a qsub file if an HPC system is detected #
-##
-file			<- rPANGEAHIVsim.pipeline(indir, infile.ind, infile.trm, tmpdir, pipeline.args=pipeline.args)#
-cat(file)
-2019.8-1951.4
-DATA
-HOME		<<- "/Users/Oliver/duke/2013_HIV_NL/ATHENA_2013"#
-#HOME		<<- "/Users/Oliver/duke/2013_HIV_Hue/UKCA_1309"#
-#HOME		<<- "/work/or105/UKCA_1309"#
-#HOME		<<- "/Users/Stephane/Desktop/CASCADE_phylo/hivclust"#
-#HOME		<<- "/home/koelle/or7/phylody"#
-#HOME		<<- "/work/or105/ATHENA_2013"#
-DATA		<<- paste(HOME,"data",sep='/')
-DATA
-require(phytools)#
-	require(hivclust)#
-	tree.id.labelsep		<- '|'#
-	tree.id.label.idx.ctime	<- 4 #
-	indir		<- paste(DATA,'methods_comparison_pipeline/140914',sep='/')	  #
-	outdir		<- indir#
-	infiles		<- list.files(indir, '.*INTERNAL.R$', full.names=FALSE)
-infiles
-indir
-DATA		<<- "/work/or105/Gates_2014"#
-	indir		<- paste(DATA,'methods_comparison_pipeline/140914',sep='/')	  #
-	outdir		<- indir#
-	infiles		<- list.files(indir, '.*INTERNAL.R$', full.names=FALSE)
-infiles
-indir
-DATA		<<- "/Users/Oliver/duke/2014_Gates"#
-	indir		<- paste(DATA,'methods_comparison_pipeline/140914',sep='/')	  #
-	outdir		<- indir#
-	infiles		<- list.files(indir, '.*INTERNAL.R$', full.names=FALSE)
-infiles
-i<- 1
-infile		<- infiles[i]#
-		#	load simulated data#
-		file			<- paste(indir, '/', infile, sep='')#
-		cat(paste('\nLoading file', file))#
-		load(file)		#expect "df.epi"    "df.trms"   "df.inds"   "df.sample" "df.seq"#
-		#	load outgroup sequences#
-		file			<- system.file(package="rPANGEAHIVsim", "misc",'PANGEA_SSAfg_HXB2outgroup.R')#
-		cat(paste('\nLoading outgroup seq from file', file))#
-		load(file)		#expect "outgroup.seq.gag" "outgroup.seq.pol" "outgroup.seq.env"#
-		tmp				<- tolower(do.call('rbind',strsplit(df.seq[, GAG],'')))#
-		rownames(tmp)	<- df.seq[, LABEL]#
-		df.seq.gag		<- as.DNAbin(tmp)#
-		tmp				<- tolower(do.call('rbind',strsplit(df.seq[, POL],'')))#
-		rownames(tmp)	<- df.seq[, LABEL]#
-		df.seq.pol		<- as.DNAbin(tmp)	#
-		tmp				<- tolower(do.call('rbind',strsplit(df.seq[, ENV],'')))#
-		rownames(tmp)	<- df.seq[, LABEL]#
-		df.seq.env		<- as.DNAbin(tmp)#
-		##
-		#	run ExaML on pol#
-		##
-		seq				<- df.seq.pol#
-		seq				<- rbind(seq, outgroup.seq.pol[, seq_len(ncol(seq))])#
-		infile.seq.sig	<- "Sun_Sep_14_12:59:06_2013"#
-		infile.seq		<- paste(substr(infile,1,nchar(infile)-20),'INFO_simu_polseq',sep='')#
-		file			<- paste( outdir, '/', infile.seq,'_',gsub('/',':',infile.seq.sig),'.R', sep='' )#
-		save(seq, file=file)#
-		#	run ExaML#
-		cmd				<- hivc.cmd.examl.bootstrap.on.one.machine(indir, infile.seq, infile.seq.sig, infile.seq.sig, bs.from=0, bs.to=0, verbose=1)#
-		cmd				<- hivc.cmd.hpcwrapper(cmd, hpc.walltime=24, hpc.q= NA, hpc.mem="450mb", hpc.nproc=1)#
-		cmd.hpccaller(outdir, paste("exa",paste(strsplit(date(),split=' ')[[1]],collapse='_',sep=''),sep='.'), cmd)#
-		Sys.sleep(1)	#
-		##
-		#	run ExaML on concatenated#
-		##
-		seq				<- cbind(df.seq.gag,df.seq.pol,df.seq.env)#
-		tmp				<- cbind(outgroup.seq.gag[,1:ncol(df.seq.gag)], outgroup.seq.pol, outgroup.seq.env)#
-		seq				<- rbind(seq,tmp)#
-		infile.seq.sig	<- "Sun_Sep_14_12:59:06_2013"#
-		infile.seq		<- paste(substr(infile,1,nchar(infile)-20),'INFO_simu_concseq',sep='')#
-		file			<- paste( outdir, '/', infile.seq,'_',gsub('/',':',infile.seq.sig),'.R', sep='' )#
-		save(seq, file=file)#
-		#	run ExaML#
-		cmd				<- hivc.cmd.examl.bootstrap.on.one.machine(indir, infile.seq, infile.seq.sig, infile.seq.sig, bs.from=0, bs.to=0, verbose=1)#
-		cmd				<- hivc.cmd.hpcwrapper(cmd, hpc.walltime=24, hpc.q= NA, hpc.mem="450mb", hpc.nproc=1)#
-		cmd.hpccaller(outdir, paste("exa",paste(strsplit(date(),split=' ')[[1]],collapse='_',sep=''),sep='.'), cmd)#
-		Sys.sleep(1)
-require(phytools)#
-	require(hivclust)#
-	tree.id.labelsep		<- '|'#
-	tree.id.label.idx.ctime	<- 4 #
-	indir		<- '/Users/Oliver/git/HPTN071sim/tmp140910/140716_RUN001_INTERNAL'  #
-	outdir		<- '/Users/Oliver/git/HPTN071sim/tmp140910/140716_RUN001_INTERNAL'
-infiles		<- list.files(indir, '^ExaML_result.*finaltree.000$', full.names=FALSE)
-infiles
-i			<- 1#
-	infile		<- infiles[i]#
-	file		<- paste(indir,'/',infile,sep='')
-file
-ph			<- read.newick(file)
-?read.newick
-tree<-"((Human,Chimp),Gorilla),Monkey);"
-read.newick(text="((Human,Chimp),Gorilla),Monkey);")
-read.newick(text="((Human,Chimp),Gorilla),Monkey);\n")
-read.newick(text="((Human,Chimp),Gorilla),Monkey)")
-read.newick(text="((Human,Chimp),Gorilla),Monkey))")
-read.newick(text="()((Human,Chimp),Gorilla),Monkey)")
-file
-ph			<- read.newick(file)
-read.newick
-?read.tree
-ph			<- read.tree(file)
-ph
-system.file(package="rPANGEAHIVsim", "misc",'PANGEA_SSAfgBwhRc-_140902_n390_AncSeq.R')
-tmp				<- which(ph$tip.label=="HXB2")
-tmp
-ph				<- reroot(ph, tmp, ph$edge.length[which(ph$edge[,2]==tmp)])#
-	ph				<- ladderize(ph)
-infile
-infiles			<- list.files(indir, '^ExaML_result.*polseq.*finaltree.000$', full.names=FALSE)#
-	i				<- 1#
-	infile			<- infiles[i]#
-	file			<- paste(indir,'/',infile,sep='')
-file
-ph				<- read.tree(file)#
-	tmp				<- which(ph$tip.label=="HXB2")#
-	ph				<- reroot(ph, tmp, ph$edge.length[which(ph$edge[,2]==tmp)])#
-	ph				<- ladderize(ph)		#
-	file			<- paste( outdir, '/', substr(infile,1,nchar(infile)-20),'INFO_simu_ExaMLpol.pdf', sep='' )	#
-	pdf(file=file, w=10, h=150)#
-	plot(ph, show.tip=TRUE, cex=0.5)#
-	add.scale.bar()#
-	dev.off()
-ph				<- drop.tip(ph,'HXB2')#
-	tmp				<- node.depth.edgelength(ph)#
-	ph.info			<- data.table(LABEL=ph$tip.label, ROOT2TIP=tmp[seq_len(Ntip(ph))] )#
-	set(ph.info, NULL, 'CALENDAR_TIME', ph.info[, as.numeric(sapply(strsplit(LABEL, tree.id.labelsep, fixed=TRUE),'[[',tree.id.label.idx.ctime))] )#
-	tmp				<- lm(ROOT2TIP~CALENDAR_TIME, data=ph.info)		 #
-	set( ph.info, NULL, 'ROOT2TIP_LM', predict(tmp, type='response') ) 	#
-	tmp2			<- c( R2=round(summary(tmp)$r.squared,d=3), SLOPE= as.numeric(round(coef(tmp)['CALENDAR_TIME'],d=4)), TMRCA=as.numeric(round( -coef(tmp)['(Intercept)']/coef(tmp)['CALENDAR_TIME'], d=1 )) )#
-	ggplot(ph.info, aes(x=CALENDAR_TIME, y=ROOT2TIP)) + geom_point(alpha=0.5) + geom_line(aes(y=ROOT2TIP_LM)) +#
-			#scale_x_continuous(breaks=seq(1980,2020,2)) +						#
-			labs(x='Sequence sampling date', y='root-to-tip divergence\n(HIV-1 pol sequences)') +#
-			annotate("text", x=ph.info[, min(CALENDAR_TIME)], y=ph.info[, 0.9*max(ROOT2TIP)], label=paste("R2=", tmp2['R2'],'\nSlope=',tmp2['SLOPE'],'\nTMRCA=',tmp2['TMRCA'], sep=''), hjust = 0, size = 4) +#
-			theme(legend.position=c(0,1), legend.justification=c(0,1))
-file			<- paste( outdir, '/', substr(infile,1,nchar(infile)-20),'INFO_simu_ExaMLpolR2.pdf', sep='' )#
-	ggsave(file=file, w=10, h=6)
-require(phytools)#
-	tree.id.labelsep		<- '|'#
-	tree.id.label.idx.ctime	<- 4 #
-	indir		<- '/Users/Oliver/git/HPTN071sim/tmp140910/140716_RUN001_INTERNAL'  #
-	outdir		<- '/Users/Oliver/git/HPTN071sim/tmp140910/140716_RUN001_INTERNAL'#
-	indir		<- '/Users/Oliver/git/HPTN071sim/tmp140912/140911_DSPS_RUN002_INTERNAL'  #
-	outdir		<- '/Users/Oliver/git/HPTN071sim/tmp140912/140911_DSPS_RUN002_INTERNAL'#
-	infile		<- list.files(indir, '.*INTERNAL.R$', full.names=FALSE)#
-	stopifnot(length(infile)==1)#
-	#	load simulated data#
-	file			<- paste(indir, '/', infile, sep='')#
-	cat(paste('\nLoading file', file))#
-	load(file)		#expect "df.epi"    "df.trms"   "df.inds"   "df.sample" "df.seq"#
-	#	load outgroup sequences#
-	file			<- system.file(package="rPANGEAHIVsim", "misc",'PANGEA_SSAfg_HXB2outgroup.R')#
-	cat(paste('\nLoading outgroup seq from file', file))#
-	load(file)		#expect "outgroup.seq.gag" "outgroup.seq.pol" "outgroup.seq.env"#
-	tmp				<- tolower(do.call('rbind',strsplit(df.seq[, GAG],'')))#
-	rownames(tmp)	<- df.seq[, LABEL]#
-	df.seq.gag		<- as.DNAbin(tmp)#
-	tmp				<- tolower(do.call('rbind',strsplit(df.seq[, POL],'')))#
-	rownames(tmp)	<- df.seq[, LABEL]#
-	df.seq.pol		<- as.DNAbin(tmp)	#
-	tmp				<- tolower(do.call('rbind',strsplit(df.seq[, ENV],'')))#
-	rownames(tmp)	<- df.seq[, LABEL]#
-	df.seq.env		<- as.DNAbin(tmp)#
-	##
-	#	get R2 for df.seq.pol#
-	##
-	seq				<- df.seq.pol#
-	seq				<- rbind(seq, outgroup.seq.pol[, seq_len(ncol(seq))])#
-	#	get NJ tree	#
-	tmp				<- dist.dna(seq)#
-	nj				<- nj(tmp)#
-	tmp				<- which(nj$tip.label=="HXB2")#
-	nj				<- reroot(nj, tmp, nj$edge.length[which(nj$edge[,2]==tmp)])#
-	nj				<- ladderize(nj)		#
-	file			<- paste( outdir, '/', substr(infile,1,nchar(infile)-20),'INFO_simu_NJpol.pdf', sep='' )	#
-	pdf(file=file, w=10, h=150)#
-	plot(nj, show.tip=TRUE, cex=0.5)#
-	add.scale.bar()#
-	dev.off()
-nj				<- drop.tip(nj,'HXB2')#
-	tmp				<- node.depth.edgelength(nj)#
-	nj.info			<- data.table(LABEL=nj$tip.label, ROOT2TIP=tmp[seq_len(Ntip(nj))] )#
-	set(nj.info, NULL, 'CALENDAR_TIME', nj.info[, as.numeric(sapply(strsplit(LABEL, tree.id.labelsep, fixed=TRUE),'[[',tree.id.label.idx.ctime))] )#
-	tmp				<- lm(ROOT2TIP~CALENDAR_TIME, data=nj.info)		 #
-	set( nj.info, NULL, 'ROOT2TIP_LM', predict(tmp, type='response') ) 	#
-	tmp2			<- c( R2=round(summary(tmp)$r.squared,d=3), SLOPE= as.numeric(round(coef(tmp)['CALENDAR_TIME'],d=4)), TMRCA=as.numeric(round( -coef(tmp)['(Intercept)']/coef(tmp)['CALENDAR_TIME'], d=1 )) )#
-	ggplot(nj.info, aes(x=CALENDAR_TIME, y=ROOT2TIP)) + geom_point(alpha=0.5) + geom_line(aes(y=ROOT2TIP_LM)) +#
-			#scale_x_continuous(breaks=seq(1980,2020,2)) +						#
-			labs(x='Sequence sampling date', y='root-to-tip divergence\n(HIV-1 pol sequences)') +#
-			annotate("text", x=nj.info[, min(CALENDAR_TIME)], y=nj.info[, 0.9*max(ROOT2TIP)], label=paste("R2=", tmp2['R2'],'\nSlope=',tmp2['SLOPE'],'\nTMRCA=',tmp2['TMRCA'], sep=''), hjust = 0, size = 4) +#
-			theme(legend.position=c(0,1), legend.justification=c(0,1))
-indir			<- system.file(package="rPANGEAHIVsim", "misc")#
-#	re-name the following:#
-tmpdir			<- '/Users/Oliver/git/HPTN071sim/tmp140912'#
-dir.create(tmpdir, showWarnings=FALSE)#
-#	simulation input files from the epi-simulator#
-infile.trm		<- '140911_DSPS_RUN002_TRM.csv'#
-infile.ind		<- NULL#
-#	input arguments for the pipeline#
-pipeline.args	<- rPANGEAHIVsim.pipeline.args( yr.start=1980, yr.end=2020, seed=42, s.PREV.min=0.01, s.PREV.max=0.70, epi.model='DSPS', epi.dt=1/48, epi.import=0.1 )	#
-infile.args		<- paste(tmpdir,'/',substr(infile.trm, 1, nchar(infile.trm)-7), 'PipeArgs.R',sep='')#
-save(pipeline.args, file=infile.args)#
-#	#
-#	call simulation pipeline#
-#	this generates a UNIX batch file if no HPC system is detected, or#
-#	this generates and runs a qsub file if an HPC system is detected #
-##
-file			<- rPANGEAHIVsim.pipeline(indir, infile.ind, infile.trm, tmpdir, pipeline.args=pipeline.args)#
-cat(file)
-tree.id.labelsep		<- '|'#
-	tree.id.label.idx.ctime	<- 4 #
-	indir		<- '/Users/Oliver/git/HPTN071sim/tmp140914/140716_RUN001_INTERNAL'  #
-	outdir		<- '/Users/Oliver/git/HPTN071sim/tmp140914/140716_RUN001_INTERNAL'#
-	#indir		<- '/Users/Oliver/git/HPTN071sim/tmp140912/140911_DSPS_RUN002_INTERNAL'  #
-	#outdir		<- '/Users/Oliver/git/HPTN071sim/tmp140912/140911_DSPS_RUN002_INTERNAL'#
-	infile		<- list.files(indir, '.*INTERNAL.R$', full.names=FALSE)#
-	stopifnot(length(infile)==1)#
-	#	load simulated data#
-	file			<- paste(indir, '/', infile, sep='')#
-	cat(paste('\nLoading file', file))#
-	load(file)		#expect "df.epi"    "df.trms"   "df.inds"   "df.sample" "df.seq"#
-	#	load outgroup sequences#
-	file			<- system.file(package="rPANGEAHIVsim", "misc",'PANGEA_SSAfg_HXB2outgroup.R')#
-	cat(paste('\nLoading outgroup seq from file', file))#
-	load(file)		#expect "outgroup.seq.gag" "outgroup.seq.pol" "outgroup.seq.env"
-tree.id.labelsep		<- '|'#
-	tree.id.label.idx.ctime	<- 4 #
-	indir		<- '/Users/Oliver/git/HPTN071sim/tmp140914/140716_RUN001_INTERNAL'  #
-	outdir		<- '/Users/Oliver/git/HPTN071sim/tmp140914/140716_RUN001_INTERNAL'#
-	#indir		<- '/Users/Oliver/git/HPTN071sim/tmp140912/140911_DSPS_RUN002_INTERNAL'  #
-	#outdir		<- '/Users/Oliver/git/HPTN071sim/tmp140912/140911_DSPS_RUN002_INTERNAL'#
-	infile		<- list.files(indir, '.*INTERNAL.R$', full.names=FALSE)#
-	stopifnot(length(infile)==1)#
-	#	load simulated data#
-	file			<- paste(indir, '/', infile, sep='')#
-	cat(paste('\nLoading file', file))#
-	load(file)		#expect "df.epi"    "df.trms"   "df.inds"   "df.sample" "df.seq"#
-	#	load outgroup sequences#
-	file			<- system.file(package="rPANGEAHIVsim", "misc",'PANGEA_SSAfg_HXB2outgroup.R')#
-	cat(paste('\nLoading outgroup seq from file', file))#
-	load(file)		#expect "outgroup.seq.gag" "outgroup.seq.pol" "outgroup.seq.env"
-tmp				<- tolower(do.call('rbind',strsplit(df.seq[, GAG],'')))#
-	rownames(tmp)	<- df.seq[, LABEL]#
-	df.seq.gag		<- as.DNAbin(tmp)#
-	tmp				<- tolower(do.call('rbind',strsplit(df.seq[, POL],'')))#
-	rownames(tmp)	<- df.seq[, LABEL]#
-	df.seq.pol		<- as.DNAbin(tmp)	#
-	tmp				<- tolower(do.call('rbind',strsplit(df.seq[, ENV],'')))#
-	rownames(tmp)	<- df.seq[, LABEL]#
-	df.seq.env		<- as.DNAbin(tmp)#
-	##
-	#	get R2 for df.seq.pol#
-	##
-	seq				<- df.seq.pol#
-	seq				<- rbind(seq, outgroup.seq.pol[, seq_len(ncol(seq))])#
-	#	get NJ tree	#
-	tmp				<- dist.dna(seq)#
-	nj				<- nj(tmp)#
-	tmp				<- which(nj$tip.label=="HXB2")#
-	nj				<- reroot(nj, tmp, nj$edge.length[which(nj$edge[,2]==tmp)])#
-	nj				<- ladderize(nj)		#
-	file			<- paste( outdir, '/', substr(infile,1,nchar(infile)-20),'INFO_simu_NJpol.pdf', sep='' )	#
-	pdf(file=file, w=10, h=150)#
-	plot(nj, show.tip=TRUE, cex=0.5)#
-	add.scale.bar()#
-	dev.off()			#
-	#	get root to tip divergence#
-	nj				<- drop.tip(nj,'HXB2')#
-	tmp				<- node.depth.edgelength(nj)#
-	nj.info			<- data.table(LABEL=nj$tip.label, ROOT2TIP=tmp[seq_len(Ntip(nj))] )#
-	set(nj.info, NULL, 'CALENDAR_TIME', nj.info[, as.numeric(sapply(strsplit(LABEL, tree.id.labelsep, fixed=TRUE),'[[',tree.id.label.idx.ctime))] )#
-	tmp				<- lm(ROOT2TIP~CALENDAR_TIME, data=nj.info)		 #
-	set( nj.info, NULL, 'ROOT2TIP_LM', predict(tmp, type='response') ) 	#
-	tmp2			<- c( R2=round(summary(tmp)$r.squared,d=3), SLOPE= as.numeric(round(coef(tmp)['CALENDAR_TIME'],d=4)), TMRCA=as.numeric(round( -coef(tmp)['(Intercept)']/coef(tmp)['CALENDAR_TIME'], d=1 )) )#
-	ggplot(nj.info, aes(x=CALENDAR_TIME, y=ROOT2TIP)) + geom_point(alpha=0.5) + geom_line(aes(y=ROOT2TIP_LM)) +#
-			#scale_x_continuous(breaks=seq(1980,2020,2)) +						#
-			labs(x='Sequence sampling date', y='root-to-tip divergence\n(HIV-1 pol sequences)') +#
-			annotate("text", x=nj.info[, min(CALENDAR_TIME)], y=nj.info[, 0.9*max(ROOT2TIP)], label=paste("R2=", tmp2['R2'],'\nSlope=',tmp2['SLOPE'],'\nTMRCA=',tmp2['TMRCA'], sep=''), hjust = 0, size = 4) +#
-			theme(legend.position=c(0,1), legend.justification=c(0,1))
-file			<- paste( outdir, '/', substr(infile,1,nchar(infile)-20),'INFO_simu_NJpolR2.pdf', sep='' )#
-	ggsave(file=file, w=10, h=6)
-seq				<- cbind(df.seq.gag,df.seq.pol,df.seq.env)#
-	tmp				<- cbind(outgroup.seq.gag[,1:ncol(df.seq.gag)], outgroup.seq.pol, outgroup.seq.env)#
-	seq				<- rbind(seq,tmp)#
-	#	get NJ tree	#
-	tmp				<- dist.dna(seq)#
-	nj				<- nj(tmp)#
-	tmp				<- which(nj$tip.label=="HXB2")#
-	nj				<- reroot(nj, tmp, nj$edge.length[which(nj$edge[,2]==tmp)])#
-	nj				<- ladderize(nj)		#
-	file			<- paste( outdir, '/', substr(infile,1,nchar(infile)-20),'INFO_simu_NJ.pdf', sep='' )	#
-	pdf(file=file, w=10, h=150)#
-	plot(nj, show.tip=TRUE, cex=0.5)#
-	add.scale.bar()#
-	dev.off()		#
-	#	get root to tip divergence#
-	nj				<- drop.tip(nj,'HXB2')#
-	tmp				<- node.depth.edgelength(nj)#
-	nj.info			<- data.table(LABEL=nj$tip.label, ROOT2TIP=tmp[seq_len(Ntip(nj))] )#
-	set(nj.info, NULL, 'CALENDAR_TIME', nj.info[, as.numeric(sapply(strsplit(LABEL, tree.id.labelsep, fixed=TRUE),'[[',tree.id.label.idx.ctime))] )#
-	tmp				<- lm(ROOT2TIP~CALENDAR_TIME, data=nj.info)		 #
-	set( nj.info, NULL, 'ROOT2TIP_LM', predict(tmp, type='response') ) 	#
-	tmp2			<- c( R2=round(summary(tmp)$r.squared,d=3), SLOPE= as.numeric(round(coef(tmp)['CALENDAR_TIME'],d=4)), TMRCA=as.numeric(round( -coef(tmp)['(Intercept)']/coef(tmp)['CALENDAR_TIME'], d=1 )) )#
-	ggplot(nj.info, aes(x=CALENDAR_TIME, y=ROOT2TIP)) + geom_point(alpha=0.5) + geom_line(aes(y=ROOT2TIP_LM)) +#
-			#scale_x_continuous(breaks=seq(1980,2020,2)) +						#
-			labs(x='Sequence sampling date', y='root-to-tip divergence\n(HIV-1 concatenated sequences)') +#
-			annotate("text", x=nj.info[, min(CALENDAR_TIME)], y=nj.info[, 0.9*max(ROOT2TIP)], label=paste("R2=", tmp2['R2'],'\nSlope=',tmp2['SLOPE'],'\nTMRCA=',tmp2['TMRCA'], sep=''), hjust = 0, size = 4) +#
-			theme(legend.position=c(0,1), legend.justification=c(0,1))		#
-	file			<- paste( outdir, '/', substr(infile,1,nchar(infile)-20),'INFO_simu_NJR2.pdf', sep='' )#
-	ggsave(file=file, w=10, h=6)
-tree.id.burnin		<- 2e7#
-	tree.id.labelsep	<- '|'#
-	ancseq.excl.timediff<- 3#
-	dir.name			<- '/Users/Oliver/duke/2014_Gates'  	#
-	indir				<- paste(dir.name,'methods_comparison_rootseqsim/140907',sep='/')#
-	ancseq.label.prefix	<- 'PANGEA_SSApgBwhRc-_140907_n390'#
-	outdir				<- indir#
-	#	search for BEAST output#
-	files				<- list.files(indir)#
-	files				<- files[ sapply(files, function(x) grepl('pool[0-9].R$',x) ) ]	#
-	if(!length(files))	stop('cannot find files matching criteria')#
-	#	load and process BEAST PARSER output#
-	#	sampling times are different for each gene, as they come from different trees#
-	anc.seq				<- lapply(files, function(file)#
-			{#
-				cat(paste('\nProcess file=', file  ))#
-				load( paste(indir, file, sep='/') )	#	expect tree, node.stat#
-				#	compute gag pol env ancestral sequences		#
-				anc.seq	<- PANGEA.RootSeqSim.get.ancestral.seq.pg(tree, node.stat, tree.id.sep='_', tree.id.idx.mcmcit=2, tree.id.burnin=tree.id.burnin, label.sep=tree.id.labelsep, label.idx.ctime=5)								#
-				anc.seq[, POOL:= regmatches(file, regexpr('pool[0-9]+', file)) ]#
-				set(anc.seq, NULL, 'BEAST_MCMC_IT', NULL )#
-				anc.seq#
-			})#
-	anc.seq				<- do.call('rbind',anc.seq)#
-	set(anc.seq, NULL, 'POOL', anc.seq[, factor(POOL)])#
-	set(anc.seq, NULL, 'GENE', anc.seq[, factor(GENE)])#
-	set(anc.seq, NULL, 'TREE_ID', anc.seq[, factor(TREE_ID)])#
-	anc.seq[, LABEL:=NULL]
+	df.ph				<- vector('list', length(infiles))#
+	phd					<- vector('list', length(infiles))#
+	df.nodestat			<- vector('list', length(infiles))#
+	if( pipeline.args['index.starttime.mode',][,v]=='shift' )		#
+		root.edge.rate	<- 1e-6#
+	if( pipeline.args['index.starttime.mode',][,v]!='shift' )#
+		root.edge.rate	<- log.df[1,meanRate]#
+	cat(paste('\nUsing StartTimeMode',pipeline.args['index.starttime.mode',][,v],'\nSetting root edge rate to =',root.edge.rate))
 setwd("/Users/Oliver/git/HPTN071sim/source/rPANGEAHIVsim"); source("misc/rPANGEAHIV.startme.R")
-tree.id.burnin		<- 2e7#
-	tree.id.labelsep	<- '|'#
-	ancseq.excl.timediff<- 3#
-	dir.name			<- '/Users/Oliver/duke/2014_Gates'  	#
-	indir				<- paste(dir.name,'methods_comparison_rootseqsim/140907',sep='/')#
-	ancseq.label.prefix	<- 'PANGEA_SSApgBwhRc-_140907_n390'#
-	outdir				<- indir#
-	#	search for BEAST output#
-	files				<- list.files(indir)#
-	files				<- files[ sapply(files, function(x) grepl('pool[0-9].R$',x) ) ]	#
-	if(!length(files))	stop('cannot find files matching criteria')#
-	#	load and process BEAST PARSER output#
-	#	sampling times are different for each gene, as they come from different trees#
-	anc.seq				<- lapply(files, function(file)#
-			{#
-				cat(paste('\nProcess file=', file  ))#
-				load( paste(indir, file, sep='/') )	#	expect tree, node.stat#
-				#	compute gag pol env ancestral sequences		#
-				anc.seq	<- PANGEA.RootSeqSim.get.ancestral.seq.pg(tree, node.stat, tree.id.sep='_', tree.id.idx.mcmcit=2, tree.id.burnin=tree.id.burnin, label.sep=tree.id.labelsep, label.idx.ctime=5)								#
-				anc.seq[, POOL:= regmatches(file, regexpr('pool[0-9]+', file)) ]#
-				set(anc.seq, NULL, 'BEAST_MCMC_IT', NULL )#
-				anc.seq#
-			})#
-	anc.seq				<- do.call('rbind',anc.seq)#
-	set(anc.seq, NULL, 'POOL', anc.seq[, factor(POOL)])#
-	set(anc.seq, NULL, 'GENE', anc.seq[, factor(GENE)])#
-	set(anc.seq, NULL, 'TREE_ID', anc.seq[, factor(TREE_ID)])#
-	anc.seq[, LABEL:=NULL]
-tmp	<- anc.seq[, list(n=length(GENE)), by=c('POOL','TREE_ID','NODE_ID')]#
-	stopifnot(tmp[, all(n==3)])
-file				<- paste( outdir, '/', substr(files[1],1,nchar(files[1])-7), 'AncSeq_Raw.R',sep='' )
-str(anc.seq)
-file
-save(anc.seq, file=file)
-anc.seq.gag			<- subset(anc.seq, GENE=='GAG')#
-	setnames(anc.seq.gag, c('SEQ','CALENDAR_TIME','POOL'), c('GAG','GAG_CALENDAR_TIME','GAG_POOL'))	#
-	anc.seq.pol			<- subset(anc.seq, GENE=='POL')#
-	setnames(anc.seq.pol, c('SEQ','CALENDAR_TIME','POOL'), c('POL','POL_CALENDAR_TIME','POL_POOL'))#
-	anc.seq.env			<- subset(anc.seq, GENE=='ENV')#
-	setnames(anc.seq.env, c('SEQ','CALENDAR_TIME','POOL'), c('ENV','ENV_CALENDAR_TIME','ENV_POOL'))#
-	setkey(anc.seq.gag, GAG_CALENDAR_TIME)#
-	setkey(anc.seq.pol, POL_CALENDAR_TIME)	#
-	setkey(anc.seq.env, ENV_CALENDAR_TIME)
-anc.seq				<- cbind( subset(anc.seq.gag, select=c(GAG, GAG_CALENDAR_TIME)), subset(anc.seq.pol, select=c(POL, POL_CALENDAR_TIME)) )#
-	anc.seq				<- cbind( anc.seq, subset(anc.seq.env, select=c(ENV, ENV_CALENDAR_TIME) ))#
-	cat(paste('\nFound starting sequences, n=', nrow(anc.seq)))
-anc.seq[, d.gp:= abs(GAG_CALENDAR_TIME-POL_CALENDAR_TIME)]#
-	anc.seq[, d.ge:= abs(GAG_CALENDAR_TIME-ENV_CALENDAR_TIME)]#
-	anc.seq[, d.pe:= abs(POL_CALENDAR_TIME-ENV_CALENDAR_TIME)]#
-	anc.seq				<- subset(anc.seq, d.gp<=ancseq.excl.timediff & d.ge<=ancseq.excl.timediff & d.pe<=ancseq.excl.timediff)#
-	cat(paste('\nKeep starting sequences with sufficiently close TIME_SEQ, n=', nrow(anc.seq)))
-anc.seq[, d.gp:=NULL]#
-	anc.seq[, d.ge:=NULL]#
-	anc.seq[, d.pe:=NULL]#
-	#	finalize#
-	anc.seq[, CALENDAR_TIME:= (GAG_CALENDAR_TIME+POL_CALENDAR_TIME+ENV_CALENDAR_TIME)/3]#
-	anc.seq[, GAG_CALENDAR_TIME:=NULL]#
-	anc.seq[, POL_CALENDAR_TIME:=NULL]#
-	anc.seq[, ENV_CALENDAR_TIME:=NULL]#
-	anc.seq[, LABEL:= paste(ancseq.label.prefix, tree.id.labelsep, 'SEQ_', seq_len(nrow(anc.seq)), tree.id.labelsep, round(CALENDAR_TIME, d=4), sep='')]
-str(anc.seq)
-anc.seq.gag	<- anc.seq.pol	<- anc.seq.env	<- NULL#
-	gc()
-tmp	<- subset(anc.seq, select=c(CALENDAR_TIME))
+verbose			<- 1#
+	with.plot		<- 1#
+	label.sep		<- '|'	#
+	##
+	#	read I/O#
+	##
+	indir.epi		<- '/Users/Oliver/git/HPTN071sim/tmp140914/TrChains'#
+	infile.epi		<- '140716_RUN001_SAVE.R'	#
+	indir.vts		<- '/Users/Oliver/git/HPTN071sim/tmp140914/VirusTreeSimulator'#
+	infile.prefix	<- '140716_RUN001_'	#
+	infile.args		<- '/Users/Oliver/git/HPTN071sim/tmp140914/140716_RUN001_PipeArgs.R'#
+	outdir.sg		<- '/Users/Oliver/git/HPTN071sim/tmp140914/SeqGen'
+indir.epi="/Users/Oliver/git/HPTN071sim/tmp151030-o5111DI/TrChains" #
+infile.epi="150127_RUN001-o5111DI_SAVE.R" #
+indir.vts="/Users/Oliver/git/HPTN071sim/tmp151030-o5111DI/VirusTreeSimulator" #
+infile.prefix="150127_RUN001-o5111DI_" #
+infile.args="/Users/Oliver/git/HPTN071sim/tmp151030-o5111DI/150127_RUN001-o5111DI_PipeArgs.R" #
+outdir.sg="/Users/Oliver/git/HPTN071sim/tmp151030-o5111DI/SeqGen"
+if(verbose)#
+	{#
+		cat('\ninput args\n',paste(indir.epi, infile.epi, indir.vts, infile.prefix, outdir.sg, sep='\n'))#
+	}	#
+	if(!is.na(infile.args))#
+	{#
+		load(infile.args)	#expect 'pipeline.args'#
+	}#
+	if(is.null(pipeline.args))#
+	{#
+		cat('\nCould not find pipeline.args, generating default')#
+		pipeline.args	<- rPANGEAHIVsim.pipeline.args()#
+	}	#
+	stopifnot( all( c('s.seed','wher.mu','wher.sigma','bwerm.mu','bwerm.sigma')%in%pipeline.args[, stat] ) )#
+	##
+	#	setup samplers#
+	##
+	cat(paste('\ncreate sampler of evolutionary rates'))#
+	#	create sampler of within host evolutionary rates#
+	rER.pol			<- PANGEA.WithinHostEvolutionaryRate.create.sampler.v1(wher.mu=pipeline.args['wher.mu',][, as.numeric(v)], wher.sigma=pipeline.args['wher.sigma',][, as.numeric(v)])#
+	#	create sampler of between host evolutionary rate dampener#
+	tmp				<- PANGEA.TransmissionEdgeEvolutionaryRate.create.sampler(er.meanlog=pipeline.args['bwerm.mu',][, as.numeric(v)], er.sdlog=pipeline.args['bwerm.sigma',][, as.numeric(v)])#
+	rERbw			<- tmp$rERbw#
+	rERbw.args		<- tmp$rERbw.args#
+	#	create sampler of ancestral sequences#
+	cat(paste('\ncreate sampler of ancestral sequences'))#
+	tmp				<- PANGEA.RootSeq.create.sampler(root.ctime.grace= 0.5, sample.grace= 3 )#
+	rANCSEQ			<- tmp$rANCSEQ#
+	rANCSEQ.args	<- tmp$rANCSEQ.args 	#
+	#	read GTR parameters#
+	log.df			<- PANGEA.GTR.params()#
+	if(pipeline.args['dbg.rER',][, as.numeric(v)]==1 )#
+	{#
+		cat(paste('\nSetting mus to mean per gene and codon_pos'))#
+		tmp		<- log.df[, list(mu= mean(mu)), by=c('GENE','CODON_POS')]#
+		#tmp[, ER:=mu*log.df$meanRate[1]]#
+		log.df	<- merge( subset(log.df, select=which(colnames(log.df)!='mu')), tmp, by=c('GENE','CODON_POS'))		#
+	}		#
+	if( pipeline.args['dbg.GTRparam',][, as.numeric(v)]==1 )#
+	{#
+		cat(paste('\nSetting GTR parameters to MEAN (except mu)'))#
+		tmp		<- mean	#
+		log.df	<- log.df[, list(state=state, mu=mu, alpha=tmp(alpha), at=tmp(at), ac=tmp(ac), cg=tmp(cg), ag=tmp(ag), gt=tmp(gt), meanRate=tmp(meanRate), a=tmp(a), c=tmp(c),  g=tmp(g), t=tmp(t) ), by=c('GENE','CODON_POS')]		#
+	}		#
+	log.df[, IDX:= seq_len(nrow(log.df))]#
+	log.df[, FILE:=NULL]	#
+	##
+	##
+	##
+	file		<- paste(indir.epi, '/', infile.epi, sep='')#
+	load(file)	#expect "df.epi"    "df.trms"   "df.inds"   "df.sample"#
+	#	#
+	infiles		<- list.files(indir.vts)#
+	tmp			<- paste('^',infile.prefix,'.*nex$',sep='')#
+	infiles		<- infiles[ grepl(tmp, infiles)  ]	#
+	if(!length(infiles))	stop('cannot find files matching criteria')#
+	##
+	set.seed( pipeline.args['s.seed',][, as.numeric(v)] )#
+	##
+	#	read from VirusTreeSimulator and convert branch lengths in time to branch lengths in subst/site#
+	##
+	df.ph				<- vector('list', length(infiles))#
+	phd					<- vector('list', length(infiles))#
+	df.nodestat			<- vector('list', length(infiles))#
+	if( pipeline.args['index.starttime.mode',][,v]=='shift' )		#
+		root.edge.rate	<- 1e-6#
+	if( pipeline.args['index.starttime.mode',][,v]!='shift' )#
+		root.edge.rate	<- log.df[1,meanRate]#
+	cat(paste('\nUsing StartTimeMode',pipeline.args['index.starttime.mode',][,v],'\nSetting root edge rate to =',root.edge.rate))
+i<- 1
+infile			<- infiles[i]#
+		cat(paste('\nprocess file',i,infile))#
+		file			<- paste(indir.vts, '/', infile, sep='')#
+		#	read brl, units from annotated nexus file. attention: () may not contain two nodes#
+		tmp				<- hivc.beast2out.read.nexus.and.stats(file, method.node.stat='any.node')#
+		ph				<- tmp$tree#
+		node.stat		<- tmp$node.stat#
+		node.stat		<- subset(node.stat, STAT=='Unit')#
+		set(node.stat, NULL, 'VALUE', node.stat[, gsub('\"','',VALUE)])#
+		node.stat[, IDPOP:= as.integer(node.stat[,substr(VALUE, 4, nchar(VALUE))])]#
+		node.stat		<- merge(subset(df.inds, select=c(IDPOP, GENDER, DOB, TIME_SEQ, IDCLU)), subset(node.stat, select=c(IDPOP, NODE_ID)), by='IDPOP')#
+		#	produce collapsed tree with branch length in units of calendar time#
+		phd[[i]]			<- seq.collapse.singles(ph)#
+		##
+		#	create collapsed Newick tree with expected substitutions / site for each branch #
+		##
+		#	draw within host evolutionary rates for every individual in the transmission chain, and	smaller ERs along the transmission lineages#
+		node.stat		<- merge(node.stat, data.table( IDPOP=node.stat[, unique(IDPOP)], ER= rER.pol(node.stat[, length(unique(IDPOP))]), BWM= rERbw(node.stat[, length(unique(IDPOP))], rERbw.args) ), by='IDPOP')#
+		#	re-set to previous notation in terms of BWM ( between host multiplier to ER, ie ER= within-host ER / BWM )#
+		set(node.stat, NULL, 'BWM', node.stat[, ER/BWM])	#
+		#	set BWM to 1 for all edges that are NOT leading to a transmission. #
+		#	Because only one seq is sampled per patient, these are only edges that end in a tip.#
+		set(node.stat, node.stat[, which( NODE_ID%in%seq.int(1,Ntip(ph)) )], 'BWM', 1.)#
+		#	no ER possible for root node - there s no edge leading to it#
+		set(node.stat, node.stat[, which(NODE_ID==Ntip(ph)+1)], c('ER','BWM'), NA_real_)		#
+		#	set root edge evolutionary rate to overall mean between-host rate#
+		#	get NODE_ID of edge from root#
+		tmp				<- ph$edge[match(Ntip(ph)+1, ph$edge[1, ]), 2]#
+		tmp				<- node.stat[, which(NODE_ID==tmp)]		#
+		set(node.stat, tmp, 'ER', root.edge.rate )		#
+		set(node.stat, tmp, 'BWM', 1. )		# no need to further slow down root edge#
+		#	check root edge length#
+		if( pipeline.args['index.starttime.mode',][,v]=='fix45' )#
+		{#
+			stopifnot( ph$edge.length[ which( ph$edge[, 1] == Ntip(ph)+1 ) ]>=29.5 )			#
+		}#
+		#	check calendar time of root in simulated phylogeny for consistency#
+		tmp				<- seq.collapse.singles(ph)#
+		tmp2			<- regmatches(tmp$tip.label[1], regexpr('ID_[0-9]+',tmp$tip.label[1]))#
+		tmp2			<- as.numeric(substr(tmp2, 4, nchar(tmp2)))#
+		tmp2			<- subset(node.stat, IDPOP==tmp2)[1, TIME_SEQ]#
+		root.ctime		<- ifelse(Nnode(tmp), tmp2 - (node.depth.edgelength(tmp)[1] + tmp$root.edge), tmp2-tmp$root.edge)		#
+		tmp				<- subset(node.stat, IDPOP<0)[, unique(IDPOP)]#
+		stopifnot(length(tmp)==1)#
+		stopifnot(subset(df.trms, IDTR==tmp)[, round(IDTR_TIME_INFECTED, d=1)]==round(root.ctime, d=1))#
+		#	check if all sampling times are consistent with node height#
+		tmp				<- subset( node.stat, NODE_ID<=Ntip(ph) )#
+		setkey(tmp, NODE_ID)#
+		tmp2			<- seq.collapse.singles(ph) #
+		if( Nnode(tmp2) )#
+			tmp[, NODE_DEPTH:=root.ctime + tmp2$root.edge + node.depth.edgelength(tmp2)[ seq_len(Ntip(tmp2)) ] ]#
+		if( Nnode(tmp2)==0 )#
+			tmp[, NODE_DEPTH:=root.ctime + tmp2$root.edge ]#
+		stopifnot( tmp[, max(abs(NODE_DEPTH-TIME_SEQ))<=1e-6 ] )#
+		#	set expected numbers of substitutions per branch within individual IDPOP#
+		setkey(node.stat, NODE_ID)#
+		ph$edge.length	<- ph$edge.length * node.stat[ ph$edge[, 2], ][, ER / BWM]#
+		stopifnot(all(!is.na(ph$edge.length)))		#
+		#	once expected number of substitutions / site are simulated, can collapse singleton nodes#
+		ph				<- seq.collapse.singles(ph)
+root.ctime
 tmp
-tmp	<- subset(anc.seq, select=c(CALENDAR_TIME))#
-	ggplot(tmp, aes(x=CALENDAR_TIME)) + geom_histogram(binwidth=5)
-ggplot(tmp, aes(x=CALENDAR_TIME)) + geom_histogram(binwidth=2) + scale_x_continuous(breaks=seq(1900,2020, 5))
-ggplot(tmp, aes(x=CALENDAR_TIME)) + geom_histogram(binwidth=2) + scale_x_continuous(breaks=seq(1900,2020, 5), label='estimated inner node time\n(year)')
-ggplot(tmp, aes(x=CALENDAR_TIME)) + geom_histogram(binwidth=2) + scale_x_continuous(breaks=seq(1900,2020, 5), name='estimated inner node time\n(year)')
-ggplot(tmp, aes(x=CALENDAR_TIME)) + geom_histogram(binwidth=1) + scale_x_continuous(breaks=seq(1900,2020, 5), name='estimated inner node time\n(year)')
-anc.seq		<- subset(anc.seq, CALENDAR_TIME>1935)
-tmp	<- subset(anc.seq, select=c(CALENDAR_TIME))#
-	ggplot(tmp, aes(x=CALENDAR_TIME)) + geom_histogram(binwidth=1) + scale_x_continuous(breaks=seq(1900,2020, 5), name='estimated inner node time\n(year)')
-file		<- paste( outdir, '/', substr(files[1],1,nchar(files[1])-7), 'AncSeq_Times.pdf',sep='' )
-file
-ggsave(file=file, w=10, h=6)
-str(anc.seq)
-tmp			<- c(seq(1, nrow(anc.seq), 5e4), nrow(anc.seq)+1)#
-	anc.seq.gag	<- lapply(seq_along(tmp)[-length(tmp)], function(i)#
-			{#
-				cat(paste('\nProcess GAG up to',tmp[i+1]-1))#
-				anc.seq.gag				<- tolower(do.call('rbind',strsplit(anc.seq[seq.int(tmp[i], tmp[i+1]-1), GAG],'')))#
-				rownames(anc.seq.gag)	<- anc.seq[seq.int(tmp[i], tmp[i+1]-1), LABEL]#
-				anc.seq.gag				<- as.DNAbin(anc.seq.gag)				#
-			})#
-	anc.seq.gag	<- do.call('rbind', anc.seq.gag)#
-	anc.seq.pol	<- lapply(seq_along(tmp)[-length(tmp)], function(i)#
-			{#
-				cat(paste('\nProcess POL up to',tmp[i+1]-1))#
-				anc.seq.pol				<- tolower(do.call('rbind',strsplit(anc.seq[seq.int(tmp[i], tmp[i+1]-1), POL],'')))#
-				rownames(anc.seq.pol)	<- anc.seq[seq.int(tmp[i], tmp[i+1]-1), LABEL]#
-				anc.seq.pol				<- as.DNAbin(anc.seq.pol)				#
-			})#
-	anc.seq.pol	<- do.call('rbind', anc.seq.pol)#
-	anc.seq.env	<- lapply(seq_along(tmp)[-length(tmp)], function(i)#
-			{#
-				cat(paste('\nProcess ENV up to',tmp[i+1]-1))#
-				anc.seq.env				<- tolower(do.call('rbind',strsplit(anc.seq[seq.int(tmp[i], tmp[i+1]-1), ENV],'')))#
-				rownames(anc.seq.env)	<- anc.seq[seq.int(tmp[i], tmp[i+1]-1), LABEL]#
-				anc.seq.env				<- as.DNAbin(anc.seq.env)				#
-			})#
-	anc.seq.env	<- do.call('rbind', anc.seq.env)
-set( anc.seq, NULL, 'GAG', NULL )#
-	set( anc.seq, NULL, 'POL', NULL )#
-	set( anc.seq, NULL, 'ENV', NULL )#
-	anc.seq.info		<- anc.seq#
-	#	save#
-	file				<- "/Users/Oliver/duke/2014_Gates/methods_comparison_rootseqsim/140907/PANGEA_SSAfgBwhRc-_140907_n390_AncSeq.R"		#
-	cat(paste('\nwrite Ancestral Sequences to ',file))
-save(file=file, anc.seq.gag, anc.seq.pol, anc.seq.env, anc.seq.info)
+node.stat
+require(SSMinR)
+library(help='SSMinR')
+?new_ssm
+f		<- function(r, b){	abs(( 1+exp(2*r) ) / ( 1+exp(-2*r) )-b)	}
+optimize(f=f, interval=c(2, 15), b=3e2 )
+f		<- function(r, b){	abs(( 1+exp(2*r) ) / ( 1+exp(-r*(-2-4)) )-b)	}
+f		<- function(r, b){	abs(( 1+exp(2*r) ) / ( 1+exp(-r*(-2+6)) )-b)	}
+optimize(f=f, interval=c(2, 15), b=3e2 )
+f		<- function(r, b){	abs(( 1+exp(2*r) ) / ( 1+exp(-r*(-2+10)) )-b)	}
+optimize(f=f, interval=c(2, 15), b=3e2 )
+Net			<- function(t, N0tau, r, T50){  N0tau*(1+exp(-r*T50))/(1+exp(-r*(T50-t)))	}		#
+		x			<- seq(-10,0,0.001)#
+		#tmp			<- data.table(x=x, y5=Net(x, 1, 12.61152, -1), y4=Net(x, 1, 10.30891, -1), y3=Net(x, 1, 8.006034, -1), y2=Net(x, 1, 5.70044, -1))#
+		tmp			<- data.table(x=x, y5=Net(x, 1, 6.305779, -2), y4=Net(x, 1, 5.154461, -2), y3=Net(x, 1, 4.003191, -2), y2=Net(x, 1, 2.850242, -2))#
+		tmp			<- melt(tmp, id.var='x')#
+		ggplot(tmp, aes(x=x, y=value, group=variable, colour=variable)) + geom_line() + scale_y_log10()	+ scale_x_continuous(breaks=seq(-20,10,1))
+ggplot(tmp, aes(x=x, y=value, group=variable, colour=variable)) + geom_line() + scale_y_log10(breaks=c(3e2,3e3,3e4,3e5)) + scale_x_continuous(breaks=seq(-20,10,1))
+data(ebola_2014)
+ebola_2014
+z<- data(ebola_2014)
+z
+ebola_2014
+ebola\_2014
+library(help='SSMinR')
+liberia1
+ebola_2014

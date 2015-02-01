@@ -572,6 +572,34 @@ PANGEA.ImportSimulator.SimulateStartingTimeOfIndexCase<- function(df.ind, df.trm
 	list(df.ind=df.ind, df.trm=df.trm)
 }
 ##--------------------------------------------------------------------------------------------------------
+#	simulates seroprevalence survey of a proportion of a population	
+#	olli originally written 29-01-2015
+##--------------------------------------------------------------------------------------------------------
+PANGEA.SeroPrevalenceSurvey<- function(df.inds, epi.adult=13, s.INTERVENTION.start=2015, sp.prop.of.sexactive=0.05, sp.times=c(15, 10, 5, 0), verbose=1)
+{		
+	df.sp	<- lapply( s.INTERVENTION.start-sp.times, function(yr)
+			{
+				yr			<- yr+.5
+				sxon.all	<- which( (df.inds[['DOB']]+epi.adult)<=yr  &  df.inds[['DOD']]>yr )
+				sxon.sp		<- sample(sxon.all, round(length(sxon.all)*sp.prop.of.sexactive) )
+				if(verbose)
+				{
+					cat(paste('\nSero prevalence survey in year', yr))
+					cat(paste('\nTotal number of individuals=', length(sxon.all)))
+					cat(paste('\nProp to include in survey=', sp.prop.of.sexactive))
+					cat(paste('\nTotal number of individuals in survey=', length(sxon.sp)))
+				}
+				df.sp		<- df.inds[sxon.sp, ]				
+				df.sp[, YR:=yr]
+				df.sp[, AGE:= df.sp[, cut(YR-DOB, breaks=c(epi.adult-1, 16, 20, 25, 30, 35, 40, 50, 60, Inf))]]
+				df.sp
+			})
+	df.sp	<- do.call('rbind', df.sp)	
+	df.sp	<- df.sp[, list( ALIVE_N=length(IDPOP), ALIVE_AND_DIAG_N=length(which(DIAG_T<=YR)), ALIVE_AND_ART_N=length(which(ART1_T<=YR)), ALIVE_AND_SEQ_N=length(which(TIME_SEQ<=YR)) ), by=c('YR', 'GENDER', 'AGE')]
+	setkey(df.sp, YR, GENDER, AGE)
+	df.sp
+}
+##--------------------------------------------------------------------------------------------------------
 #	simulate imports during the epidemic	
 #	olli originally written 11-09-2014
 ##--------------------------------------------------------------------------------------------------------
@@ -612,15 +640,31 @@ PANGEA.ImportSimulator.SimulateIndexCase<- function(df.ind, df.trm, epi.import)
 ##--------------------------------------------------------------------------------------------------------
 PANGEA.Seqsampler.SimulateGuideToSamplingTimes.v2<- function(df.ind, seqtime.mode)
 {
-	stopifnot(grepl('Exp|AtDiag|AtART|AtTrm',seqtime.mode))
+	stopifnot(grepl('DUnif|Exp|AtDiag|AtART|AtTrm',seqtime.mode))
 	cat(paste('\nUsing seqtime.mode=', seqtime.mode ))
 	if(grepl('Exp',seqtime.mode))
 	{
 		tmp		<- as.numeric(substring(seqtime.mode,4))
+		stopifnot(is.finite(tmp))
 		cat(paste('\nPANGEA.Seqsampler.SimulateGuideToSamplingTimes.v2: avg time to sequencing since diagnosis=', tmp))		
-		df.ind[, T1_SEQ:= rexp(nrow(df.ind), rate=1/tmp) + df.ind[,DIAG_T]]		
+		df.ind[, T1_SEQ:= rexp(nrow(df.ind), rate=1/tmp) + df.ind[,DIAG_T]]
+		#	need T1_SEQ even when no diagnosis for archival samples
 		tmp		<- df.ind[, which(is.na(T1_SEQ) & DOD-TIME_TR>0.5)]
-		set( df.ind, tmp, 'T1_SEQ', df.ind[tmp, runif(length(tmp), TIME_TR+0.5, DOD)] )
+		set( df.ind, tmp, 'T1_SEQ', df.ind[tmp, runif(length(tmp), TIME_TR+0.5, DOD)] )		
+		tmp		<- df.ind[, which( is.na(DIAG_T) & T1_SEQ>min(DIAG_T, na.rm=1) )]
+		set( df.ind, tmp, 'T1_SEQ', NA_real_)
+	}
+	if(grepl('DUnif',seqtime.mode))
+	{
+		tmp		<- as.numeric(substring(seqtime.mode,6))
+		stopifnot(is.finite(tmp))
+		cat(paste('\nPANGEA.Seqsampler.SimulateGuideToSamplingTimes.v2: max time to sequencing since diagnosis=', tmp))		
+		df.ind[, T1_SEQ:= runif(nrow(df.ind), min=0, max=tmp) + df.ind[,DIAG_T]]
+		#	need T1_SEQ even when no diagnosis for archival samples
+		tmp		<- df.ind[, which(is.na(T1_SEQ) & DOD-TIME_TR>0.5)]
+		set( df.ind, tmp, 'T1_SEQ', df.ind[tmp, runif(length(tmp), TIME_TR+0.5, DOD)] )		
+		tmp		<- df.ind[, which( is.na(DIAG_T) & T1_SEQ>min(DIAG_T, na.rm=1) )]
+		set( df.ind, tmp, 'T1_SEQ', NA_real_)
 	}
 	if(seqtime.mode=='AtTrm')
 	{
@@ -633,12 +677,16 @@ PANGEA.Seqsampler.SimulateGuideToSamplingTimes.v2<- function(df.ind, seqtime.mod
 		df.ind[, T1_SEQ:= df.ind[, DIAG_T]]	
 		tmp		<- df.ind[, which(is.na(T1_SEQ) & DOD-TIME_TR>0.5)]
 		set( df.ind, tmp, 'T1_SEQ', df.ind[tmp, runif(length(tmp), TIME_TR+0.5, DOD)] )
+		tmp		<- df.ind[, which( is.na(DIAG_T) & T1_SEQ>min(DIAG_T, na.rm=1) )]
+		set( df.ind, tmp, 'T1_SEQ', NA_real_)
 	}
 	if(seqtime.mode=='AtART')
 	{
 		df.ind[, T1_SEQ:= df.ind[, ART1_T]]		
 		tmp		<- df.ind[, which(is.na(T1_SEQ) & DOD-TIME_TR>0.5)]
 		set( df.ind, tmp, 'T1_SEQ', df.ind[tmp, runif(length(tmp), TIME_TR+0.5, DOD)] )
+		tmp		<- df.ind[, which( is.na(DIAG_T) & T1_SEQ>min(DIAG_T, na.rm=1) )]
+		set( df.ind, tmp, 'T1_SEQ', NA_real_)
 	}
 	tmp	<- df.ind[, which(T1_SEQ>ART1_T)]
 	set(df.ind, tmp, 'T1_SEQ', df.ind[tmp,ART1_T])
@@ -820,11 +868,12 @@ PANGEA.Seqsampler.sample.prop.to.diagnosis.b4intervention<- function(df.ind, df.
 		while(length(tmp)<subset( df.sample, YR==yr )[, s.nTOTAL])
 		{			
 			cat(paste('\nCannot find samples, fall back to ',k,'th previous year; n=', subset( df.sample, YR==yr )[, s.nTOTAL]-length(tmp) ))
-			tmp2	<- df.inds[, which(is.na(TIME_SEQ) & floor(DOB)<=yr & ceiling(DOD)>yr+1 & yr-floor(T1_SEQ)==k & (is.na(ART1_T) | floor(ART1_T)>yr)) ]
+			tmp2	<- df.inds[, which(is.na(TIME_SEQ) & floor(DOB)<=yr & ceiling(DOD)>yr+1 & yr-floor(T1_SEQ)==k & (is.na(ART1_T) | ART1_T-yr<=1)) ]
 			cat(paste('\navailable non-sampled HIV+ individuals with suggested sampling date one year before=', length(tmp2)))
 			tmp2	<- sample(tmp2,  min(subset( df.sample, YR==yr )[, s.nTOTAL]-length(tmp), length(tmp2)) )
 			tmp		<- c(tmp, tmp2)
 			k		<- k+1
+			stopifnot(k<=10)
 		}	
 		stopifnot(length(tmp)>=subset( df.sample, YR==yr )[, s.nTOTAL])
 		tmp		<- sample(tmp, subset( df.sample, YR==yr )[, s.nTOTAL])
@@ -851,12 +900,12 @@ PANGEA.Seqsampler.v4<- function(df.ind, df.trm, pipeline.args, outfile.ind, outf
 				sexactive	<- which( floor(df.ind[['DOB']]+epi.adult)<=YR  &  ceiling(df.ind[['DOD']])>YR )
 				infected	<- which( floor(df.ind[['DOB']])<=YR  &  floor(df.ind[['DOD']])>YR  &  floor(df.ind[['TIME_TR']])<=YR )
 				diag		<- which( floor(df.ind[['DOB']])<=YR  &  floor(df.ind[['DOD']])>YR  &  floor(df.ind[['DIAG_T']])<=YR )
+				diag.new	<- which( floor(df.ind[['DIAG_T']])==YR )
 				treated		<- which( floor(df.ind[['DOB']])<=YR  &  floor(df.ind[['DOD']])>YR  &  floor(df.ind[['ART1_T']])<=YR & (is.na(df.ind[['VLS1_TE']]) | floor(df.ind[['VLS1_TE']])>YR) )
 				infdead		<- which( floor(df.ind[['DOD']])==YR  &  floor(df.ind[['TIME_TR']])<=YR )
-				list(POP=length(sexactive), PREV=length(infected), PREVDIED=length(infdead), DIAG=length(diag), TREATED=length(treated))				
+				list(POP=length(sexactive), PREV=length(infected), PREVDIED=length(infdead), DIAG=length(diag), NEW_DIAG=length(diag.new), TREATED=length(treated))				
 			},by='YR']
-	df.epi		<- merge( tmp, df.epi, by='YR' )	
-	set(df.epi, NULL, 'NEW_DIAG', df.epi[, c(0,diff(DIAG))])
+	df.epi		<- merge( tmp, df.epi, by='YR' )		
 	set(df.epi, NULL, 'PREVp', df.epi[, PREV/(POP-PREV)])	
 	set(df.epi, NULL, 'INCp', df.epi[, INC/(POP-PREV)])
 	set(df.epi, NULL, 'IMPORTp', df.epi[, IMPORT/INC])
@@ -872,15 +921,20 @@ PANGEA.Seqsampler.v4<- function(df.ind, df.trm, pipeline.args, outfile.ind, outf
 	if(pipeline.args['s.MODEL',][, v]=='Prop2Untreated')
 		tmp			<- PANGEA.Seqsampler.sample.prop.to.untreated(df.ind, df.epi, pipeline.args)
 	df.inds		<- copy(tmp$df.inds)
-	df.sample	<- copy(tmp$df.sample)
-
-			
+	df.sample	<- copy(tmp$df.sample)			
 	#	set sampling in df.trm
 	tmp		<- subset( df.inds, !is.na(TIME_SEQ), select=c(IDPOP, TIME_SEQ) )
 	setnames(tmp, c('IDPOP','TIME_SEQ'), c('IDREC','SAMPLED_REC'))
 	df.trms	<- merge(df.trm, tmp, by='IDREC', all.x=TRUE)
 	setnames(tmp, c('IDREC','SAMPLED_REC'), c('IDTR','SAMPLED_TR'))
 	df.trms	<- merge(df.trms, tmp, by='IDTR', all.x=TRUE)	
+	#
+	#	seroprevalence survey
+	#
+	df.sp	<- PANGEA.SeroPrevalenceSurvey(df.inds, epi.adult=epi.adult, s.INTERVENTION.start=pipeline.args['s.INTERVENTION.start', ][, as.numeric(v)], sp.prop.of.sexactive=pipeline.args['sp.prop.of.sexactive', ][, as.numeric(v)], sp.times=c(15, 10, 5, 0) )
+	file	<- gsub('IND.csv','CROSS_SECTIONAL_SURVEY.csv', outfile.ind)
+	cat(paste('\nwrite to file', file))
+	write.csv(df.sp, file=file)
 	#
 	#	TRANSMISSION NETWORKS
 	#
@@ -1695,14 +1749,17 @@ PANGEA.TransmissionEdgeEvolutionaryRate.create.sampler<- function(er.meanlog, er
 								y5=dLOGNO(x, mu=log(0.002239075)-0.05^2/2, sigma=0.05), y7=dLOGNO(x, mu=log(0.002239075)-0.07^2/2, sigma=0.07), y10=dLOGNO(x, mu=log(0.002239075)-0.1^2/2, sigma=0.1), y13=dLOGNO(x, mu=log(0.002239075)-0.13^2/2, sigma=0.13), 
 								W441=dLOGNO(x, mu=log(0.00447743)-0.3^2/2, sigma=0.3), W442=dLOGNO(x, mu=log(0.00447743)-0.4^2/2, sigma=0.4), W443=dLOGNO(x, mu=log(0.00447743)-0.5^2/2, sigma=0.5))
 		#	times 2				
+		x		<- seq(0.0005, 0.01, 0.00001)
 		tmp		<- data.table(	x=x, 
-								TransmissionLineage=dLOGNO(x, mu=log(0.002239075)-0.13^2/2, sigma=0.13), 
-								TipBranch=dLOGNO(x, mu=log(0.00447743)-0.3^2/2, sigma=0.3))
+								TransmissionLineage=dLOGNO(x, mu=log(0.002239075)-0.13^2/2, sigma=0.13),
+								TransmissionLineage2=dLOGNO(x, mu=log(0.002239075)-0.3^2/2, sigma=0.3),
+								TransmissionLineage3=dLOGNO(x, mu=log(0.002239075)-0.2^2/2, sigma=0.2),
+								TipBranch=dLOGNO(x, mu=log(0.00447743)-0.5^2/2, sigma=0.5)
+								)
 		#	times 1.5				
-		tmp		<- data.table(	x=x, 
-								TransmissionLineage=dLOGNO(x, mu=log(0.002239075)-0.13^2/2, sigma=0.13), 
-								TipBranch=dLOGNO(x, mu=log(0.003358613)-0.3^2/2, sigma=0.3))
-						
+		#tmp		<- data.table(	x=x, 
+		#						TransmissionLineage=dLOGNO(x, mu=log(0.002239075)-0.13^2/2, sigma=0.13), 
+		#						TipBranch=dLOGNO(x, mu=log(0.003358613)-0.3^2/2, sigma=0.3))						
 		#tmp		<- data.table(	x=x, 
 		#						TransmissionLineage=dLOGNO(x, mu=log(0.002239075)-0.01^2/2, sigma=0.01), 
 		#						TipBranch=dLOGNO(x, mu=log(0.003)-0.2^2/2, sigma=0.2))

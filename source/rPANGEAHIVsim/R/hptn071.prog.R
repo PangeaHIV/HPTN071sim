@@ -644,7 +644,13 @@ prog.PANGEA.SeqGen.run.v4<- function()
 	#	
 	if(pipeline.args['epi.model'][,v]=='HPTN071')
 	{
-		tmp			<- subset( df.inds, !is.na(TIME_SEQ), select=c(IDPOP, GENDER, DOB, DOD, DIAG_T, DIAG_CD4, ART1_T, ART1_CD4, TIME_SEQ ) )
+		tmp			<- subset( df.inds, !is.na(TIME_SEQ), select=c(IDPOP, GENDER, DOB, DOD, DIAG_T, DIAG_CD4, ART1_T, ART1_CD4, TIME_SEQ, RECENT_TR ) )
+		tmp2		<- tmp[, which(!is.na(RECENT_TR))]
+		cat(paste('\nSet RECENT_TR to missing for p=',1-pipeline.args['report.prop.recent',][,as.numeric(v)]))
+		tmp2		<- sample(tmp2, round(length(tmp2)*(1-pipeline.args['report.prop.recent',][,as.numeric(v)])))
+		set(tmp, NULL, 'RECENT_TR', tmp[, as.character(RECENT_TR)])
+		set(tmp, tmp2, 'RECENT_TR', NA_character_)
+		set(tmp, NULL, 'RECENT_TR', tmp[, factor(RECENT_TR)])		
 	}		
 	if(pipeline.args['epi.model'][,v]=='DSPS')
 		tmp			<- subset( df.inds, !is.na(TIME_SEQ), select=c(IDPOP, GENDER, TIME_SEQ ) )
@@ -711,30 +717,15 @@ prog.PANGEA.SeqGen.run.v4<- function()
 		plot(seq.ph, show.tip=TRUE, cex=0.5, tip.color=df.seq[,TIPCOLOR])
 		dev.off()			
 	}
-	if(0)
-	{
-		# 83|48713  56|84607
-		tmp		<- dist.dna(seq, model='N', as.matrix=TRUE)
-		tmp[ which(grepl('IDPOP_48713',rownames(tmp))), which(grepl('IDPOP_84607',colnames(tmp)))]
-		#12!!
-		subset(df.ph.out, IDCLU==83 & GENE=='POL' & CODON_POS=='CP1')[, {										
-					cmd	<- cmd.SeqGen(indir.sg, FILE, indir.sg, gsub('seqgen','phy',FILE), prog=PR.SEQGEN, prog.args=paste('-n',1,' -k1 -or -z',SEED,sep=''), 
-							alpha=alpha, gamma=pipeline.args['er.gamma',][, as.numeric(v)], invariable=0, scale=mu, freq.A=a, freq.C=c, freq.G=g, freq.T=t,
-							rate.AC=ac, rate.AG=ag, rate.AT=at, rate.CG=cg, rate.CT=1, rate.GT=gt)
-					cat(cmd)				
-					stop()							
-				}, by='FILE']
-	}
-	
 	#
 	#	zip simulated sequence files
 	#
-	tmp				<- c( paste(outdir, '/', infile.prefix, 'SIMULATED_metadata.csv', sep=''), paste(outdir, '/', infile.prefix, 'SIMULATED_env.fa', sep=''), paste(outdir, '/', infile.prefix, 'SIMULATED_pol.fa', sep=''), paste(outdir, '/', infile.prefix, 'SIMULATED_gag.fa', sep='') )
+	tmp				<- c( paste(outdir, '/', infile.prefix, 'SIMULATED_metadata.csv', sep=''), paste(indir.epi, '/', gsub('SAVE.R','CROSS_SECTIONAL_SURVEY.csv',infile.epi), sep=''), paste(outdir, '/', infile.prefix, 'SIMULATED_env.fa', sep=''), paste(outdir, '/', infile.prefix, 'SIMULATED_pol.fa', sep=''), paste(outdir, '/', infile.prefix, 'SIMULATED_gag.fa', sep='') )
 	zip( paste(outdir, '/', infile.prefix, 'SIMULATED_SEQ.zip', sep=''), tmp, flags = "-FSr9XTj")
 	#
 	#	zip simulated tree files
 	#
-	tmp2			<- c( paste(outdir, '/', infile.prefix, 'SIMULATED_metadata.csv', sep=''), paste(indir.epi, '/', infile.prefix, 'DATEDTREE.newick', sep='') )
+	tmp2			<- c( paste(outdir, '/', infile.prefix, 'SIMULATED_metadata.csv', sep=''), paste(indir.epi, '/', gsub('SAVE.R','CROSS_SECTIONAL_SURVEY.csv',infile.epi), sep=''), paste(indir.epi, '/', infile.prefix, 'DATEDTREE.newick', sep='') )
 	zip( paste(outdir, '/', infile.prefix, 'SIMULATED_DATEDTREE.zip', sep=''), tmp2, flags = "-FSr9XTj")
 	#
 	tmp				<- unique(c(tmp, tmp2))
@@ -1328,11 +1319,18 @@ prog.PANGEA.SeqGen.createInputFile<- function()
 	df.ph				<- vector('list', length(infiles))
 	phd					<- vector('list', length(infiles))
 	df.nodestat			<- vector('list', length(infiles))
-	if( pipeline.args['index.starttime.mode',][,v]=='shift' )		
+	cat(paste('\nUsing StartTimeMode',pipeline.args['index.starttime.mode',][,v]))
+	root.edge.rate		<- NA
+	if( pipeline.args['index.starttime.mode',][,v]=='shift' )
+	{		
 		root.edge.rate	<- 1e-6
-	if( pipeline.args['index.starttime.mode',][,v]!='shift' )
+		cat(paste('\nFix root edge rate to =',root.edge.rate))
+	}		
+	if( grepl('rootEdgeFx', pipeline.args['index.starttime.mode',][,v] ) )
+	{
 		root.edge.rate	<- log.df[1,meanRate]
-	cat(paste('\nUsing StartTimeMode',pipeline.args['index.starttime.mode',][,v],'\nSetting root edge rate to =',root.edge.rate))
+		cat(paste('\nFix root edge rate to =',root.edge.rate))		
+	}	
 	for(i in seq_along(infiles))
 	{				
 		#i	<- 40
@@ -1364,10 +1362,13 @@ prog.PANGEA.SeqGen.createInputFile<- function()
 		set(node.stat, node.stat[, which(NODE_ID==Ntip(ph)+1)], c('ER','BWM'), NA_real_)		
 		#	set root edge evolutionary rate to overall mean between-host rate
 		#	get NODE_ID of edge from root
-		tmp				<- ph$edge[match(Ntip(ph)+1, ph$edge[1, ]), 2]
-		tmp				<- node.stat[, which(NODE_ID==tmp)]		
-		set(node.stat, tmp, 'ER', root.edge.rate )		
-		set(node.stat, tmp, 'BWM', 1. )		# no need to further slow down root edge
+		if(!is.na(root.edge.rate))
+		{
+			tmp				<- ph$edge[match(Ntip(ph)+1, ph$edge[1, ]), 2]
+			tmp				<- node.stat[, which(NODE_ID==tmp)]		
+			set(node.stat, tmp, 'ER', root.edge.rate )		
+			set(node.stat, tmp, 'BWM', 1. )		# no need to further slow down root edge			
+		}
 		#	check root edge length
 		if( pipeline.args['index.starttime.mode',][,v]=='fix45' )
 		{
@@ -1396,18 +1397,7 @@ prog.PANGEA.SeqGen.createInputFile<- function()
 		ph$edge.length	<- ph$edge.length * node.stat[ ph$edge[, 2], ][, ER / BWM]
 		stopifnot(all(!is.na(ph$edge.length)))		
 		#	once expected number of substitutions / site are simulated, can collapse singleton nodes
-		ph				<- seq.collapse.singles(ph)	
-		if(pipeline.args['bwerm.sigma',][,v]==0 & pipeline.args['wher.sigma',][,v]==0)
-		{
-			cat(paste('\nChecking evolutionary rate consistency'))
-			set(tmp, NULL, 'NODE_DEPTH', tmp[, NODE_DEPTH-root.ctime])
-			set(tmp, NULL, 'NODE_DEPTH', tmp[, NODE_DEPTH]*node.stat[1, ER])
-			if( Nnode(ph) )
-				tmp[, NODE_DEPTH_ER:= ph$root.edge+node.depth.edgelength(ph)[ seq_len(Ntip(ph)) ] ]
-			if( Nnode(ph)==0 )
-				tmp[, NODE_DEPTH_ER:= ph$root.edge ]
-			stopifnot( tmp[, max(abs(NODE_DEPTH-NODE_DEPTH_ER))<=1e-6 ] )			
-		}
+		ph				<- seq.collapse.singles(ph)			
 		#	set tip label so that IDPOP can be checked for consistency	
 		if(pipeline.args['epi.model',][,v]=='HPTN071')
 			node.stat[, LABEL:= node.stat[, paste('IDPOP_',IDPOP,label.sep,GENDER,label.sep,'DOB_',round(DOB,d=3),label.sep,round(TIME_SEQ,d=3),sep='')]]
@@ -1438,7 +1428,8 @@ prog.PANGEA.SeqGen.createInputFile<- function()
 	df.ph		<- do.call('rbind',df.ph)
 	df.nodestat	<- do.call('rbind',df.nodestat)
 	#	check that we have exactly one root edge with overall mean between host rate per cluster
-	stopifnot( df.nodestat[, length(unique(IDCLU))]==nrow(subset(df.nodestat, ER==root.edge.rate)) )
+	if(!is.na(root.edge.rate))
+		stopifnot( df.nodestat[, length(unique(IDCLU))]==nrow(subset(df.nodestat, ER==root.edge.rate)) )
 	#	
 	if(grepl('fix',pipeline.args['index.starttime.mode',][,v]))
 	{
@@ -1462,19 +1453,22 @@ prog.PANGEA.SeqGen.createInputFile<- function()
 		#ggplot(subset(df.nodestat, ER!=root.edge.rate & BWM!=1.) , aes(x=ER/BWM)) + geom_histogram(binwidth=0.0001)
 		#ggplot(subset(df.nodestat, ER!=root.edge.rate), aes(x=ER, y=BWM)) + geom_point()	
 		#	plot used within-host ERs
-		ggplot(subset(df.nodestat, ER!=root.edge.rate), aes(x=ER/BWM)) + geom_histogram(binwidth=0.001)	+ labs(x='simulated within-host evolutionary rate') +
+		tmp		<- root.edge.rate
+		if(is.na(tmp))
+			tmp	<- Inf
+		ggplot(subset(df.nodestat, ER!=tmp), aes(x=ER/BWM)) + geom_histogram(binwidth=0.001)	+ labs(x='simulated within-host evolutionary rate') +
 			scale_x_continuous(breaks= seq(0, 0.02, 0.002))
 		file	<- paste(indir.epi, '/', substr(infile.epi,1,nchar(infile.epi)-6),'INFO_sg_ER.pdf', sep='')
 		cat(paste('\nWrite to file=',file))
 		ggsave(file, w=6, h=6)
 		#	plot used between host modifiers
-		ggplot(subset(df.nodestat, ER!=root.edge.rate & BWM==1) , aes(x=ER/BWM)) + geom_histogram(binwidth=0.001) + labs(x='simulated within-host rate evolutionary rate\nwithout transmission edges') +
+		ggplot(subset(df.nodestat, ER!=tmp & BWM==1) , aes(x=ER/BWM)) + geom_histogram(binwidth=0.001) + labs(x='simulated within-host rate evolutionary rate\nwithout transmission edges') +
 				scale_x_continuous(breaks= seq(0, 0.02, 0.002))
 		file	<- paste(indir.epi, '/', substr(infile.epi,1,nchar(infile.epi)-6),'INFO_sg_BWM.pdf', sep='')
 		cat(paste('\nWrite to file=',file))
 		ggsave(file, w=6, h=6)
 		#	plot used ERs along transmission edges
-		ggplot(subset(df.nodestat, ER!=root.edge.rate & BWM!=1) , aes(x=ER/BWM)) + geom_histogram(binwidth=0.0001) + labs(x='simulated evolutionary rates along transmission edges') +
+		ggplot(subset(df.nodestat, ER!=tmp & BWM!=1) , aes(x=ER/BWM)) + geom_histogram(binwidth=0.0001) + labs(x='simulated evolutionary rates along transmission edges') +
 				scale_x_continuous(breaks= seq(0, 0.02, 0.0005))
 		file	<- paste(indir.epi, '/', substr(infile.epi,1,nchar(infile.epi)-6),'INFO_sg_BWER.pdf', sep='')
 		cat(paste('\nWrite to file=',file))
@@ -1565,6 +1559,8 @@ prog.PANGEA.SeqGen.createInputFile<- function()
 #' @param wher.sigma			Standard deviation in within host evolutionary rate of log normal density
 #' @param bwerm.mu				Mean between host evolutionary rate multiplier of log normal density
 #' @param bwerm.sigma			Standard deviation in between host evolutionary rate multiplier of log normal density
+#' @param sp.prop.of.sexactive	Proportion of population sampled in seroprevalence survey
+#' @param report.prop.recent	Proportion of individuals for whom recency of infection should be reported
 #' @param dbg.GTRparam			debug flag
 #' @param dbg.rER				debug flag
 #' @param startseq.mode			Number of different starting sequences either 'many' or 'one'.
@@ -1578,7 +1574,9 @@ rPANGEAHIVsim.pipeline.args<- function(	yr.start=1980, yr.end=2020, seed=42,
 										epi.model='HPTN071', epi.dt=1/48, epi.import=0.1,
 										v.N0tau=3.58e4, v.r=2, v.T50=-1,
 										wher.mu=0.005, wher.sigma=0.8,
-										bwerm.mu=1.5, bwerm.sigma=0.12, er.gamma=4,
+										bwerm.mu=1.5, bwerm.sigma=0.12, er.gamma=4, 
+										sp.prop.of.sexactive= 0.05, 
+										report.prop.recent=0.2,
 										dbg.GTRparam=0, dbg.rER=0, 
 										index.starttime.mode='normal', startseq.mode='many', seqtime.mode='Gamma9')									
 {
@@ -1594,19 +1592,25 @@ rPANGEAHIVsim.pipeline.args<- function(	yr.start=1980, yr.end=2020, seed=42,
 		optimize(f=f, interval=c(2, 15), b=3e4 )	#10.30891
 		optimize(f=f, interval=c(2, 15), b=3e3 )	#8.006034
 		optimize(f=f, interval=c(2, 15), b=3e2 )	#5.70044
-		#estimate growth rates for desired sizes	T50=-1.5
+		#estimate growth rates for desired sizes	T50=-2
 		f		<- function(r, b){	abs(( 1+exp(2*r) ) / ( 1+exp(-2*r) )-b)	}		
 		optimize(f=f, interval=c(2, 15), b=3e5 )	#6.305779
 		optimize(f=f, interval=c(2, 15), b=3e4 )	#5.154461
 		optimize(f=f, interval=c(2, 15), b=3e3 )	#4.003191
-		optimize(f=f, interval=c(2, 15), b=3e2 )	#2.851904
+		optimize(f=f, interval=c(2, 15), b=3e2 )	#2.851904		
+		f		<- function(r, b){	abs(( 1+exp(2*r) ) / ( 1+exp(-r*(-2+10)) )-b)	}
+		optimize(f=f, interval=c(2, 15), b=3e2 )	#2.850242
+		optimize(f=f, interval=c(2, 15), b=5e4 )	#5.409859
+		optimize(f=f, interval=c(2, 15), b=2e5 )	#6.103021
+		optimize(f=f, interval=c(2, 15), b=150 )	#2.501955
+		optimize(f=f, interval=c(0.1, 15), b=10 )	#1.098685
 		
 		Net			<- function(t, N0tau, r, T50){  N0tau*(1+exp(-r*T50))/(1+exp(-r*(T50-t)))	}		
 		x			<- seq(-10,0,0.001)
 		#tmp			<- data.table(x=x, y5=Net(x, 1, 12.61152, -1), y4=Net(x, 1, 10.30891, -1), y3=Net(x, 1, 8.006034, -1), y2=Net(x, 1, 5.70044, -1))
-		tmp			<- data.table(x=x, y5=Net(x, 1, 6.305779, -2), y4=Net(x, 1, 5.154461, -2), y3=Net(x, 1, 4.003191, -2), y2=Net(x, 1, 2.851904, -2))
+		tmp			<- data.table(x=x, y5=Net(x, 1, 6.305779, -2), y4=Net(x, 1, 5.154461, -2), y3=Net(x, 1, 4.003191, -2), y2=Net(x, 1, 2.850242, -2), y1=Net(x, 1, 1.098685, -2))
 		tmp			<- melt(tmp, id.var='x')
-		ggplot(tmp, aes(x=x, y=value, group=variable, colour=variable)) + geom_line() + scale_y_log10()	+ scale_x_continuous(breaks=seq(-20,10,1))
+		ggplot(tmp, aes(x=x, y=value, group=variable, colour=variable)) + geom_line() + scale_y_log10(breaks=c(3e2,3e3,3e4,3e5)) + scale_x_continuous(breaks=seq(-20,10,1))
 	}
 	#	plot increasing sampling fraction
 	if(0)
@@ -1622,8 +1626,8 @@ rPANGEAHIVsim.pipeline.args<- function(	yr.start=1980, yr.end=2020, seed=42,
 		set(df.sample, NULL, 's.PREV.max', df.sample[, factor(s.PREV.max, levels=c('0.11','0.15','0.185'), labels=c('A','B','C'))]) 			
 		ggplot(df.sample, aes(x=YR, y=s.fraction, colour=s.PREV.max)) + geom_line() + scale_y_continuous(breaks=seq(0, 0.16, 0.02)) + labs(colour='scenario', x='year', y='sampling fraction')		
 	}
-	pipeline.args	<- data.table(	stat= 	c('yr.start','yr.end','s.MODEL','s.INC.recent','s.INC.recent.len', 's.PREV.min', 's.PREV.max', 's.INTERVENTION.start', 's.INTERVENTION.mul', 's.ARCHIVAL.n', 's.seed', 'index.starttime.mode', 'startseq.mode', 'seqtime.mode','epi.model', 'epi.dt', 'epi.import','v.N0tau','v.r','v.T50','wher.mu','wher.sigma','bwerm.mu','bwerm.sigma','er.gamma','dbg.GTRparam','dbg.rER'), 
-									v	=	c(yr.start, yr.end, s.MODEL, s.INC.recent, s.INC.recent.len, s.PREV.min, s.PREV.max, s.INTERVENTION.start, s.INTERVENTION.mul, s.ARCHIVAL.n, seed, index.starttime.mode, startseq.mode, seqtime.mode, epi.model, epi.dt, epi.import, v.N0tau, v.r, v.T50, wher.mu, wher.sigma, bwerm.mu, bwerm.sigma, er.gamma, dbg.GTRparam, dbg.rER) )
+	pipeline.args	<- data.table(	stat= 	c('yr.start','yr.end','s.MODEL','s.INC.recent','s.INC.recent.len', 's.PREV.min', 's.PREV.max', 's.INTERVENTION.start', 's.INTERVENTION.mul', 's.ARCHIVAL.n', 's.seed', 'index.starttime.mode', 'startseq.mode', 'seqtime.mode','epi.model', 'epi.dt', 'epi.import','v.N0tau','v.r','v.T50','wher.mu','wher.sigma','bwerm.mu','bwerm.sigma','er.gamma','sp.prop.of.sexactive','report.prop.recent','dbg.GTRparam','dbg.rER'), 
+									v	=	c(yr.start, yr.end, s.MODEL, s.INC.recent, s.INC.recent.len, s.PREV.min, s.PREV.max, s.INTERVENTION.start, s.INTERVENTION.mul, s.ARCHIVAL.n, seed, index.starttime.mode, startseq.mode, seqtime.mode, epi.model, epi.dt, epi.import, v.N0tau, v.r, v.T50, wher.mu, wher.sigma, bwerm.mu, bwerm.sigma, er.gamma, sp.prop.of.sexactive, report.prop.recent, dbg.GTRparam, dbg.rER) )
 	setkey(pipeline.args, stat)	
 	pipeline.args
 }
@@ -1691,7 +1695,7 @@ rPANGEAHIVsim.pipeline<- function(indir, infile.ind, infile.trm, outdir, pipelin
 	outfile			<- substr(infile.ind, 1, nchar(infile.ind)-7)
 	cmd				<- paste(cmd, cmd.SeqGen.run(outdir.TrChain, infile.epi, outdir.SG, outfile, infile.args, outdir), sep='')
 	##	clean up
-	cmd				<- paste(cmd,'rm -rf ',outdir.TrChain,' ', outdir.VTS,' ', outdir.SG,'\n',sep='')
+	#cmd				<- paste(cmd,'rm -rf ',outdir.TrChain,' ', outdir.VTS,' ', outdir.SG,'\n',sep='')
 	cmd				<- paste(cmd,"#######################################################
 #######################################################
 #######################################################
@@ -2557,6 +2561,8 @@ prog.HPTN071.input.parser.v4<- function()
 	stopifnot( df.ind[, all(ART1_T<VLS1_TS, na.rm=TRUE)] )	
 	tmp			<- df.ind[, which(DOD<TIME_TR)]
 	set(df.ind, tmp, 'DOD', df.ind[tmp, TIME_TR+(TIME_TR-DOD)])
+	#	add if transmission in the last 6 mo	
+	df.ind[, RECENT_TR:=df.ind[, factor(as.numeric((DIAG_T-TIME_TR)<.5), levels=c(0,1), labels=c('N','Y'))]]	
 	#	add time of infection of transmitter to df.trm	
 	tmp		<- subset(df.ind, select=c(IDPOP, TIME_TR))
 	setnames(tmp, c('IDPOP','TIME_TR'), c('IDTR','IDTR_TIME_INFECTED') )
