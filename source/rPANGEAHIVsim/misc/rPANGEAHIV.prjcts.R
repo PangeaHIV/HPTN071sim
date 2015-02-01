@@ -3117,7 +3117,7 @@ project.PANGEA.TEST.SSApg.BEAST<- function()
 							dummy<- newXMLCommentNode(text=xmlValue(bt.beast[[i]]), parent=bxml.beast, doc=bxml, addFinalizer=T)
 						else
 							dummy<- addChildren( bxml.beast, xmlClone( bt.beast[[i]], addFinalizer=T, doc=bxml ) )
-					})
+					}) 
 			#	change gmrf dimensions	
 			tmp			<- getNodeSet(bxml, "//*[@id='skyride.logPopSize']")
 			if(length(tmp)!=1)	stop("unexpected number of *[@id='skyride.logPopSize'")

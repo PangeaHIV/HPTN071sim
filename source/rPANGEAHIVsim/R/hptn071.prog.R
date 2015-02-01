@@ -2573,7 +2573,7 @@ prog.HPTN071.input.parser.v4<- function()
 	df.ind	<- PANGEA.Seqsampler.SimulateGuideToSamplingTimes.v2(df.ind, seqtime.mode= pipeline.args['seqtime.mode',][,v])
 	stopifnot( df.ind[, all(T1_SEQ<=ART1_T, na.rm=TRUE)] )
 	cat(paste('\nFound % not sampled at ART start, % sampled at ART start among those with ART start=', paste( subset(df.ind, !is.na(DIAG_T))[, table(T1_SEQ==ART1_T)/length(which(!is.na(ART1_T)))], collapse=', ') ))
-	#
+	# 
 	#
 	#	reduce to time frame of interest
 	#

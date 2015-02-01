@@ -851,7 +851,7 @@ PANGEA.Seqsampler.sample.prop.to.diagnosis.b4intervention<- function(df.ind, df.
 	stopifnot( abs(pipeline.args['s.PREV.max',][, as.numeric(v)]-df.sample[, sum( s.nTOTAL )] / df.sample[, rev(PREV)[1]])<=pipeline.args['s.PREV.max',][, as.numeric(v)]*0.1 )
 	#
 	#	SAMPLE INFECTED INDIVIDUALS BASED ON NUMBERS PER YEAR
-	#
+	# 
 	#	sample non-incident cases by year
 	df.inds		<- copy(df.ind)
 	df.inds[, TIME_SEQ:= NA_real_]
