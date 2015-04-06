@@ -472,7 +472,8 @@ prog.PANGEA.SeqGen.run.v4<- function()
 	infile.prefix		<- '140716_RUN001_'
 	infile.args			<- NA
 	outdir				<- '/Users/Oliver/git/HPTN071sim/tmp140908'
-	with.plot			<- 1	
+	with.plot			<- 1
+	with.NJ				<- 1
 	verbose				<- 1
 	label.idx.codonpos	<- 1
 	label.idx.gene		<- 2
@@ -521,9 +522,10 @@ prog.PANGEA.SeqGen.run.v4<- function()
 		cat('\nCould not find pipeline.args, generating default')
 		pipeline.args	<- rPANGEAHIVsim.pipeline.args()
 	}	
+	set.seed(pipeline.args['s.seed',][, as.numeric(v)])
 	#
 	file		<- paste(indir.epi, '/', infile.epi, sep='')
-	load(file)	#expect "df.epi"    "df.trms"   "df.inds"   "df.sample"
+	load(file)	#expect "df.epi"    "df.trms"   "df.inds"   "df.sample"   "df.sp"
 	#
 	file			<- paste(indir.sg,'/',infile.prefix, 'seqgen.R',sep='')
 	cat(paste('\nLoad seqgen R input file, file=',file))
@@ -533,8 +535,7 @@ prog.PANGEA.SeqGen.run.v4<- function()
 		root.edge.rate	<- 1e-6
 	if( pipeline.args['index.starttime.mode',][,v]!='shift' )
 		root.edge.rate	<- log.df[1,meanRate]		
-	stopifnot( all( c('s.seed')%in%pipeline.args[, stat] ) )	
-	set.seed(pipeline.args['s.seed',][, as.numeric(v)])	
+	stopifnot( all( c('s.seed')%in%pipeline.args[, stat] ) )			
 	#
 	#	create SeqGen input files
 	#
@@ -638,7 +639,7 @@ prog.PANGEA.SeqGen.run.v4<- function()
 	#
 	file			<- paste(outdir, '/', infile.prefix, 'SIMULATED_INTERNAL.R', sep='')
 	cat(paste('\nwrite to file', file))
-	save(df.epi, df.trms, df.inds, df.sample, df.seq, file=file)
+	save(df.epi, df.trms, df.inds, df.sample, df.seq, df.sp, file=file)
 	#
 	#	save simulated data -- to be shared
 	#	
@@ -650,7 +651,19 @@ prog.PANGEA.SeqGen.run.v4<- function()
 		tmp2		<- sample(tmp2, round(length(tmp2)*(1-pipeline.args['report.prop.recent',][,as.numeric(v)])))
 		set(tmp, NULL, 'RECENT_TR', tmp[, as.character(RECENT_TR)])
 		set(tmp, tmp2, 'RECENT_TR', NA_character_)
-		set(tmp, NULL, 'RECENT_TR', tmp[, factor(RECENT_TR)])		
+		set(tmp, NULL, 'RECENT_TR', tmp[, factor(RECENT_TR)])	
+		
+		set(tmp, NULL, 'GENDER', tmp[,as.character(GENDER)])
+		tmp2		<- tmp[, which(is.na(DIAG_T) & TIME_SEQ<2000)]
+		cat(paste('\nSet patient variables to NA for archival seq, n=',length(tmp2)))		
+		set(tmp, tmp2, c('DOB','DOD'), NA_real_) 
+		set(tmp, tmp2, 'GENDER', NA_character_)
+		tmp2		<- tmp[, which(is.na(DIAG_T) & TIME_SEQ>=2000)]
+		cat(paste('\nSet patient variables to NA after 200, n=',length(tmp2)))
+		print(tmp[tmp2,])
+		set(tmp, tmp2, c('DOB','DOD'), NA_real_) 
+		set(tmp, tmp2, 'GENDER', NA_character_)
+		set(tmp, NULL, 'GENDER', tmp[,factor(GENDER)])
 	}		
 	if(pipeline.args['epi.model'][,v]=='DSPS')
 		tmp			<- subset( df.inds, !is.na(TIME_SEQ), select=c(IDPOP, GENDER, TIME_SEQ ) )
@@ -674,7 +687,7 @@ prog.PANGEA.SeqGen.run.v4<- function()
 	write.dna(df.seq.env, file, format = "fasta")
 	
 	df.seq			<- merge(df.seq, df.seq[, list(IDCLU_N=length(IDPOP)), by='IDCLU'], by='IDCLU')
-	if(with.plot)
+	if(with.NJ)
 	{
 		#
 		#	create and plot NJ tree on conc seq
@@ -683,11 +696,21 @@ prog.PANGEA.SeqGen.run.v4<- function()
 		file			<- system.file(package="rPANGEAHIVsim", "misc",'PANGEA_SSAfg_HXB2outgroup.R')
 		cat(paste('\nLoading outgroup seq from file', file))
 		load(file)		#expect "outgroup.seq.gag" "outgroup.seq.pol" "outgroup.seq.env"
+		if(nrow(df.seq<2000))
+			df.seq.nj	<- copy(df.seq)
+		if(nrow(df.seq>=2000))
+		{
+			cat(paste('\nToo many seqs for quick NJ tree calculation, selecting first 2000'))
+			df.seq.nj	<- unique(subset(df.seq, select=c(IDCLU, IDCLU_N)))			
+			df.seq.nj[, IDCLU_CN:=df.seq.nj[, cumsum(IDCLU_N)]]
+			df.seq.nj	<- df.seq.nj[seq_len(max(1, which(IDCLU_CN>2000)[1]-1)), ]
+			df.seq.nj	<- merge(subset(df.seq.nj, select=IDCLU), df.seq, by='IDCLU')
+		}
 		#	concatenate sequences	
-		df.seq[, TIPCOLOR:='black']
-		set(df.seq, df.seq[,which(IDCLU_N<3)],'TIPCOLOR','red')
-		tmp				<- tolower(do.call('rbind',strsplit(df.seq[, paste(GAG,POL,ENV,sep='')],'')))		
-		rownames(tmp)	<- df.seq[, paste(IDCLU,'_',IDCLU_N,treelabel.idx.sep,LABEL,sep='')]	
+		df.seq.nj[, TIPCOLOR:='black']
+		set(df.seq.nj, df.seq.nj[,which(IDCLU_N<3)],'TIPCOLOR','red')
+		tmp				<- tolower(do.call('rbind',strsplit(df.seq.nj[, paste(GAG,POL,ENV,sep='')],'')))		
+		rownames(tmp)	<- df.seq.nj[, paste(IDCLU,'_',IDCLU_N,treelabel.idx.sep,LABEL,sep='')]	
 		seq				<- as.DNAbin(tmp)
 		tmp				<- cbind(outgroup.seq.gag[,1:ncol(df.seq.gag)], outgroup.seq.pol, outgroup.seq.env)
 		seq				<- rbind(seq,tmp)	
@@ -697,14 +720,14 @@ prog.PANGEA.SeqGen.run.v4<- function()
 		seq.ph			<- ladderize(seq.ph)
 		file			<- paste(indir.sg, '/', infile.prefix, 'INFO_NJconc.pdf', sep='')	
 		cat(paste('\nwrite to file',file))
-		pdf(file=file, w=10, h=80)
-		plot(seq.ph, show.tip=TRUE, cex=0.5, tip.color=df.seq[,TIPCOLOR])
+		pdf(file=file, w=10, h=0.1*Ntip(seq.ph))
+		plot(seq.ph, show.tip=TRUE, cex=0.5, tip.color=df.seq.nj[,TIPCOLOR])
 		dev.off()	
 		#
 		#	create and plot NJ tree on pol seq
 		#			
-		tmp				<- tolower(do.call('rbind',strsplit(df.seq[, POL],'')))		
-		rownames(tmp)	<- df.seq[, paste(IDCLU,'_',IDCLU_N,treelabel.idx.sep,LABEL,sep='')]	
+		tmp				<- tolower(do.call('rbind',strsplit(df.seq.nj[, POL],'')))		
+		rownames(tmp)	<- df.seq.nj[, paste(IDCLU,'_',IDCLU_N,treelabel.idx.sep,LABEL,sep='')]	
 		seq				<- as.DNAbin(tmp)		
 		seq				<- rbind(seq,outgroup.seq.pol)	
 		seq.ph			<- nj(dist.dna(seq, model='raw'))		
@@ -714,7 +737,7 @@ prog.PANGEA.SeqGen.run.v4<- function()
 		file			<- paste(indir.sg, '/', infile.prefix, 'INFO_NJpol.pdf', sep='')	
 		cat(paste('\nwrite to file',file))
 		pdf(file=file, w=10, h=0.1*Ntip(seq.ph))
-		plot(seq.ph, show.tip=TRUE, cex=0.5, tip.color=df.seq[,TIPCOLOR])
+		plot(seq.ph, show.tip=TRUE, cex=0.5, tip.color=df.seq.nj[,TIPCOLOR])
 		dev.off()			
 	}
 	#
@@ -1270,54 +1293,59 @@ prog.PANGEA.SeqGen.createInputFile<- function()
 	}	
 	stopifnot( all( c('s.seed','wher.mu','wher.sigma','bwerm.mu','bwerm.sigma')%in%pipeline.args[, stat] ) )
 	#
+	set.seed( pipeline.args['s.seed',][, as.numeric(v)] )	
+	#
 	#	setup samplers
+	#
+	file				<- paste(indir.epi, '/', infile.epi, sep='')
+	load(file)	#expect "df.epi"    "df.trms"   "df.inds"   "df.sample"
 	#
 	cat(paste('\ncreate sampler of evolutionary rates'))
 	#	create sampler of within host evolutionary rates
-	rER.pol			<- PANGEA.WithinHostEvolutionaryRate.create.sampler.v1(wher.mu=pipeline.args['wher.mu',][, as.numeric(v)], wher.sigma=pipeline.args['wher.sigma',][, as.numeric(v)])
+	rER.pol				<- PANGEA.WithinHostEvolutionaryRate.create.sampler.v1(wher.mu=pipeline.args['wher.mu',][, as.numeric(v)], wher.sigma=pipeline.args['wher.sigma',][, as.numeric(v)])
 	#	create sampler of between host evolutionary rate dampener
-	tmp				<- PANGEA.TransmissionEdgeEvolutionaryRate.create.sampler(er.meanlog=pipeline.args['bwerm.mu',][, as.numeric(v)], er.sdlog=pipeline.args['bwerm.sigma',][, as.numeric(v)])
-	rERbw			<- tmp$rERbw
-	rERbw.args		<- tmp$rERbw.args
+	tmp					<- PANGEA.TransmissionEdgeEvolutionaryRate.create.sampler(er.meanlog=pipeline.args['bwerm.mu',][, as.numeric(v)], er.sdlog=pipeline.args['bwerm.sigma',][, as.numeric(v)])
+	rERbw				<- tmp$rERbw
+	rERbw.args			<- tmp$rERbw.args
 	#	create sampler of ancestral sequences
 	cat(paste('\ncreate sampler of ancestral sequences'))
-	tmp				<- PANGEA.RootSeq.create.sampler(root.ctime.grace= 0.5, sample.grace= 3 )
-	rANCSEQ			<- tmp$rANCSEQ
-	rANCSEQ.args	<- tmp$rANCSEQ.args 	
+	tmp					<- subset( df.inds, !is.na(TIME_SEQ) )[, length(unique(IDCLU))]
+	cat(paste('\nnumber of clusters for which a sequence is required, n=', tmp))
+	tmp					<- ifelse(tmp<400, 0.5, ifelse(tmp<500, 1, 2))	
+	cat(paste('\nUsing root.ctime.grace=', tmp))
+	tmp					<- PANGEA.RootSeq.create.sampler(root.ctime.grace= tmp, sample.grace= 3 )	
+	rANCSEQ				<- tmp$rANCSEQ
+	rANCSEQ.args		<- tmp$rANCSEQ.args 	
 	#	read GTR parameters
-	log.df			<- PANGEA.GTR.params()
+	log.df				<- PANGEA.GTR.params()
 	if(pipeline.args['dbg.rER',][, as.numeric(v)]==1 )
 	{
 		cat(paste('\nSetting mus to mean per gene and codon_pos'))
-		tmp		<- log.df[, list(mu= mean(mu)), by=c('GENE','CODON_POS')]
+		tmp				<- log.df[, list(mu= mean(mu)), by=c('GENE','CODON_POS')]
 		#tmp[, ER:=mu*log.df$meanRate[1]]
-		log.df	<- merge( subset(log.df, select=which(colnames(log.df)!='mu')), tmp, by=c('GENE','CODON_POS'))		
+		log.df			<- merge( subset(log.df, select=which(colnames(log.df)!='mu')), tmp, by=c('GENE','CODON_POS'))		
 	}		
 	if( pipeline.args['dbg.GTRparam',][, as.numeric(v)]==1 )
 	{
 		cat(paste('\nSetting GTR parameters to MEAN (except mu)'))
-		tmp		<- mean	
-		log.df	<- log.df[, list(state=state, mu=mu, alpha=tmp(alpha), at=tmp(at), ac=tmp(ac), cg=tmp(cg), ag=tmp(ag), gt=tmp(gt), meanRate=tmp(meanRate), a=tmp(a), c=tmp(c),  g=tmp(g), t=tmp(t) ), by=c('GENE','CODON_POS')]		
+		tmp				<- mean	
+		log.df			<- log.df[, list(state=state, mu=mu, alpha=tmp(alpha), at=tmp(at), ac=tmp(ac), cg=tmp(cg), ag=tmp(ag), gt=tmp(gt), meanRate=tmp(meanRate), a=tmp(a), c=tmp(c),  g=tmp(g), t=tmp(t) ), by=c('GENE','CODON_POS')]		
 	}		
 	log.df[, IDX:= seq_len(nrow(log.df))]
 	log.df[, FILE:=NULL]	
 	#
 	#
-	#
-	file		<- paste(indir.epi, '/', infile.epi, sep='')
-	load(file)	#expect "df.epi"    "df.trms"   "df.inds"   "df.sample"
 	#	
-	infiles		<- list.files(indir.vts)
-	tmp			<- paste('^',infile.prefix,'.*nex$',sep='')
-	infiles		<- infiles[ grepl(tmp, infiles)  ]	
+	infiles				<- list.files(indir.vts)
+	tmp					<- paste('^',infile.prefix,'.*nex$',sep='')
+	infiles				<- infiles[ grepl(tmp, infiles)  ]	
 	if(!length(infiles))	stop('cannot find files matching criteria')
-	#
-	set.seed( pipeline.args['s.seed',][, as.numeric(v)] )
 	#
 	#	read from VirusTreeSimulator and convert branch lengths in time to branch lengths in subst/site
 	#
 	df.ph				<- vector('list', length(infiles))
 	phd					<- vector('list', length(infiles))
+	phd.plot			<- vector('list', length(infiles))
 	df.nodestat			<- vector('list', length(infiles))
 	cat(paste('\nUsing StartTimeMode',pipeline.args['index.starttime.mode',][,v]))
 	root.edge.rate		<- NA
@@ -1326,7 +1354,7 @@ prog.PANGEA.SeqGen.createInputFile<- function()
 		root.edge.rate	<- 1e-6
 		cat(paste('\nFix root edge rate to =',root.edge.rate))
 	}		
-	if( grepl('rootEdgeFx', pipeline.args['index.starttime.mode',][,v] ) )
+	if( as.numeric(pipeline.args['root.edge.fixed',][,v] )) 
 	{
 		root.edge.rate	<- log.df[1,meanRate]
 		cat(paste('\nFix root edge rate to =',root.edge.rate))		
@@ -1406,37 +1434,40 @@ prog.PANGEA.SeqGen.createInputFile<- function()
 		setkey(node.stat, NODE_ID)
 		ph$tip.label		<- node.stat[seq_len(Ntip(ph)), ][, LABEL]
 		phd[[i]]$tip.label	<- node.stat[seq_len(Ntip(phd[[i]])), ][, LABEL]
-		phd[[i]]			<- seq.singleton2bifurcatingtree(phd[[i]])
+		phd.plot[[i]]		<- seq.singleton2bifurcatingtree( phd[[i]] )
+		#phd[[i]]			<- seq.addrootnode( phd[[i]], dummy.label=paste('NOEXIST_IDCLU',node.stat[, unique(IDCLU)],'|NA|DOB_NA|',root.ctime,sep='') )
 		#
-		df.nodestat[[i]]<- node.stat
+		df.nodestat[[i]]	<- node.stat
 		if(Nnode(ph))
 		{
-			tmp	<- write.tree(ph, digits = 10)			
-			tmp	<- paste( '(',substr(tmp,1,nchar(tmp)-1),',NOEXIST_NA|NA|DOB_NA|',root.ctime,':0):0;', sep='')
+			tmp			<- write.tree(ph, digits = 10)			
+			tmp			<- paste( '(',substr(tmp,1,nchar(tmp)-1),',NOEXIST_NA|NA|DOB_NA|',root.ctime,':0):0;', sep='')
+			phd[[i]]	<- write.tree(phd[[i]], digits = 10)
 		}
 		if(!Nnode(ph))
 		{
-			tmp	<- paste( '(',ph$tip.label,':',ph$root.edge,',NOEXIST_NA|NA|DOB_NA|',root.ctime,':0):0;', sep='')
+			tmp			<- paste( '(',ph$tip.label,':',ph$root.edge,',NOEXIST_NA|NA|DOB_NA|',root.ctime,':0):0;', sep='')
+			phd[[i]]	<- paste( '(',phd[[i]]$tip.label,':',phd[[i]]$root.edge, ');', sep='' )
 		}
 		df.ph[[i]]		<- data.table(ROOT_CALENDAR_TIME= root.ctime, IDCLU=node.stat[, unique(IDCLU)], NEWICK=tmp)
 		#readline()
 	}
+	#	write phylogenies of each transmission network into a single newick file
+	phd			<- sapply(phd,'[[',1)
+	file	<- paste(indir.epi, '/', substr(infile.epi,1,nchar(infile.epi)-6),'DATEDTREE.newick', sep='')
+	cat(paste('\nWrite to file=',file))
+	writeLines(phd, con=file)
 	#	get multifurcating cluster tree with brl in units of calendar time
-	phd			<- eval(parse(text=paste('phd[[',seq_along(phd),']]', sep='',collapse='+')))
+	options(expressions=1e4)
+	phd			<- eval(parse(text=paste('phd.plot[[',seq_along(phd.plot),']]', sep='',collapse='+')))
+	options(expressions=5e3)
 	phd			<- drop.tip(phd, which(grepl('DUMMY', phd$tip.label)), root.edge=1)
 	phd			<- ladderize(phd)
 	df.ph		<- do.call('rbind',df.ph)
 	df.nodestat	<- do.call('rbind',df.nodestat)
 	#	check that we have exactly one root edge with overall mean between host rate per cluster
 	if(!is.na(root.edge.rate))
-		stopifnot( df.nodestat[, length(unique(IDCLU))]==nrow(subset(df.nodestat, ER==root.edge.rate)) )
-	#	
-	if(grepl('fix',pipeline.args['index.starttime.mode',][,v]))
-	{
-		file	<- paste(indir.epi, '/', substr(infile.epi,1,nchar(infile.epi)-6),'DATEDTREE.newick', sep='')
-		cat(paste('\nWrite to file=',file))
-		write.tree(phd, file=file)		
-	}
+		stopifnot( df.nodestat[, length(unique(IDCLU))]==nrow(subset(df.nodestat, ER==root.edge.rate)) )	
 	
 	#tmp	<- unique(subset(df.inds, IDPOP>=-110 & IDPOP<0, IDCLU))
 	#tmp	<- merge(df.inds, tmp, by='IDCLU')[, length(which(!is.na(TIME_SEQ)))] / df.inds[, length(which(!is.na(TIME_SEQ)))]
@@ -1491,14 +1522,22 @@ prog.PANGEA.SeqGen.createInputFile<- function()
 	#
 	#	draw ancestral sequences and add to df.ph
 	#
-	root.ctime		<- df.ph[, ROOT_CALENDAR_TIME]
-	ancseq			<- rANCSEQ(root.ctime, rANCSEQ.args)
-	ancseq			<- data.table(ANCSEQ= apply(as.character(ancseq),1,function(x) paste(x, collapse='')) )
+	if(pipeline.args['startseq.mode',][,v]=='many')
+	{
+		root.ctime		<- df.ph[, ROOT_CALENDAR_TIME]
+		ancseq			<- rANCSEQ(root.ctime, rANCSEQ.args)
+		ancseq			<- data.table(ANCSEQ= apply(as.character(ancseq),1,function(x) paste(x, collapse='')) )		
+	}		
 	if(pipeline.args['startseq.mode',][,v]=='one')
 	{
 		cat(paste('\nStartSeqModel=',pipeline.args['startseq.mode',][,v],'use first sampled starting sequence for all' ))
-		set(ancseq, NULL, 'ANCSEQ', ancseq[1, ANCSEQ])		
-	}	
+		stopifnot(max(abs(df.ph[1, ROOT_CALENDAR_TIME]-df.ph[, ROOT_CALENDAR_TIME]))<100*EPS)
+		root.ctime		<- df.ph[1, ROOT_CALENDAR_TIME]
+		tmp				<- rANCSEQ(root.ctime, rANCSEQ.args)
+		tmp				<- data.table(ANCSEQ= apply(as.character(tmp),1,function(x) paste(x, collapse='')) )
+		ancseq			<- data.table(ANCSEQ=rep(NA_character_, nrow(df.ph)))
+		set(ancseq, NULL, 'ANCSEQ', tmp[1,ANCSEQ])
+	}
 	df.ph			<- cbind(df.ph, ancseq)
 	#
 	#	create SEQ-GEN input file
@@ -1546,12 +1585,15 @@ prog.PANGEA.SeqGen.createInputFile<- function()
 #' @param s.INC.recent.len		Number of last year in which an exact proportion of incident cases is sampled (not used) 
 #' @param s.PREV.min			Proportion of infected cases sampled at start of the simulation
 #' @param s.PREV.max			Proportion of infected cases sampled at the end of the simulation
+#' @param s.PREV.max.n			Number of infected cases sampled (usually NA, only used for Prop2Untreated)
+#' @param s.INTERVENTION.prop	Proportion of infected cases that are sampled from after intervention start
 #' @param s.INTERVENTION.start	Year in which the community intervention starts
 #' @param s.INTERVENTION.mul	Multiplier of number of sequences sampled per year after start of the intervention
 #' @param s.ARCHIVAL.n			Total number of sequences sampled before diagnosis
 #' @param epi.model				The epi model used to create the epi simulation (default HPTN071, alternatively DSPS)
 #' @param epi.dt				Time increment of the epi simulation (default 1/48)
 #' @param epi.import			Proportion of imported cases of all cases (default 0.1)
+#' @param root.edge.fixed		Boolean; fix evolutionary rate of root edges to mean rate if true 
 #' @param v.N0tau				Parameter of BEAST::LogisticGrowthN0::N0 (default 3.58e4) 
 #' @param v.r					Parameter of BEAST::LogisticGrowthN0::r (default 2)
 #' @param v.T50					Parameter of BEAST::LogisticGrowthN0::T50
@@ -1570,8 +1612,9 @@ prog.PANGEA.SeqGen.createInputFile<- function()
 #' @example example/ex.pipeline.DSPS.R
 #' @export
 rPANGEAHIVsim.pipeline.args<- function(	yr.start=1980, yr.end=2020, seed=42,
-										s.INC.recent=0.1, s.INC.recent.len=5, s.PREV.min=0.01, s.PREV.max=0.25, s.PREV.base=exp(1), s.INTERVENTION.start=2015, s.INTERVENTION.mul= 2, s.ARCHIVAL.n=50, s.MODEL='Prop2DiagB4I', 
-										epi.model='HPTN071', epi.dt=1/48, epi.import=0.1,
+										s.INC.recent=0.1, s.INC.recent.len=5, s.PREV.min=0.01, s.PREV.max=0.25, s.PREV.base=exp(1), s.INTERVENTION.start=2015, 
+										s.INTERVENTION.mul= 2, s.ARCHIVAL.n=50, s.MODEL='Prop2DiagB4I', s.PREV.max.n=NA, s.INTERVENTION.prop=NA,
+										epi.model='HPTN071', epi.dt=1/48, epi.import=0.1, root.edge.fixed=0,
 										v.N0tau=3.58e4, v.r=2, v.T50=-1,
 										wher.mu=0.005, wher.sigma=0.8,
 										bwerm.mu=1.5, bwerm.sigma=0.12, er.gamma=4, 
@@ -1626,8 +1669,8 @@ rPANGEAHIVsim.pipeline.args<- function(	yr.start=1980, yr.end=2020, seed=42,
 		set(df.sample, NULL, 's.PREV.max', df.sample[, factor(s.PREV.max, levels=c('0.11','0.15','0.185'), labels=c('A','B','C'))]) 			
 		ggplot(df.sample, aes(x=YR, y=s.fraction, colour=s.PREV.max)) + geom_line() + scale_y_continuous(breaks=seq(0, 0.16, 0.02)) + labs(colour='scenario', x='year', y='sampling fraction')		
 	}
-	pipeline.args	<- data.table(	stat= 	c('yr.start','yr.end','s.MODEL','s.INC.recent','s.INC.recent.len', 's.PREV.min', 's.PREV.max', 's.INTERVENTION.start', 's.INTERVENTION.mul', 's.ARCHIVAL.n', 's.seed', 'index.starttime.mode', 'startseq.mode', 'seqtime.mode','epi.model', 'epi.dt', 'epi.import','v.N0tau','v.r','v.T50','wher.mu','wher.sigma','bwerm.mu','bwerm.sigma','er.gamma','sp.prop.of.sexactive','report.prop.recent','dbg.GTRparam','dbg.rER'), 
-									v	=	c(yr.start, yr.end, s.MODEL, s.INC.recent, s.INC.recent.len, s.PREV.min, s.PREV.max, s.INTERVENTION.start, s.INTERVENTION.mul, s.ARCHIVAL.n, seed, index.starttime.mode, startseq.mode, seqtime.mode, epi.model, epi.dt, epi.import, v.N0tau, v.r, v.T50, wher.mu, wher.sigma, bwerm.mu, bwerm.sigma, er.gamma, sp.prop.of.sexactive, report.prop.recent, dbg.GTRparam, dbg.rER) )
+	pipeline.args	<- data.table(	stat= 	c('yr.start','yr.end','s.MODEL','s.INC.recent','s.INC.recent.len', 's.PREV.min', 's.PREV.max', 's.PREV.max.n', 's.INTERVENTION.prop', 's.INTERVENTION.start', 's.INTERVENTION.mul', 's.ARCHIVAL.n', 's.seed', 'index.starttime.mode', 'startseq.mode', 'seqtime.mode','root.edge.fixed','epi.model', 'epi.dt', 'epi.import','v.N0tau','v.r','v.T50','wher.mu','wher.sigma','bwerm.mu','bwerm.sigma','er.gamma','sp.prop.of.sexactive','report.prop.recent','dbg.GTRparam','dbg.rER'), 
+									v	=	c(yr.start, yr.end, s.MODEL, s.INC.recent, s.INC.recent.len, s.PREV.min, s.PREV.max, s.PREV.max.n, s.INTERVENTION.prop, s.INTERVENTION.start, s.INTERVENTION.mul, s.ARCHIVAL.n, seed, index.starttime.mode, startseq.mode, seqtime.mode, root.edge.fixed, epi.model, epi.dt, epi.import, v.N0tau, v.r, v.T50, wher.mu, wher.sigma, bwerm.mu, bwerm.sigma, er.gamma, sp.prop.of.sexactive, report.prop.recent, dbg.GTRparam, dbg.rER) )
 	setkey(pipeline.args, stat)	
 	pipeline.args
 }
@@ -1695,7 +1738,7 @@ rPANGEAHIVsim.pipeline<- function(indir, infile.ind, infile.trm, outdir, pipelin
 	outfile			<- substr(infile.ind, 1, nchar(infile.ind)-7)
 	cmd				<- paste(cmd, cmd.SeqGen.run(outdir.TrChain, infile.epi, outdir.SG, outfile, infile.args, outdir), sep='')
 	##	clean up
-	#cmd				<- paste(cmd,'rm -rf ',outdir.TrChain,' ', outdir.VTS,' ', outdir.SG,'\n',sep='')
+	cmd				<- paste(cmd,'rm -rf ',outdir.TrChain,' ', outdir.VTS,' ', outdir.SG,'\n',sep='')
 	cmd				<- paste(cmd,"#######################################################
 #######################################################
 #######################################################
@@ -1932,7 +1975,7 @@ prog.HPTN071.input.parser.v1<- function()
 		tmp	<- merge(	melt(df.sample, id.vars='YR', measure.vars=c('POP','PREV','INC','s.n.TOTAL','s.n.INC','s.n.notINC'), variable.name='stat', value.name='v'),
 				tmp, by='stat' )
 		ggplot(tmp, aes(x=YR, y=v, group=stat.long)) + geom_point() +
-				scale_x_continuous(name='year', breaks=seq(1980,2020,2)) + scale_y_continuous(name='total')	+
+				scale_x_continuous(name='year', breaks=seq(1980,pipeline.args['yr.end',][, as.numeric(v)],2)) + scale_y_continuous(name='total')	+
 				facet_grid(stat.long ~ ., scales='free_y', margins=FALSE)
 		file<- paste(substr(outfile.ind, 1, nchar(outfile.ind)-7),'INFO_Totals.pdf',sep='')
 		ggsave(file=file, w=16, h=8)
@@ -2570,9 +2613,9 @@ prog.HPTN071.input.parser.v4<- function()
 	df.trm	<- merge(df.trm, unique(tmp), by='IDTR', all.x=TRUE)
 	stopifnot( df.trm[, !any(TIME_TR<=IDTR_TIME_INFECTED, na.rm=TRUE)] )
 	#	simulate time individual ready for sequencing
-	df.ind	<- PANGEA.Seqsampler.SimulateGuideToSamplingTimes.v2(df.ind, seqtime.mode= pipeline.args['seqtime.mode',][,v])
-	stopifnot( df.ind[, all(T1_SEQ<=ART1_T, na.rm=TRUE)] )
-	cat(paste('\nFound % not sampled at ART start, % sampled at ART start among those with ART start=', paste( subset(df.ind, !is.na(DIAG_T))[, table(T1_SEQ==ART1_T)/length(which(!is.na(ART1_T)))], collapse=', ') ))
+	df.ind	<- PANGEA.Seqsampler.SimulateGuideToSamplingTimes.v2(df.ind, seqtime.mode= pipeline.args['seqtime.mode',][,v])	
+	cat(paste('\nFound % sampled at or after ART start=', subset(df.ind, !is.na(DIAG_T))[, mean(!is.na(ART1_T) & T1_SEQ>=ART1_T, na.rm=TRUE)] ))
+	cat(paste('\nFound % sampled after end of first viral suppression=', subset(df.ind, !is.na(DIAG_T))[, mean(!is.na(VLS1_TE) & T1_SEQ>=VLS1_TE, na.rm=TRUE)] ))
 	# 
 	#
 	#	reduce to time frame of interest
@@ -2595,8 +2638,8 @@ prog.HPTN071.input.parser.v4<- function()
 	#	set infection times for index case
 	#
 	#	add IDTR_TIME_INFECTED for baseline cases
-	tmp		<- df.trm[, which(is.na(IDTR_TIME_INFECTED))]	
-	set( df.trm, tmp, 'IDTR_TIME_INFECTED', df.trm[tmp, runif(length(tmp), TIME_TR-5, TIME_TR)] )	
+	#tmp		<- df.trm[, which(is.na(IDTR_TIME_INFECTED))]	
+	#set( df.trm, tmp, 'IDTR_TIME_INFECTED', df.trm[tmp, runif(length(tmp), TIME_TR-5, TIME_TR)] )	
 	tmp		<- PANGEA.ImportSimulator.SimulateStartingTimeOfIndexCase.v2(df.ind, df.trm, index.starttime.mode= pipeline.args['index.starttime.mode',][,v])
 	df.trm	<- tmp$df.trm
 	df.ind	<- tmp$df.ind	

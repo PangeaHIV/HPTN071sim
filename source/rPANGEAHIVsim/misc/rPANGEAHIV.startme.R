@@ -27,7 +27,7 @@ HOME		<<- "/Users/Oliver/git/HPTN071sim/"
 #HOME		<<- "/work/or105/ATHENA_2013"
 DATA		<<- paste(HOME,"data",sep='/')
 
-DEBUG		<<- 0		#If 1, a dump file is created that can be loaded and computations can be inspected at the point of error.
+DEBUG		<<- 1		#If 1, a dump file is created that can be loaded and computations can be inspected at the point of error.
 LIB.LOC		<<- NULL
 #LIB.LOC	<<- paste(CODE.HOME,"../",sep='')
 EPS			<<- 1e-12	#Machine precision	
@@ -57,7 +57,8 @@ if(length(args))
 					HPTN071.INPUT.PARSER4	= "prog.HPTN071.input.parser.v4",
 					DSPS.INPUT.PARSER2		= "prog.DSPS.input.parser.v2",
 					PR.SEQGEN.FILECREATOR	= "prog.PANGEA.SeqGen.createInputFile",
-					PR.SEQGEN.SIMULATOR		= "prog.PANGEA.SeqGen.run.v4"
+					PR.SEQGEN.SIMULATOR		= "prog.PANGEA.SeqGen.run.v4",
+					SKYGRID					= "project.PANGEA.TEST.SSApg.CLUSTERBEAST.skygrid"
 					)
 	}
 	tmp<- na.omit(sapply(args,function(arg)
@@ -113,8 +114,8 @@ my.dumpframes<- function()
 {
 	geterrmessage()
 	dump.frames()
-	cat(paste("\nmy.dumpframes dump 'last.dump' to file",paste(DATA,paste("debug_",paste(strsplit(date(),' ')[[1]],collapse='_'),".rda\n",sep=''),sep='/')))
-	save(last.dump, file=paste(DATA,paste("debug_",paste(strsplit(date(),' ')[[1]],collapse='_'),".rda",sep=''),sep='/'))
+	cat(paste("\nmy.dumpframes dump 'last.dump' to file",paste(HOME,paste("debug_",paste(strsplit(date(),' ')[[1]],collapse='_'),".rda\n",sep=''),sep='')))
+	save(last.dump, file=paste(HOME,paste("debug_",paste(strsplit(date(),' ')[[1]],collapse='_'),".rda",sep=''),sep=''))
 	q()
 }
 ###############################################################################

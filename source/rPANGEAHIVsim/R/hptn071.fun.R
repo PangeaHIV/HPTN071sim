@@ -18,11 +18,31 @@ seq.singleton2bifurcatingtree<- function(ph.s, dummy.label=NA)
 		if(is.na(dummy.label))
 			dummy.label		<- paste('DUMMY',ph.s$tip.label, sep='_')
 		ph.s$edge			<- matrix(c(3,1,3,2), nrow=2, ncol=2, byrow=TRUE) 	
-		ph.s$edge.length	<- c(0,0)
+		ph.s$edge.length	<- c(ph.s$root.edge,0)
 		ph.s$tip.label		<- c(ph.s$tip.label, dummy.label)
+		ph.s$root.edge		<- 0
 		ph.s$Nnode			<- 1
 	}
 	ph.s
+}
+##--------------------------------------------------------------------------------------------------------
+#	olli copied from hivclust
+##--------------------------------------------------------------------------------------------------------
+seq.addrootnode<- function(ph, dummy.label)
+{	
+	ph$tip.label	<- c(ph$tip.label, dummy.label)
+	tmp				<- which( ph$edge[,1]>=Ntip(ph) )
+	ph$edge[tmp,1]	<- ph$edge[tmp,1] + 2 
+	tmp				<- which( ph$edge[,2]>=Ntip(ph) )
+	ph$edge[tmp,2]	<- ph$edge[tmp,2] + 2 
+	if(Nnode(ph)>0)
+		ph$edge		<- rbind( matrix(c(Ntip(ph)+1,Ntip(ph)+1,Ntip(ph),Ntip(ph)+2), nrow=2, ncol=2), ph$edge)
+	if(Nnode(ph)==0)
+		ph$edge		<- rbind( matrix(c(Ntip(ph)+1,Ntip(ph)+1,Ntip(ph),Ntip(ph)-1), nrow=2, ncol=2), ph$edge)
+	ph$edge.length	<- c(0,ph$root.edge, ph$edge.length)
+	ph$root.edge	<- 0
+	ph$Nnode		<- ph$Nnode+1
+	ph
 }
 ##--------------------------------------------------------------------------------------------------------
 #	olli copied from hivclust
@@ -483,6 +503,7 @@ PANGEA.ImportSimulator.SimulateStartingTimeOfIndexCase.v2<- function(df.ind, df.
 	if( grepl('fix',index.starttime.mode) ) 
 	{
 		tmp2		<- as.numeric(substring(index.starttime.mode, 4))
+		stopifnot(tmp2<=1980)
 		cat(paste('\nUsing index.starttime.mode rep=', tmp2))
 		set(tmp, NULL, 'IDTR_TIME_INFECTED.new', rep(tmp2, nrow(tmp)) )
 	}	
@@ -575,13 +596,13 @@ PANGEA.ImportSimulator.SimulateStartingTimeOfIndexCase<- function(df.ind, df.trm
 #	simulates seroprevalence survey of a proportion of a population	
 #	olli originally written 29-01-2015
 ##--------------------------------------------------------------------------------------------------------
-PANGEA.SeroPrevalenceSurvey<- function(df.inds, epi.adult=13, s.INTERVENTION.start=2015, sp.prop.of.sexactive=0.05, sp.times=c(15, 10, 5, 0), verbose=1)
+PANGEA.SeroPrevalenceSurvey<- function(df.inds, epi.adult=13, s.INTERVENTION.start=2015, sp.prop.of.sexactive=0.05, sp.times=c(12, 8, 4, 0), verbose=1, test=0)
 {		
 	df.sp	<- lapply( s.INTERVENTION.start-sp.times, function(yr)
 			{
-				yr			<- yr+.5
+				yr			<- yr-1/365
 				sxon.all	<- which( (df.inds[['DOB']]+epi.adult)<=yr  &  df.inds[['DOD']]>yr )
-				sxon.sp		<- sample(sxon.all, round(length(sxon.all)*sp.prop.of.sexactive) )
+				sxon.sp		<- sort(sample(sxon.all, round(length(sxon.all)*sp.prop.of.sexactive) ))
 				if(verbose)
 				{
 					cat(paste('\nSero prevalence survey in year', yr))
@@ -595,7 +616,10 @@ PANGEA.SeroPrevalenceSurvey<- function(df.inds, epi.adult=13, s.INTERVENTION.sta
 				df.sp
 			})
 	df.sp	<- do.call('rbind', df.sp)	
-	df.sp	<- df.sp[, list( ALIVE_N=length(IDPOP), ALIVE_AND_DIAG_N=length(which(DIAG_T<=YR)), ALIVE_AND_ART_N=length(which(ART1_T<=YR)), ALIVE_AND_SEQ_N=length(which(TIME_SEQ<=YR)) ), by=c('YR', 'GENDER', 'AGE')]
+	if(test)
+		df.sp	<- df.sp[, list( ALIVE_N=length(IDPOP), ALIVE_AND_HIV_N=length(which(TIME_TR<=YR)), ALIVE_AND_DIAG_N=length(which(DIAG_T<=YR)), ALIVE_AND_ART_N=length(which(ART1_T<=YR)), ALIVE_AND_SEQ_N=length(which(TIME_SEQ<=YR)) ), by=c('YR', 'GENDER', 'AGE')]
+	if(!test)
+		df.sp	<- df.sp[, list( ALIVE_N=length(IDPOP), ALIVE_AND_DIAG_N=length(which(DIAG_T<=YR)), ALIVE_AND_ART_N=length(which(ART1_T<=YR)), ALIVE_AND_SEQ_N=length(which(TIME_SEQ<=YR)) ), by=c('YR', 'GENDER', 'AGE')]	
 	setkey(df.sp, YR, GENDER, AGE)
 	df.sp
 }
@@ -640,7 +664,7 @@ PANGEA.ImportSimulator.SimulateIndexCase<- function(df.ind, df.trm, epi.import)
 ##--------------------------------------------------------------------------------------------------------
 PANGEA.Seqsampler.SimulateGuideToSamplingTimes.v2<- function(df.ind, seqtime.mode)
 {
-	stopifnot(grepl('DUnif|Exp|AtDiag|AtART|AtTrm',seqtime.mode))
+	stopifnot(grepl('DUnif|Exp|AtDiag|AtART|AtTrm|AtYear',seqtime.mode))
 	cat(paste('\nUsing seqtime.mode=', seqtime.mode ))
 	if(grepl('Exp',seqtime.mode))
 	{
@@ -653,6 +677,17 @@ PANGEA.Seqsampler.SimulateGuideToSamplingTimes.v2<- function(df.ind, seqtime.mod
 		set( df.ind, tmp, 'T1_SEQ', df.ind[tmp, runif(length(tmp), TIME_TR+0.5, DOD)] )		
 		tmp		<- df.ind[, which( is.na(DIAG_T) & T1_SEQ>min(DIAG_T, na.rm=1) )]
 		set( df.ind, tmp, 'T1_SEQ', NA_real_)
+		tmp	<- df.ind[, which(T1_SEQ>ART1_T)]
+		set(df.ind, tmp, 'T1_SEQ', df.ind[tmp,ART1_T])		
+	}
+	if(grepl('AtYear',seqtime.mode))
+	{
+		tmp		<- as.numeric(substring(seqtime.mode,7))
+		stopifnot(is.finite(tmp))
+		cat(paste('\nPANGEA.Seqsampler.SimulateGuideToSamplingTimes.v2: sequencing years after infection=', tmp))		
+		df.ind[, T1_SEQ:= tmp + df.ind[,TIME_TR]]
+		tmp		<- df.ind[, which(!is.na(T1_SEQ) & DOD<T1_SEQ)]
+		set(df.ind, tmp, 'T1_SEQ', df.ind[tmp, (DOD-TIME_TR)*.9 + TIME_TR])
 	}
 	if(grepl('DUnif',seqtime.mode))
 	{
@@ -665,12 +700,16 @@ PANGEA.Seqsampler.SimulateGuideToSamplingTimes.v2<- function(df.ind, seqtime.mod
 		set( df.ind, tmp, 'T1_SEQ', df.ind[tmp, runif(length(tmp), TIME_TR+0.5, DOD)] )		
 		tmp		<- df.ind[, which( is.na(DIAG_T) & T1_SEQ>min(DIAG_T, na.rm=1) )]
 		set( df.ind, tmp, 'T1_SEQ', NA_real_)
+		tmp	<- df.ind[, which(T1_SEQ>ART1_T)]
+		set(df.ind, tmp, 'T1_SEQ', df.ind[tmp,ART1_T])		
 	}
 	if(seqtime.mode=='AtTrm')
 	{
 		df.ind[, T1_SEQ:= df.ind[, TIME_TR+0.1]]	
 		tmp		<- df.ind[, which(is.na(T1_SEQ) & DOD<T1_SEQ)]
 		set( df.ind, tmp, 'T1_SEQ', df.ind[tmp, TIME_TR+(TIME_TR+DOD)/2] )
+		tmp	<- df.ind[, which(T1_SEQ>ART1_T)]
+		set(df.ind, tmp, 'T1_SEQ', df.ind[tmp,ART1_T])		
 	}	
 	if(seqtime.mode=='AtDiag')
 	{
@@ -679,6 +718,8 @@ PANGEA.Seqsampler.SimulateGuideToSamplingTimes.v2<- function(df.ind, seqtime.mod
 		set( df.ind, tmp, 'T1_SEQ', df.ind[tmp, runif(length(tmp), TIME_TR+0.5, DOD)] )
 		tmp		<- df.ind[, which( is.na(DIAG_T) & T1_SEQ>min(DIAG_T, na.rm=1) )]
 		set( df.ind, tmp, 'T1_SEQ', NA_real_)
+		tmp	<- df.ind[, which(T1_SEQ>ART1_T)]
+		set(df.ind, tmp, 'T1_SEQ', df.ind[tmp,ART1_T])		
 	}
 	if(seqtime.mode=='AtART')
 	{
@@ -687,9 +728,9 @@ PANGEA.Seqsampler.SimulateGuideToSamplingTimes.v2<- function(df.ind, seqtime.mod
 		set( df.ind, tmp, 'T1_SEQ', df.ind[tmp, runif(length(tmp), TIME_TR+0.5, DOD)] )
 		tmp		<- df.ind[, which( is.na(DIAG_T) & T1_SEQ>min(DIAG_T, na.rm=1) )]
 		set( df.ind, tmp, 'T1_SEQ', NA_real_)
+		tmp	<- df.ind[, which(T1_SEQ>ART1_T)]
+		set(df.ind, tmp, 'T1_SEQ', df.ind[tmp,ART1_T])		
 	}
-	tmp	<- df.ind[, which(T1_SEQ>ART1_T)]
-	set(df.ind, tmp, 'T1_SEQ', df.ind[tmp,ART1_T])
 	df.ind
 }
 ##--------------------------------------------------------------------------------------------------------
@@ -722,17 +763,22 @@ PANGEA.Seqsampler.SimulateGuideToSamplingTimes<- function(df.ind, seqtime.mode)
 #
 #	olli originally written 27-01-2015
 ##--------------------------------------------------------------------------------------------------------
-PANGEA.Seqsampler.sample.prop.to.untreated<- function(df.ind, df.epi, pipeline.args)
+PANGEA.Seqsampler.sample.prop.to.untreated<- function(df.ind, df.epi, pipeline.args, sp, verbose=1)
 {	
-	s.total					<- round( df.epi[nrow(df.epi), PREV] * pipeline.args['s.PREV.max',][, as.numeric(v)] )	
-	cat(paste('\nSample proportional to untreated population'))
-	cat(paste('\nSampling sequences, target is n=', s.total))
+	s.total					<- round( df.epi[nrow(df.epi), PREV_EVER] * sp )
+	if(verbose)
+	{
+		cat(paste('\nSample proportional to untreated population'))
+		cat(paste('\nSampling sequences, target is n=', s.total))		
+	}
 	#	setup number of sequences to be sampled for each year
 	df.sample	<- subset( df.epi, YR>= pipeline.args['yr.start',][, as.numeric(v)] & YR<pipeline.args['yr.end',][, as.numeric(v)] )	
-	set(df.sample, NULL, 's.nTOTAL', as.numeric(rmultinom(1, s.total, df.sample[, PREV-TREATED]/ df.epi[, sum(PREV-TREATED)])) )	
-	cat(paste('\nSampling sequences, scheduled number is n=', df.sample[, sum(s.nTOTAL)]))
+	set(df.sample, NULL, 's.nTOTAL', as.numeric(rmultinom(1, s.total, df.sample[, PREV-TREATED]/ df.epi[, sum(PREV-TREATED)])) )
+	if(verbose)
+		cat(paste('\nSampling sequences, scheduled number is n=', df.sample[, sum(s.nTOTAL)]))
 	stopifnot(df.sample[, all(s.nTOTAL>=0)])
-	cat(paste('\n prop of sequences sampled among HIV+=', df.sample[, sum( s.nTOTAL )] / df.sample[, rev(PREV)[1]]))
+	if(verbose)
+		cat(paste('\n prop of sequences sampled among HIV+=', df.sample[, sum( s.nTOTAL )] / df.sample[, rev(PREV_EVER)[1]]))
 	#
 	#	SAMPLE INFECTED INDIVIDUALS BASED ON NUMBERS PER YEAR
 	#
@@ -742,19 +788,76 @@ PANGEA.Seqsampler.sample.prop.to.untreated<- function(df.ind, df.epi, pipeline.a
 	for(yr in df.sample[, YR])		#TODO took out [-1] because there are s.n.notINC for DSPS in 1980
 	{
 		#	of all infected and not incident and not yet sampled, sample
-		cat(paste('\nadd samples in year',yr,', required=', subset( df.sample, YR==yr )[, s.nTOTAL]))
+		if(verbose)
+			cat(paste('\nadd samples in year',yr,', required=', subset( df.sample, YR==yr )[, s.nTOTAL]))
 		tmp		<- df.inds[, which(is.na(TIME_SEQ) & floor(DOB)<=yr & ceiling(DOD)>yr+1 & yr-floor(TIME_TR)>=0)]
-		cat(paste('\navailable non-sampled HIV+ individuals in year=', length(tmp)))
+		if(verbose)
+			cat(paste('\navailable non-sampled HIV+ individuals in year=', length(tmp)))
 		tmp		<- df.inds[, which(is.na(TIME_SEQ) & floor(DOB)<=yr & ceiling(DOD)>yr+1 & yr-floor(T1_SEQ)==0)]
-		cat(paste('\navailable non-sampled HIV+ individuals with suggested sampling date in year=', length(tmp)))
+		if(verbose)
+			cat(paste('\navailable non-sampled HIV+ individuals with suggested sampling date in year=', length(tmp)))
 		stopifnot(length(tmp)>0)
 		tmp		<- sample(tmp, subset( df.sample, YR==yr )[, s.nTOTAL])
 		set( df.inds, tmp, 'TIME_SEQ', df.inds[tmp, T1_SEQ] )				
 	}
 	stopifnot( df.inds[, !any(TIME_SEQ>DOD, na.rm=TRUE)] )
-	stopifnot( df.inds[, !any(TIME_SEQ<TIME_TR, na.rm=TRUE)] )	
-	cat(paste('\n total number of HIV+ in df.inds=', nrow(subset(df.inds, !is.na(TIME_TR)))))
-	cat(paste('\n total number of sampled HIV+ in df.inds=', nrow(subset(df.inds, !is.na(TIME_TR) & !is.na(TIME_SEQ)))))
+	stopifnot( df.inds[, !any(TIME_SEQ<TIME_TR, na.rm=TRUE)] )
+	if(verbose)
+	{
+		cat(paste('\n total number of HIV+ in df.inds=', nrow(subset(df.inds, !is.na(TIME_TR)))))
+		cat(paste('\n total number of sampled HIV+ in df.inds=', nrow(subset(df.inds, !is.na(TIME_TR) & !is.na(TIME_SEQ)))))		
+	}
+	list(df.inds=df.inds, df.sample=df.sample)
+}
+##--------------------------------------------------------------------------------------------------------
+#	sample proportional to infected
+#	olli originally written 03-04-2015
+##--------------------------------------------------------------------------------------------------------
+PANGEA.Seqsampler.sample.prop.to.T1SEQ<- function(df.ind, df.epi, pipeline.args, verbose=0)
+{	
+	sp						<- pipeline.args['s.PREV.max',][, as.numeric(v)]
+	if(verbose)
+	{
+		cat(paste('\nSample proportional to T1SEQ'))
+		cat(paste('\nSampling fraction per year is n=', sp))		
+	}
+	#	setup number of sequences to be sampled for each year
+	df.sample	<- subset( df.epi, YR>= pipeline.args['yr.start',][, as.numeric(v)] & YR<pipeline.args['yr.end',][, as.numeric(v)] )
+	set(df.sample, NULL, 's.nTOTAL', 0)	
+	set(df.sample, NULL, 's.nTOTAL', rbinom(nrow(df.sample), df.sample[, T1_SEQ], sp) )
+	if(verbose)
+		cat(paste('\nSampling sequences, scheduled number is n=', df.sample[, sum(s.nTOTAL)]))
+	stopifnot(df.sample[, all(s.nTOTAL>=0)])
+	#
+	#	SAMPLE INFECTED INDIVIDUALS BASED ON NUMBERS PER YEAR
+	#
+	#	sample non-incident cases by year
+	df.inds		<- copy(df.ind)
+	df.inds[, TIME_SEQ:= NA_real_]
+	for(yr in df.sample[, YR])		#TODO took out [-1] because there are s.n.notINC for DSPS in 1980
+	{
+		#	of all infected and not incident and not yet sampled, sample
+		if(verbose)
+			cat(paste('\nadd samples in year',yr,', required=', subset( df.sample, YR==yr )[, s.nTOTAL]))
+		tmp		<- df.inds[, which(is.na(TIME_SEQ) & floor(T1_SEQ)==yr & TIME_TR>=pipeline.args['yr.start',][, as.numeric(v)]) ]
+		if(verbose)
+			cat(paste('\navailable non-sampled HIV+ individuals in year=', length(tmp)))
+		stopifnot(length(tmp)>0)
+		tmp		<- sample(tmp, subset( df.sample, YR==yr )[, s.nTOTAL])
+		if(verbose)
+			cat(paste('\nfound samples in year',yr,', required=', length(tmp)))		
+		set( df.inds, tmp, 'TIME_SEQ', df.inds[tmp, T1_SEQ] )				
+	}
+	stopifnot( df.inds[, !any(TIME_SEQ>DOD, na.rm=TRUE)] )
+	stopifnot( df.inds[, !any(TIME_SEQ<TIME_TR, na.rm=TRUE)] )
+	if(verbose)
+	{
+		cat(paste('\n total number of HIV+ after start in df.inds=', nrow(subset(df.inds, IDPOP>=0 & !is.na(TIME_TR) & floor(TIME_TR)>=pipeline.args['yr.start',][, as.numeric(v)] ))))
+		cat(paste('\n total number of sampled HIV+ after start in df.inds=', nrow(subset(df.inds, IDPOP>=0 & !is.na(TIME_TR) & floor(TIME_TR)>=pipeline.args['yr.start',][, as.numeric(v)] & !is.na(TIME_SEQ)))))		
+		cat(paste('\n total number of non-sampled HIV+ after start in df.inds=', nrow(subset(df.inds, !is.na(TIME_TR) & is.na(TIME_SEQ) & IDPOP>=0 & floor(TIME_TR)>=pipeline.args['yr.start',][, as.numeric(v)] ))))
+		cat(paste('\n total number of non-sampled HIV+ after start with TIME_TR before end in df.inds=', nrow(subset(df.inds, !is.na(TIME_TR) & is.na(TIME_SEQ) & IDPOP>=0 & TIME_TR<pipeline.args['yr.end',][, as.numeric(v)] & floor(TIME_TR)>=pipeline.args['yr.start',][, as.numeric(v)] ))))
+		cat(paste('\n total number of non-sampled HIV+ after start with T1_SEQ before end in df.inds=', nrow(subset(df.inds, !is.na(TIME_TR) & is.na(TIME_SEQ) & IDPOP>=0 & T1_SEQ<pipeline.args['yr.end',][, as.numeric(v)] & floor(TIME_TR)>=pipeline.args['yr.start',][, as.numeric(v)] ))))
+	}
 	list(df.inds=df.inds, df.sample=df.sample)
 }
 ##--------------------------------------------------------------------------------------------------------
@@ -765,9 +868,9 @@ PANGEA.Seqsampler.sample.prop.to.untreated<- function(df.ind, df.epi, pipeline.a
 #
 #	olli originally written 27-01-2015
 ##--------------------------------------------------------------------------------------------------------
-PANGEA.Seqsampler.sample.prop.to.diagnosis<- function(df.ind, df.epi, pipeline.args)
+PANGEA.Seqsampler.sample.prop.to.diagnosis<- function(df.ind, df.epi, pipeline.args, sp)
 {
-	s.total					<- round( df.epi[nrow(df.epi), PREV] * pipeline.args['s.PREV.max',][, as.numeric(v)] )
+	s.total					<- round( df.epi[nrow(df.epi), PREV] * sp )
 	s.archival.yr			<- subset(df.epi, DIAG==0)[, tail(YR,1)]
 	s.diagb4intervention.n	<- subset( df.epi, YR<pipeline.args['s.INTERVENTION.start',][, as.numeric(v)] )[, tail(DIAG,1)]
 	s.diagb4intervention	<- (s.total-pipeline.args['s.ARCHIVAL.n',][, as.numeric(v)]) / (s.diagb4intervention.n+pipeline.args['s.INTERVENTION.mul'][, as.numeric(v)]*(df.epi[nrow(df.epi), DIAG]-s.diagb4intervention.n))
@@ -789,7 +892,7 @@ PANGEA.Seqsampler.sample.prop.to.diagnosis<- function(df.ind, df.epi, pipeline.a
 	cat(paste('\nSampling sequences, scheduled number is n=', df.sample[, sum(s.nTOTAL)]))
 	stopifnot(df.sample[, all(s.nTOTAL>=0)])
 	cat(paste('\n prop of sequences sampled among HIV+=', df.sample[, sum( s.nTOTAL )] / df.sample[, rev(PREV)[1]]))
-	stopifnot( abs(pipeline.args['s.PREV.max',][, as.numeric(v)]-df.sample[, sum( s.nTOTAL )] / df.sample[, rev(PREV)[1]])<=pipeline.args['s.PREV.max',][, as.numeric(v)]*0.1 )
+	stopifnot( abs(sp-df.sample[, sum( s.nTOTAL )] / df.sample[, rev(PREV)[1]])<=sp*0.1 )
 	#
 	#	SAMPLE INFECTED INDIVIDUALS BASED ON NUMBERS PER YEAR
 	#
@@ -815,40 +918,43 @@ PANGEA.Seqsampler.sample.prop.to.diagnosis<- function(df.ind, df.epi, pipeline.a
 	list(df.inds=df.inds, df.sample=df.sample)
 }
 ##--------------------------------------------------------------------------------------------------------
-#	sample proportional to diagnoses before and after interventions
-#	s% of those newly diagnosed per year until 2015
-#	from before any diagnosed: 50 (uniform)
+#	sample a fixed proportion after the start of the intervention (2015)
 #	after 2015, a fixed amount per year
 #	olli originally written 27-01-2015
 ##--------------------------------------------------------------------------------------------------------
-PANGEA.Seqsampler.sample.prop.to.diagnosis.b4intervention<- function(df.ind, df.epi, pipeline.args)
+PANGEA.Seqsampler.sample.fixed.to.prop<- function(df.ind, df.epi, pipeline.args, sp, verbose=1)
 {
 	# 	SAMPLING PROBABILITIES and TOTALS PER YEAR
-	s.total					<- round( df.epi[nrow(df.epi), PREV] * pipeline.args['s.PREV.max',][, as.numeric(v)] )
+	s.total					<- round( df.epi[nrow(df.epi), PREV_EVER] * sp )
 	s.archival.yr			<- subset(df.epi, DIAG==0)[, tail(YR,1)]
-	s.diagb4intervention.n	<- subset( df.epi, YR<pipeline.args['s.INTERVENTION.start',][, as.numeric(v)] )[, tail(DIAG,1)]
-	s.diagb4intervention	<- (s.total-pipeline.args['s.ARCHIVAL.n',][, as.numeric(v)]) / (s.diagb4intervention.n+pipeline.args['s.INTERVENTION.mul'][, as.numeric(v)]*(df.epi[nrow(df.epi), DIAG]-s.diagb4intervention.n))
-	cat(paste('\nSample proportional to diagnoses up to intervention, and then a fixed amount per year'))
-	cat(paste('\nSampling sequences, target is n=', s.total))
-	cat(paste('\nNo diagnoses up to yr, sampling archival sequences till then. yr=', s.archival.yr))
-	cat(paste('\nSampling archival sequences before any diagnoses, n=', pipeline.args['s.ARCHIVAL.n',][, as.numeric(v)]))	
-	cat(paste('\nSampling sequences before intervention start from diagnosed, p=', s.diagb4intervention))
-	cat(paste('\nSampling sequences after intervention start from diagnosed, n=', round(s.diagb4intervention*pipeline.args['s.INTERVENTION.mul'][, as.numeric(v)]*(df.epi[nrow(df.epi), DIAG]-s.diagb4intervention.n))))
+	s.b4intervention.n		<- round(s.total*(1-pipeline.args['s.INTERVENTION.prop',][, as.numeric(v)]))
+	stopifnot(s.b4intervention.n>=pipeline.args['s.ARCHIVAL.n',][, as.numeric(v)])
+	if(verbose)
+	{
+		cat(paste('\nSample a fixed proportion after the start of the intervention (2015), and of those a fixed amount per year'))
+		cat(paste('\nSampling sequences, target is n=', s.total))
+		cat(paste('\nNo diagnoses up to yr, sampling archival sequences till then. yr=', s.archival.yr))
+		cat(paste('\nSampling archival sequences before any diagnoses, n=', pipeline.args['s.ARCHIVAL.n',][, as.numeric(v)]))
+		cat(paste('\nSampling sequences before intervention start from diagnosed, n=', s.b4intervention.n))
+		cat(paste('\nSampling sequences after intervention start from diagnosed, n=', s.total	- s.b4intervention.n))		
+	}
 	#	setup number of sequences to be sampled for each year
 	df.sample	<- subset( df.epi, YR>= pipeline.args['yr.start',][, as.numeric(v)] & YR<pipeline.args['yr.end',][, as.numeric(v)] )
 	set(df.sample, NULL, 's.nTOTAL', 0)	
 	tmp			<- df.sample[, which(YR<=s.archival.yr)]
-	set(df.sample, tmp, 's.nTOTAL', as.numeric(rmultinom(1, pipeline.args['s.ARCHIVAL.n',][, as.numeric(v)], rep(1/length(tmp), length(tmp)))))	
-	cat(paste('\nSampling sequences from archival, scheduled number is n=', df.sample[tmp, sum(s.nTOTAL)]))
+	set(df.sample, tmp, 's.nTOTAL', as.numeric(rmultinom(1, pipeline.args['s.ARCHIVAL.n',][, as.numeric(v)], rep(1/length(tmp), length(tmp)))))
+	if(verbose)
+		cat(paste('\nSampling sequences from archival, scheduled number is n=', df.sample[tmp, sum(s.nTOTAL)]))
 	tmp			<- df.sample[, which( YR>s.archival.yr & YR<pipeline.args['s.INTERVENTION.start',][, as.numeric(v)] )]	
-	set(df.sample, tmp, 's.nTOTAL', as.numeric(rmultinom(1, round( s.diagb4intervention.n*s.diagb4intervention ), df.sample[tmp, NEW_DIAG]/df.sample[tmp, sum(NEW_DIAG)])) )
-	cat(paste('\nSampling sequences before intervention, scheduled number is n=', df.sample[tmp, sum(s.nTOTAL)]))
+	set(df.sample, tmp, 's.nTOTAL', as.numeric(rmultinom(1, s.b4intervention.n-pipeline.args['s.ARCHIVAL.n',][, as.numeric(v)], df.sample[tmp, NEW_DIAG]/df.sample[tmp, sum(NEW_DIAG)])) )
+	if(verbose)
+		cat(paste('\nSampling sequences before intervention, scheduled number is n=', df.sample[tmp, sum(s.nTOTAL)]))
 	tmp			<- df.sample[, which(YR>=pipeline.args['s.INTERVENTION.start',][, as.numeric(v)]) ]
-	set(df.sample, tmp, 's.nTOTAL', as.numeric(rmultinom(1, round( (df.sample[nrow(df.sample), DIAG]-s.diagb4intervention.n)*pipeline.args['s.INTERVENTION.mul'][, as.numeric(v)]*s.diagb4intervention ), rep(1/length(tmp),length(tmp))) ) )
-	cat(paste('\nSampling sequences after intervention, scheduled number is n=', df.sample[tmp, sum(s.nTOTAL)]))
+	set(df.sample, tmp, 's.nTOTAL', as.numeric(rmultinom(1, s.total	- s.b4intervention.n, rep(1/length(tmp),length(tmp))) ) )
+	if(verbose)
+		cat(paste('\nSampling sequences after intervention, scheduled number is n=', df.sample[tmp, sum(s.nTOTAL)]))
 	stopifnot(df.sample[, all(s.nTOTAL>=0)])
-	cat(paste('\n prop of sequences sampled among HIV+=', df.sample[, sum( s.nTOTAL )] / df.sample[, rev(PREV)[1]]))	
-	stopifnot( abs(pipeline.args['s.PREV.max',][, as.numeric(v)]-df.sample[, sum( s.nTOTAL )] / df.sample[, rev(PREV)[1]])<=pipeline.args['s.PREV.max',][, as.numeric(v)]*0.1 )
+	#stopifnot( abs(sp-df.sample[, sum( s.nTOTAL )] / df.sample[, rev(PREV)[1]])<=sp*0.1 )
 	#
 	#	SAMPLE INFECTED INDIVIDUALS BASED ON NUMBERS PER YEAR
 	# 
@@ -858,18 +964,22 @@ PANGEA.Seqsampler.sample.prop.to.diagnosis.b4intervention<- function(df.ind, df.
 	for(yr in df.sample[, YR])		#TODO took out [-1] because there are s.n.notINC for DSPS in 1980
 	{
 		#	of all infected and not incident and not yet sampled, sample
-		cat(paste('\nadd samples in year',yr,', required=', subset( df.sample, YR==yr )[, s.nTOTAL]))
+		if(verbose)
+			cat(paste('\nadd samples in year',yr,', required=', subset( df.sample, YR==yr )[, s.nTOTAL]))
 		tmp		<- df.inds[, which(is.na(TIME_SEQ) & floor(DOB)<=yr & ceiling(DOD)>yr+1 & yr-floor(TIME_TR)>=0)]
-		cat(paste('\navailable non-sampled HIV+ individuals in year=', length(tmp)))
+		if(verbose)
+			cat(paste('\navailable non-sampled HIV+ individuals in year=', length(tmp)))
 		tmp		<- df.inds[, which(is.na(TIME_SEQ) & floor(DOB)<=yr & ceiling(DOD)>yr+1 & yr-floor(T1_SEQ)==0)]
-		cat(paste('\navailable non-sampled HIV+ individuals with suggested sampling date in year=', length(tmp)))		
-		stopifnot(length(tmp)>0)
+		if(verbose)
+			cat(paste('\navailable non-sampled HIV+ individuals with suggested sampling date in year=', length(tmp)))				
 		k		<- 1
 		while(length(tmp)<subset( df.sample, YR==yr )[, s.nTOTAL])
-		{			
-			cat(paste('\nCannot find samples, fall back to ',k,'th previous year; n=', subset( df.sample, YR==yr )[, s.nTOTAL]-length(tmp) ))
+		{	
+			if(verbose)
+				cat(paste('\nCannot find samples, fall back to ',k,'th previous year; n=', subset( df.sample, YR==yr )[, s.nTOTAL]-length(tmp) ))
 			tmp2	<- df.inds[, which(is.na(TIME_SEQ) & floor(DOB)<=yr & ceiling(DOD)>yr+1 & yr-floor(T1_SEQ)==k & (is.na(ART1_T) | ART1_T-yr<=1)) ]
-			cat(paste('\navailable non-sampled HIV+ individuals with suggested sampling date one year before=', length(tmp2)))
+			if(verbose)
+				cat(paste('\navailable non-sampled HIV+ individuals with suggested sampling date one year before=', length(tmp2)))
 			tmp2	<- sample(tmp2,  min(subset( df.sample, YR==yr )[, s.nTOTAL]-length(tmp), length(tmp2)) )
 			tmp		<- c(tmp, tmp2)
 			k		<- k+1
@@ -880,9 +990,97 @@ PANGEA.Seqsampler.sample.prop.to.diagnosis.b4intervention<- function(df.ind, df.
 		set( df.inds, tmp, 'TIME_SEQ', df.inds[tmp, T1_SEQ+yr-floor(T1_SEQ)] )			
 	}
 	stopifnot( df.inds[, !any(TIME_SEQ>DOD, na.rm=TRUE)] )
-	stopifnot( df.inds[, !any(TIME_SEQ<TIME_TR, na.rm=TRUE)] )	
-	cat(paste('\n total number of HIV+ in df.inds=', nrow(subset(df.inds, !is.na(TIME_TR)))))
-	cat(paste('\n total number of sampled HIV+ in df.inds=', nrow(subset(df.inds, !is.na(TIME_TR) & !is.na(TIME_SEQ)))))
+	stopifnot( df.inds[, !any(TIME_SEQ<TIME_TR, na.rm=TRUE)] )
+	if(verbose)
+	{
+		cat(paste('\n total number of HIV+ in df.inds=', nrow(subset(df.inds, !is.na(TIME_TR)))))
+		cat(paste('\n total number of sampled HIV+ in df.inds=', nrow(subset(df.inds, !is.na(TIME_TR) & !is.na(TIME_SEQ)))))
+	}
+	list(df.inds=df.inds, df.sample=df.sample)
+}
+##--------------------------------------------------------------------------------------------------------
+#	sample proportional to diagnoses before and after interventions
+#	s% of those newly diagnosed per year until 2015
+#	from before any diagnosed: 50 (uniform)
+#	after 2015, a fixed amount per year
+#	olli originally written 27-01-2015
+##--------------------------------------------------------------------------------------------------------
+PANGEA.Seqsampler.sample.prop.to.diagnosis.b4intervention<- function(df.ind, df.epi, pipeline.args, sp, verbose=1)
+{
+	# 	SAMPLING PROBABILITIES and TOTALS PER YEAR
+	s.total					<- round( df.epi[nrow(df.epi), PREV_EVER] * sp )
+	s.archival.yr			<- subset(df.epi, DIAG==0)[, tail(YR,1)]
+	s.diagb4intervention.n	<- subset( df.epi, YR<pipeline.args['s.INTERVENTION.start',][, as.numeric(v)] )[, tail(DIAG,1)]
+	s.diagb4intervention	<- (s.total-pipeline.args['s.ARCHIVAL.n',][, as.numeric(v)]) / (s.diagb4intervention.n+pipeline.args['s.INTERVENTION.mul'][, as.numeric(v)]*(df.epi[nrow(df.epi), DIAG]-s.diagb4intervention.n))
+	if(verbose)
+	{
+		cat(paste('\nSample proportional to diagnoses up to intervention, and then a fixed amount per year'))
+		cat(paste('\nSampling sequences, target is n=', s.total))
+		cat(paste('\nNo diagnoses up to yr, sampling archival sequences till then. yr=', s.archival.yr))
+		cat(paste('\nSampling archival sequences before any diagnoses, n=', pipeline.args['s.ARCHIVAL.n',][, as.numeric(v)]))
+		cat(paste('\nNumber of diagnoses before intervention, n=', s.diagb4intervention.n))
+		cat(paste('\nNumber of diagnoses after intervention start, n=', df.epi[nrow(df.epi), DIAG]-s.diagb4intervention.n))
+		cat(paste('\nSampling sequences before intervention start from diagnosed, p=', s.diagb4intervention))
+		cat(paste('\nSampling sequences after intervention start from diagnosed, n=', round(s.diagb4intervention*pipeline.args['s.INTERVENTION.mul'][, as.numeric(v)]*(df.epi[nrow(df.epi), DIAG]-s.diagb4intervention.n))))		
+	}
+	#	setup number of sequences to be sampled for each year
+	df.sample	<- subset( df.epi, YR>= pipeline.args['yr.start',][, as.numeric(v)] & YR<pipeline.args['yr.end',][, as.numeric(v)] )
+	set(df.sample, NULL, 's.nTOTAL', 0)	
+	tmp			<- df.sample[, which(YR<=s.archival.yr)]
+	set(df.sample, tmp, 's.nTOTAL', as.numeric(rmultinom(1, pipeline.args['s.ARCHIVAL.n',][, as.numeric(v)], rep(1/length(tmp), length(tmp)))))
+	if(verbose)
+		cat(paste('\nSampling sequences from archival, scheduled number is n=', df.sample[tmp, sum(s.nTOTAL)]))
+	tmp			<- df.sample[, which( YR>s.archival.yr & YR<pipeline.args['s.INTERVENTION.start',][, as.numeric(v)] )]	
+	set(df.sample, tmp, 's.nTOTAL', as.numeric(rmultinom(1, round( s.diagb4intervention.n*s.diagb4intervention ), df.sample[tmp, NEW_DIAG]/df.sample[tmp, sum(NEW_DIAG)])) )
+	if(verbose)
+		cat(paste('\nSampling sequences before intervention, scheduled number is n=', df.sample[tmp, sum(s.nTOTAL)]))
+	tmp			<- df.sample[, which(YR>=pipeline.args['s.INTERVENTION.start',][, as.numeric(v)]) ]
+	set(df.sample, tmp, 's.nTOTAL', as.numeric(rmultinom(1, round( (df.sample[nrow(df.sample), DIAG]-s.diagb4intervention.n)*pipeline.args['s.INTERVENTION.mul'][, as.numeric(v)]*s.diagb4intervention ), rep(1/length(tmp),length(tmp))) ) )
+	if(verbose)
+		cat(paste('\nSampling sequences after intervention, scheduled number is n=', df.sample[tmp, sum(s.nTOTAL)]))
+	stopifnot(df.sample[, all(s.nTOTAL>=0)])
+	#stopifnot( abs(sp-df.sample[, sum( s.nTOTAL )] / df.sample[, rev(PREV)[1]])<=sp*0.1 )
+	#
+	#	SAMPLE INFECTED INDIVIDUALS BASED ON NUMBERS PER YEAR
+	# 
+	#	sample non-incident cases by year
+	df.inds		<- copy(df.ind)
+	df.inds[, TIME_SEQ:= NA_real_]
+	for(yr in df.sample[, YR])		#TODO took out [-1] because there are s.n.notINC for DSPS in 1980
+	{
+		#	of all infected and not incident and not yet sampled, sample
+		if(verbose)
+			cat(paste('\nadd samples in year',yr,', required=', subset( df.sample, YR==yr )[, s.nTOTAL]))
+		tmp		<- df.inds[, which(is.na(TIME_SEQ) & floor(DOB)<=yr & ceiling(DOD)>yr+1 & yr-floor(TIME_TR)>=0)]
+		if(verbose)
+			cat(paste('\navailable non-sampled HIV+ individuals in year=', length(tmp)))
+		tmp		<- df.inds[, which(is.na(TIME_SEQ) & floor(DOB)<=yr & ceiling(DOD)>yr+1 & yr-floor(T1_SEQ)==0)]
+		if(verbose)
+			cat(paste('\navailable non-sampled HIV+ individuals with suggested sampling date in year=', length(tmp)))				
+		k		<- 1
+		while(length(tmp)<subset( df.sample, YR==yr )[, s.nTOTAL])
+		{	
+			if(verbose)
+				cat(paste('\nCannot find samples, fall back to ',k,'th previous year; n=', subset( df.sample, YR==yr )[, s.nTOTAL]-length(tmp) ))
+			tmp2	<- df.inds[, which(is.na(TIME_SEQ) & floor(DOB)<=yr & ceiling(DOD)>yr+1 & yr-floor(T1_SEQ)==k & (is.na(ART1_T) | ART1_T-yr<=1)) ]
+			if(verbose)
+				cat(paste('\navailable non-sampled HIV+ individuals with suggested sampling date one year before=', length(tmp2)))
+			tmp2	<- sample(tmp2,  min(subset( df.sample, YR==yr )[, s.nTOTAL]-length(tmp), length(tmp2)) )
+			tmp		<- c(tmp, tmp2)
+			k		<- k+1
+			stopifnot(k<=10)
+		}	
+		stopifnot(length(tmp)>=subset( df.sample, YR==yr )[, s.nTOTAL])
+		tmp		<- sample(tmp, subset( df.sample, YR==yr )[, s.nTOTAL])
+		set( df.inds, tmp, 'TIME_SEQ', df.inds[tmp, T1_SEQ+yr-floor(T1_SEQ)] )			
+	}
+	stopifnot( df.inds[, !any(TIME_SEQ>DOD, na.rm=TRUE)] )
+	stopifnot( df.inds[, !any(TIME_SEQ<TIME_TR, na.rm=TRUE)] )
+	if(verbose)
+	{
+		cat(paste('\n total number of HIV+ in df.inds=', nrow(subset(df.inds, !is.na(TIME_TR)))))
+		cat(paste('\n total number of sampled HIV+ in df.inds=', nrow(subset(df.inds, !is.na(TIME_TR) & !is.na(TIME_SEQ)))))
+	}
 	list(df.inds=df.inds, df.sample=df.sample)
 }
 ##--------------------------------------------------------------------------------------------------------
@@ -891,19 +1089,21 @@ PANGEA.Seqsampler.sample.prop.to.diagnosis.b4intervention<- function(df.ind, df.
 ##--------------------------------------------------------------------------------------------------------
 PANGEA.Seqsampler.v4<- function(df.ind, df.trm, pipeline.args, outfile.ind, outfile.trm, with.plot=1)
 {	
-	stopifnot(grepl('Prop2DiagB4I|Prop2Diag|Prop2Untreated',pipeline.args['s.MODEL',][, v]))
+	stopifnot(grepl('Fixed2Prop|Prop2DiagB4I|Prop2Diag|Prop2Untreated|Prop2SuggestedSampling',pipeline.args['s.MODEL',][, v]))
 	# 	compute prevalence and incidence by year	
 	epi.adult	<- 13
 	suppressWarnings( df.trm[, YR:= df.trm[, floor(TIME_TR)]] )
 	df.epi		<- df.trm[, list(INC=length(IDREC), INC_ACUTE=length(which(TR_ACUTE=='Yes')),IMPORT=length(which(IDTR<0))), by='YR']
 	tmp			<- df.epi[, 	{
-				sexactive	<- which( floor(df.ind[['DOB']]+epi.adult)<=YR  &  ceiling(df.ind[['DOD']])>YR )
-				infected	<- which( floor(df.ind[['DOB']])<=YR  &  floor(df.ind[['DOD']])>YR  &  floor(df.ind[['TIME_TR']])<=YR )
-				diag		<- which( floor(df.ind[['DOB']])<=YR  &  floor(df.ind[['DOD']])>YR  &  floor(df.ind[['DIAG_T']])<=YR )
-				diag.new	<- which( floor(df.ind[['DIAG_T']])==YR )
-				treated		<- which( floor(df.ind[['DOB']])<=YR  &  floor(df.ind[['DOD']])>YR  &  floor(df.ind[['ART1_T']])<=YR & (is.na(df.ind[['VLS1_TE']]) | floor(df.ind[['VLS1_TE']])>YR) )
-				infdead		<- which( floor(df.ind[['DOD']])==YR  &  floor(df.ind[['TIME_TR']])<=YR )
-				list(POP=length(sexactive), PREV=length(infected), PREVDIED=length(infdead), DIAG=length(diag), NEW_DIAG=length(diag.new), TREATED=length(treated))				
+				sexactive		<- which( floor(df.ind[['DOB']]+epi.adult)<=YR  &  ceiling(df.ind[['DOD']])>YR )
+				infected.ever	<- which( floor(df.ind[['TIME_TR']])<=YR )
+				infected		<- which( floor(df.ind[['DOB']])<=YR  &  floor(df.ind[['DOD']])>YR  &  floor(df.ind[['TIME_TR']])<=YR )
+				diag			<- which( floor(df.ind[['DOB']])<=YR  &  floor(df.ind[['DOD']])>YR  &  floor(df.ind[['DIAG_T']])<=YR )
+				diag.new		<- which( floor(df.ind[['DIAG_T']])==YR )
+				treated			<- which( floor(df.ind[['DOB']])<=YR  &  floor(df.ind[['DOD']])>YR  &  floor(df.ind[['ART1_T']])<=YR & (is.na(df.ind[['VLS1_TE']]) | floor(df.ind[['VLS1_TE']])>YR) )
+				infdead			<- which( floor(df.ind[['DOD']])==YR  &  floor(df.ind[['TIME_TR']])<=YR )
+				suggsampling	<- which( floor(df.ind[['T1_SEQ']])==YR & floor(df.ind[['TIME_TR']])>=pipeline.args['yr.start',][, as.numeric(v)])
+				list(POP=length(sexactive), PREV=length(infected), PREV_EVER=length(infected.ever), PREVDIED=length(infdead), DIAG=length(diag), NEW_DIAG=length(diag.new), TREATED=length(treated), T1_SEQ=length(suggsampling))				
 			},by='YR']
 	df.epi		<- merge( tmp, df.epi, by='YR' )		
 	set(df.epi, NULL, 'PREVp', df.epi[, PREV/(POP-PREV)])	
@@ -914,14 +1114,64 @@ PANGEA.Seqsampler.v4<- function(df.ind, df.trm, pipeline.args, outfile.ind, outf
 	set(df.epi, NULL, 'UNDIAGp', df.epi[, (PREV-DIAG)/PREV])
 	set(df.epi, NULL, 'GROWTHr', c(NA_real_, df.epi[, diff(log(PREV))]))
 	
+	stopifnot( !is.na(pipeline.args['s.PREV.max.n',][, as.numeric(v)]) | !is.na(pipeline.args['s.PREV.max',][, as.numeric(v)]) )
+	s.PREV.max.guess	<- pipeline.args['s.PREV.max.n',][, as.numeric(v)] / df.epi[nrow(df.epi), PREV_EVER]	
+	if(is.na(s.PREV.max.guess) & pipeline.args['s.MODEL',][, v]=='Prop2DiagB4I')
+	{
+		#	calibration runs to determine sampling coverage
+		#	set(pipeline.args, pipeline.args[, which(stat=='s.PREV.max')], 'v', '0.08')
+		s.PREV.max.guess	<- seq( pipeline.args['s.PREV.max',][, as.numeric(v)]*0.4, pipeline.args['s.PREV.max',][, as.numeric(v)]*0.6, length.out=40) 
+		tmp					<- sapply(s.PREV.max.guess, function(x)
+				{					
+					cat(paste('\ntry s.PREV.max.guess=',x))
+					tmp					<- PANGEA.Seqsampler.sample.prop.to.diagnosis.b4intervention(df.ind, df.epi, pipeline.args, x, verbose=0)
+					
+					tmp2				<- subset( tmp$df.inds, DOD>pipeline.args['s.INTERVENTION.start',][, as.numeric(v)] & floor(TIME_TR)<pipeline.args['s.INTERVENTION.start',][, as.numeric(v)])
+					sc.alive15.infl15	<- tmp2[, length(which(!is.na(TIME_SEQ)))/length(TIME_SEQ) ]					
+					tmp2				<- subset( tmp$df.inds, DOD>pipeline.args['s.INTERVENTION.start',][, as.numeric(v)] & floor(TIME_TR)<pipeline.args['yr.end',][, as.numeric(v)])
+					sc.alive15.infl20	<- tmp2[, length(which(!is.na(TIME_SEQ)))/length(TIME_SEQ) ]
+					tmp2				<- subset( tmp$df.inds, DOD>pipeline.args['yr.end',][, as.numeric(v)] & floor(TIME_TR)<pipeline.args['yr.end',][, as.numeric(v)])
+					sc.alive20.infl20	<- tmp2[, length(which(!is.na(TIME_SEQ)))/length(TIME_SEQ) ]					
+					tmp2				<- subset( tmp$df.inds, floor(TIME_TR)>=2000 & floor(TIME_TR)<pipeline.args['yr.end',][, as.numeric(v)])
+					sc.infg99l20		<- tmp2[, length(which(!is.na(TIME_SEQ)))/length(TIME_SEQ) ]
+					tmp2				<- subset( tmp$df.inds, floor(TIME_TR)>=pipeline.args['s.INTERVENTION.start',][, as.numeric(v)] & floor(TIME_TR)<pipeline.args['yr.end',][, as.numeric(v)])
+					sc.infg14l20		<- tmp2[, length(which(!is.na(TIME_SEQ)))/length(TIME_SEQ) ]
+					sn.g14				<- subset( tmp$df.inds, TIME_SEQ>=pipeline.args['s.INTERVENTION.start',][, as.numeric(v)] & floor(TIME_TR)<pipeline.args['yr.end',][, as.numeric(v)])[, length(which(!is.na(TIME_SEQ))) ] 
+					sn.total			<- subset(tmp$df.inds, floor(TIME_TR)<pipeline.args['yr.end',][, as.numeric(v)])[, length(which(!is.na(TIME_SEQ))) ]
+					sp.g14				<- sn.g14 / sn.total
+					c(sc.alive15.infl15=sc.alive15.infl15, sc.alive15.infl20=sc.alive15.infl20, sc.alive20.infl20=sc.alive20.infl20, sc.infg99l20=sc.infg99l20, sc.infg14l20=sc.infg14l20, sn.g14=sn.g14, sn.total=sn.total, sp.g14=sp.g14)					
+				})
+		tmp					<- as.data.table(t(tmp))
+		tmp[, s.PREV.max.guess:=s.PREV.max.guess]
+		#	use best guess
+		s.PREV.max.guess	<- tmp[which.min(abs(sc.alive20.infl20-pipeline.args['s.PREV.max',][, as.numeric(v)])), ][, s.PREV.max.guess]		
+	}	
+	if(!is.na(s.PREV.max.guess))
+		cat(paste('\nFound best s.PREV.max.guess=',s.PREV.max.guess))
+	if(pipeline.args['s.MODEL',][, v]=='Prop2SuggestedSampling')
+		tmp				<- PANGEA.Seqsampler.sample.prop.to.T1SEQ(df.ind, df.epi, pipeline.args, verbose=1)	
+	if(pipeline.args['s.MODEL',][, v]=='Fixed2Prop')
+		tmp				<- PANGEA.Seqsampler.sample.fixed.to.prop(df.ind, df.epi, pipeline.args, s.PREV.max.guess, verbose=1)
 	if(pipeline.args['s.MODEL',][, v]=='Prop2DiagB4I')
-		tmp			<- PANGEA.Seqsampler.sample.prop.to.diagnosis.b4intervention(df.ind, df.epi, pipeline.args)
+		tmp				<- PANGEA.Seqsampler.sample.prop.to.diagnosis.b4intervention(df.ind, df.epi, pipeline.args, s.PREV.max.guess, verbose=1)
 	if(pipeline.args['s.MODEL',][, v]=='Prop2Diag')
-		tmp			<- PANGEA.Seqsampler.sample.prop.to.diagnosis(df.ind, df.epi, pipeline.args)
+		tmp				<- PANGEA.Seqsampler.sample.prop.to.diagnosis(df.ind, df.epi, pipeline.args, s.PREV.max.guess, verbose=1)
 	if(pipeline.args['s.MODEL',][, v]=='Prop2Untreated')
-		tmp			<- PANGEA.Seqsampler.sample.prop.to.untreated(df.ind, df.epi, pipeline.args)
-	df.inds		<- copy(tmp$df.inds)
-	df.sample	<- copy(tmp$df.sample)			
+		tmp				<- PANGEA.Seqsampler.sample.prop.to.untreated(df.ind, df.epi, pipeline.args, s.PREV.max.guess, verbose=1)	
+	df.inds				<- copy(tmp$df.inds)
+	df.sample			<- copy(tmp$df.sample)
+	#
+	tmp2				<- subset( df.inds, DOD>pipeline.args['yr.end',][, as.numeric(v)] & floor(TIME_TR)<pipeline.args['yr.end',][, as.numeric(v)])
+	sc.alive20.infl20	<- tmp2[, length(which(!is.na(TIME_SEQ)))/length(TIME_SEQ) ]					
+	tmp2				<- subset( df.inds, floor(TIME_TR)>=2000 & floor(TIME_TR)<pipeline.args['yr.end',][, as.numeric(v)])
+	sc.infg99l20		<- tmp2[, length(which(!is.na(TIME_SEQ)))/length(TIME_SEQ) ]
+	sn.g14				<- subset( df.inds, TIME_SEQ>=pipeline.args['s.INTERVENTION.start',][, as.numeric(v)] & floor(TIME_TR)<pipeline.args['yr.end',][, as.numeric(v)])[, length(which(!is.na(TIME_SEQ))) ] 
+	sn.total			<- subset(df.inds, floor(TIME_TR)<pipeline.args['yr.end',][, as.numeric(v)])[, length(which(!is.na(TIME_SEQ))) ]
+	cat(paste('\ncoverage alive20.infl20=', sc.alive20.infl20))
+	cat(paste('\ncoverage infg99l20=', sc.infg99l20))
+	cat(paste('\nseqs sn.g14=', sn.g14))
+	cat(paste('\nseqs all=', sn.total))
+	
 	#	set sampling in df.trm
 	tmp		<- subset( df.inds, !is.na(TIME_SEQ), select=c(IDPOP, TIME_SEQ) )
 	setnames(tmp, c('IDPOP','TIME_SEQ'), c('IDREC','SAMPLED_REC'))
@@ -931,7 +1181,7 @@ PANGEA.Seqsampler.v4<- function(df.ind, df.trm, pipeline.args, outfile.ind, outf
 	#
 	#	seroprevalence survey
 	#
-	df.sp	<- PANGEA.SeroPrevalenceSurvey(df.inds, epi.adult=epi.adult, s.INTERVENTION.start=pipeline.args['s.INTERVENTION.start', ][, as.numeric(v)], sp.prop.of.sexactive=pipeline.args['sp.prop.of.sexactive', ][, as.numeric(v)], sp.times=c(15, 10, 5, 0) )
+	df.sp	<- PANGEA.SeroPrevalenceSurvey(df.inds, epi.adult=epi.adult, s.INTERVENTION.start=pipeline.args['s.INTERVENTION.start', ][, as.numeric(v)], sp.prop.of.sexactive=pipeline.args['sp.prop.of.sexactive', ][, as.numeric(v)], sp.times=c(12, 8, 4, 0) )
 	file	<- gsub('IND.csv','CROSS_SECTIONAL_SURVEY.csv', outfile.ind)
 	cat(paste('\nwrite to file', file))
 	write.csv(df.sp, file=file)
@@ -973,7 +1223,7 @@ PANGEA.Seqsampler.v4<- function(df.ind, df.trm, pipeline.args, outfile.ind, outf
 		
 		ggplot(tmp, aes(x=YR, y=value, group=variable)) + geom_step(with.guide=FALSE) + 
 				facet_grid(variable~., scales='free_y')  + 
-				theme_bw() + scale_x_continuous(name='year', breaks=seq(1980,2020,2)) +
+				theme_bw() + scale_x_continuous(name='year', breaks=seq(1980,pipeline.args['yr.end',][, as.numeric(v)],2)) +
 				theme(strip.text=element_text(size=7))
 		file<- paste(substr(outfile.ind, 1, nchar(outfile.ind)-7),'INFO_Totals.pdf',sep='')
 		cat(paste('\nPlotting to file',file))
@@ -1021,24 +1271,27 @@ PANGEA.Seqsampler.v4<- function(df.ind, df.trm, pipeline.args, outfile.ind, outf
 		file<- paste(substr(outfile.ind, 1, nchar(outfile.ind)-7),'INFO_T2DeathForInf.pdf',sep='')
 		ggsave(file=file, w=8, h=8)		
 		#	plot transmission network
-		file		<- paste(substr(outfile.ind, 1, nchar(outfile.ind)-7),'INFO_TrNetworks.pdf',sep='')
-		cat(paste('\nPlotting to file',file))
-		pdf(file=file, w=20, h=20)
-		dummy	<- sapply( df.inds[, sort(na.omit(unique(IDCLU)))], function(clu)
-				{
-					cat(paste('\nprocess cluster no',clu))
-					tmp					<- subset(df.inds, IDCLU==clu & IDPOP>=0, select=c(IDPOP, GENDER, TIME_SEQ))
-					tmp[, IS_SEQ:= tmp[, factor(!is.na(TIME_SEQ), label=c('N','Y'), levels=c(FALSE, TRUE))]]
-					clu.igr				<- graph.data.frame(subset(df.trms, IDCLU==clu & IDTR>=0, select=c(IDTR, IDREC)), directed=TRUE, vertices=subset(tmp, select=c(IDPOP, GENDER, IS_SEQ)))
-					V(clu.igr)$color	<- ifelse( get.vertex.attribute(clu.igr, 'IS_SEQ')=='Y', 'green', 'grey90' )
-					V(clu.igr)$shape	<- ifelse( get.vertex.attribute(clu.igr, 'GENDER')=='M', 'circle', 'square' )
-					
-					par(mai=c(0,0,1,0))
-					plot(clu.igr, main=paste('IDCLU=',clu,sep=''), vertex.size=2, vertex.label.cex=0.25, edge.arrow.size=0.5, layout=layout.fruchterman.reingold(clu.igr, niter=1e3) )
-					legend('bottomright', fill=c('green','grey90'), legend=c('sequence sampled','sequence not sampled'), bty='n')
-					legend('bottomleft', legend=c('square= Female','circle= Male'), bty='n')				
-				})
-		dev.off()
+		if(1)
+		{
+			file		<- paste(substr(outfile.ind, 1, nchar(outfile.ind)-7),'INFO_TrNetworks.pdf',sep='')
+			cat(paste('\nPlotting to file',file))
+			pdf(file=file, w=20, h=20)
+			dummy	<- sapply( df.inds[, sort(na.omit(unique(IDCLU)))], function(clu)
+					{
+						cat(paste('\nprocess cluster no',clu))
+						tmp					<- subset(df.inds, IDCLU==clu & IDPOP>=0, select=c(IDPOP, GENDER, TIME_SEQ))
+						tmp[, IS_SEQ:= tmp[, factor(!is.na(TIME_SEQ), label=c('N','Y'), levels=c(FALSE, TRUE))]]
+						clu.igr				<- graph.data.frame(subset(df.trms, IDCLU==clu & IDTR>=0, select=c(IDTR, IDREC)), directed=TRUE, vertices=subset(tmp, select=c(IDPOP, GENDER, IS_SEQ)))
+						V(clu.igr)$color	<- ifelse( get.vertex.attribute(clu.igr, 'IS_SEQ')=='Y', 'green', 'grey90' )
+						V(clu.igr)$shape	<- ifelse( get.vertex.attribute(clu.igr, 'GENDER')=='M', 'circle', 'square' )
+						
+						par(mai=c(0,0,1,0))
+						plot(clu.igr, main=paste('IDCLU=',clu,sep=''), vertex.size=2, vertex.label.cex=0.25, edge.arrow.size=0.5, layout=layout.fruchterman.reingold(clu.igr, niter=1e3) )
+						legend('bottomright', fill=c('green','grey90'), legend=c('sequence sampled','sequence not sampled'), bty='n')
+						legend('bottomleft', legend=c('square= Female','circle= Male'), bty='n')				
+					})
+			dev.off()
+		}
 		#ggplot(df.trms, aes(x=IDTR, y=TIME_TR)) + geom_point()
 		#ggplot(df.trms, aes(x=IDTR, y=IDCLU)) + geom_point()
 	}
@@ -1047,7 +1300,7 @@ PANGEA.Seqsampler.v4<- function(df.ind, df.trm, pipeline.args, outfile.ind, outf
 	#
 	#	save for us
 	file		<- paste(substr(outfile.ind, 1, nchar(outfile.ind)-7),'SAVE.R',sep='')
-	save(file=file, df.epi, df.trms, df.inds, df.sample)
+	save(file=file, df.epi, df.trms, df.inds, df.sample, df.sp)
 	#	save for virus tree simulator
 	#	exclude columns that are not needed	
 	df.inds	<- subset(df.inds, !is.na(TIME_TR))
@@ -1230,7 +1483,7 @@ PANGEA.Seqsampler.v3<- function(df.ind, df.trm, pipeline.args, outfile.ind, outf
 		tmp	<- merge(	melt(df.sample, id.vars='YR', measure.vars=c('POP','PREV','INC','ACUTEp','IMPORTp','s.n.TOTAL','s.n.INC','s.n.notINC','GROWTHr'), variable.name='stat', value.name='v'),
 				tmp, by='stat' )
 		ggplot(tmp, aes(x=YR, y=v, group=stat.long)) + geom_point() +
-				scale_x_continuous(name='year', breaks=seq(1980,2020,2)) + scale_y_continuous(name='total')	+
+				scale_x_continuous(name='year', breaks=seq(1980,pipeline.args['yr.end',][, as.numeric(v)],2)) + scale_y_continuous(name='total')	+
 				facet_grid(stat.long ~ ., scales='free_y', margins=FALSE)
 		file<- paste(substr(outfile.ind, 1, nchar(outfile.ind)-7),'INFO_Totals.pdf',sep='')
 		cat(paste('\nPlotting to file',file))
@@ -1453,7 +1706,7 @@ PANGEA.Seqsampler.v1<- function(df.ind, df.trm, pipeline.args, outfile.ind, outf
 		tmp	<- merge(	melt(df.sample, id.vars='YR', measure.vars=c('POP','PREV','INC','ACUTEp','IMPORTp','s.n.TOTAL','s.n.INC','s.n.notINC'), variable.name='stat', value.name='v'),
 				tmp, by='stat' )
 		ggplot(tmp, aes(x=YR, y=v, group=stat.long)) + geom_point() +
-				scale_x_continuous(name='year', breaks=seq(1980,2020,2)) + scale_y_continuous(name='total')	+
+				scale_x_continuous(name='year', breaks=seq(1980,pipeline.args['yr.end',][, as.numeric(v)],2)) + scale_y_continuous(name='total')	+
 				facet_grid(stat.long ~ ., scales='free_y', margins=FALSE)
 		file<- paste(substr(outfile.ind, 1, nchar(outfile.ind)-7),'INFO_Totals.pdf',sep='')
 		cat(paste('\nPlotting to file',file))

@@ -1116,19 +1116,21 @@ project.PANGEA.logo<- function()
 ##--------------------------------------------------------------------------------------------------------
 project.PANGEA.TEST.pipeline.November2014.plotrepclicates<- function()
 {		
-	indir	<- '/Users/Oliver/git/HPTN071sim'
+	indir	<- '/Users/Oliver/git/HPTN071sim/freeze1028'
 	infiles	<- list.files(path=indir, pattern='*INTERNAL.R', recursive=TRUE)
 	infiles	<- data.table(FILE=infiles[grepl('281014',infiles)])
 	infiles[, SCENARIO:=regmatches(FILE,regexpr('sc[A-C]',FILE))]
 	infiles[, REP:=regmatches(FILE,regexpr('rep[0-9]+',FILE))]
 	set(infiles, NULL, 'SCENARIO', infiles[, substr(SCENARIO, 3, 3)])
 	set(infiles, NULL, 'REP', infiles[, as.numeric(substr(REP, 4, nchar(REP)))])
+	set(infiles, NULL, 'REP2', 1:3)
 	setkey(infiles, SCENARIO, REP)
+	
 	
 	df.epi	<- infiles[, {
 								 z<- load( paste(indir, '/', FILE, sep='') )
 								 df.epi[, SCENARIO:=SCENARIO]
-								 df.epi[, REP:=REP]
+								 df.epi[, REP2:=REP2]
 								 df.epi				 
 							}, by=c('SCENARIO','REP')]
 					
@@ -1136,15 +1138,24 @@ project.PANGEA.TEST.pipeline.November2014.plotrepclicates<- function()
 			scale_x_continuous(limits=c(1980,2020), breaks=seq(1980,2020,2)) +
 			scale_y_continuous(breaks=seq(0,2000,100))
 	
-	ggplot( df.epi, aes(x=YR, y=INCp*100, group=interaction(SCENARIO,REP), colour=SCENARIO) ) + geom_line() + theme_bw() + 
-			scale_x_continuous(limits=c(1980,2020), breaks=seq(1980,2020,2)) +
-			scale_y_continuous(breaks=seq(0,5,0.5))
+	
+	ggplot( df.epi, aes(x=YR, y=INCp*100, group=interaction(SCENARIO,REP), colour=interaction(SCENARIO,REP)) ) + geom_line(size=1.5) + theme_bw() +
+			#scale_fill_manual (values=colours, guide=FALSE) +
+			scale_colour_hue(c=50, l=60, guide=FALSE) +
+			#scale_colour_brewer(palette='Accent', guide=FALSE) +
+			scale_x_continuous(limits=c(1980,2020), breaks=seq(1980,2020,10), expand=c(0,0)) +
+			scale_y_continuous(breaks=seq(0,5,0.5)) +
+			labs(x='', y='% Incidence') +
+			theme(panel.grid.major=element_line(colour="grey30", size=0.2))
+	
+	file<- paste(indir,'/inc_scenarios.pdf',sep='')
+	ggsave(file=file, width=6, height=4)
 }
 ##--------------------------------------------------------------------------------------------------------
 ##	check simulated sequences: create ExaML tree and estimate R2
 ##	olli 26.01.15
 ##--------------------------------------------------------------------------------------------------------
-project.PANGEA.TEST.pipeline.Jan2015<- function()
+project.PANGEA.TEST.pipeline.Feb2015.dev<- function()
 {	
 	if(0)
 	{
@@ -1201,7 +1212,7 @@ project.PANGEA.TEST.pipeline.Jan2015<- function()
 				epi.model='HPTN071', epi.dt=1/48, epi.import=0.05,
 				v.N0tau=1, v.r=2.851904, v.T50=-2,
 				wher.mu=log(0.003358613)-0.3^2/2, wher.sigma=0.3, bwerm.mu=log(0.002239075)-0.13^2/2, bwerm.sigma=0.13, er.gamma=NA,
-				sp.prop.of.sexactive= 0.05, report.prop.recent=0.2, 
+				sp.prop.of.sexactive= 0.05, report.prop.recent=1.0, 
 				dbg.GTRparam=0, dbg.rER=0, index.starttime.mode='fix1955', startseq.mode='one', seqtime.mode='AtDiag')								
 		
 		# proposed standard run and control simulation
@@ -1374,7 +1385,7 @@ project.PANGEA.TEST.pipeline.Jan2015<- function()
 	#
 	#	-m54D5 brings R2 down to 42%. not too bad. try and get div overall a bit higher
 	#
-	if(1)
+	if(0)
 	{
 		indir			<- '/Users/Oliver/git/HPTN071sim/source/rPANGEAHIVsim/inst/misc'
 		pipeline.args	<- rPANGEAHIVsim.pipeline.args( yr.start=1980, yr.end=2020, seed=42, s.MODEL='Prop2DiagB4I',
@@ -1415,7 +1426,7 @@ project.PANGEA.TEST.pipeline.Jan2015<- function()
 	#
 	#	-m30 brings R2 down to 32%. that s seem OK to use.
 	#
-	if(1)
+	if(0)
 	{
 		indir			<- '/Users/Oliver/git/HPTN071sim/source/rPANGEAHIVsim/inst/misc'
 		pipeline.args	<- rPANGEAHIVsim.pipeline.args( yr.start=1985, yr.end=2020, seed=42, s.MODEL='Prop2DiagB4I',
@@ -1426,10 +1437,11 @@ project.PANGEA.TEST.pipeline.Jan2015<- function()
 				dbg.GTRparam=0, dbg.rER=0, index.starttime.mode='fix1955', startseq.mode='many', seqtime.mode='DUnif5')								
 		
 		# proposed standard run and control simulation
-		pipeline.vary	<- data.table(	seqtime.mode=	c('DUnif5','AtTrm'),	
-				s.MODEL=				c('Prop2DiagB4I','Prop2Untreated'),													
-				startseq.mode=			c('one','one'),
-				label=					c('-oD5', '-0PU'))						
+		pipeline.vary	<- data.table(	seqtime.mode=	c('DUnif5','AtDiag','AtDiag','AtDiag','AtTrm'),	
+				s.MODEL=				c('Prop2DiagB4I','Prop2DiagB4I','Prop2DiagB4I','Prop2DiagB4I','Prop2Untreated'),													
+				startseq.mode=			c('many','many','many','many','many'),
+				s.multi=				c(1,1,2,4,1),
+				label=					c('-mD5', '-mDI','-mDIs2x','-mDIs4x', '-mPU'))						
 		dummy			<- pipeline.vary[, {				
 					set(pipeline.args, which( pipeline.args$stat=='seqtime.mode' ), 'v', as.character(seqtime.mode))
 					set(pipeline.args, which( pipeline.args$stat=='s.MODEL' ), 'v', as.character(s.MODEL))											
@@ -1440,10 +1452,10 @@ project.PANGEA.TEST.pipeline.Jan2015<- function()
 						#	scenario A					
 						infile.ind		<- '150129_HPTN071_scA'
 						infile.trm		<- '150129_HPTN071_scA'
-						tmpdir			<- '/Users/Oliver/git/HPTN071sim/tmp150201-A'
+						tmpdir			<- '/Users/Oliver/git/HPTN071sim/tmp150203-A'
 						tmpdir			<- paste(tmpdir,label,sep='')
 						dir.create(tmpdir, showWarnings=FALSE)																		
-						set(pipeline.args, which( pipeline.args$stat=='s.PREV.max' ), 'v', '0.073')
+						set(pipeline.args, which( pipeline.args$stat=='s.PREV.max' ), 'v', as.character(s.multi*0.073))
 						file.copy(paste(indir,'/',infile.ind,'_IND.csv',sep=''), paste(tmpdir,'/',infile.ind,label,'_IND.csv',sep=''))
 						file.copy(paste(indir,'/',infile.trm,'_TRM.csv',sep=''), paste(tmpdir,'/',infile.trm,label,'_TRM.csv',sep=''))
 						file			<- rPANGEAHIVsim.pipeline(tmpdir, paste(infile.ind,label,'_IND.csv',sep=''), paste(infile.trm,label,'_TRM.csv',sep=''), tmpdir, pipeline.args=pipeline.args)
@@ -1454,10 +1466,10 @@ project.PANGEA.TEST.pipeline.Jan2015<- function()
 						#	scenario B					
 						infile.ind		<- '150129_HPTN071_scB'
 						infile.trm		<- '150129_HPTN071_scB'
-						tmpdir			<- '/Users/Oliver/git/HPTN071sim/tmp150201-B'
+						tmpdir			<- '/Users/Oliver/git/HPTN071sim/tmp150203-B'
 						tmpdir			<- paste(tmpdir,label,sep='')
 						dir.create(tmpdir, showWarnings=FALSE)																		
-						set(pipeline.args, which( pipeline.args$stat=='s.PREV.max' ), 'v', '0.084')
+						set(pipeline.args, which( pipeline.args$stat=='s.PREV.max' ), 'v', as.character(s.multi*0.084))
 						file.copy(paste(indir,'/',infile.ind,'_IND.csv',sep=''), paste(tmpdir,'/',infile.ind,label,'_IND.csv',sep=''))
 						file.copy(paste(indir,'/',infile.trm,'_TRM.csv',sep=''), paste(tmpdir,'/',infile.trm,label,'_TRM.csv',sep=''))
 						file			<- rPANGEAHIVsim.pipeline(tmpdir, paste(infile.ind,label,'_IND.csv',sep=''), paste(infile.trm,label,'_TRM.csv',sep=''), tmpdir, pipeline.args=pipeline.args)
@@ -1468,10 +1480,10 @@ project.PANGEA.TEST.pipeline.Jan2015<- function()
 						#	scenario C					
 						infile.ind		<- '150129_HPTN071_scC'
 						infile.trm		<- '150129_HPTN071_scC'
-						tmpdir			<- '/Users/Oliver/git/HPTN071sim/tmp150201-C'
+						tmpdir			<- '/Users/Oliver/git/HPTN071sim/tmp150203-C'
 						tmpdir			<- paste(tmpdir,label,sep='')
 						dir.create(tmpdir, showWarnings=FALSE)																		
-						set(pipeline.args, which( pipeline.args$stat=='s.PREV.max' ), 'v', '0.075')
+						set(pipeline.args, which( pipeline.args$stat=='s.PREV.max' ), 'v', as.character(s.multi*0.075))
 						file.copy(paste(indir,'/',infile.ind,'_IND.csv',sep=''), paste(tmpdir,'/',infile.ind,label,'_IND.csv',sep=''))
 						file.copy(paste(indir,'/',infile.trm,'_TRM.csv',sep=''), paste(tmpdir,'/',infile.trm,label,'_TRM.csv',sep=''))
 						file			<- rPANGEAHIVsim.pipeline(tmpdir, paste(infile.ind,label,'_IND.csv',sep=''), paste(infile.trm,label,'_TRM.csv',sep=''), tmpdir, pipeline.args=pipeline.args)
@@ -1482,10 +1494,10 @@ project.PANGEA.TEST.pipeline.Jan2015<- function()
 						#	scenario D					
 						infile.ind		<- '150129_HPTN071_scD'
 						infile.trm		<- '150129_HPTN071_scD'
-						tmpdir			<- '/Users/Oliver/git/HPTN071sim/tmp150201-D'
+						tmpdir			<- '/Users/Oliver/git/HPTN071sim/tmp150203-D'
 						tmpdir			<- paste(tmpdir,label,sep='')
 						dir.create(tmpdir, showWarnings=FALSE)																		
-						set(pipeline.args, which( pipeline.args$stat=='s.PREV.max' ), 'v', '0.08')
+						set(pipeline.args, which( pipeline.args$stat=='s.PREV.max' ), 'v', as.character(s.multi*0.08))
 						file.copy(paste(indir,'/',infile.ind,'_IND.csv',sep=''), paste(tmpdir,'/',infile.ind,label,'_IND.csv',sep=''))
 						file.copy(paste(indir,'/',infile.trm,'_TRM.csv',sep=''), paste(tmpdir,'/',infile.trm,label,'_TRM.csv',sep=''))
 						file			<- rPANGEAHIVsim.pipeline(tmpdir, paste(infile.ind,label,'_IND.csv',sep=''), paste(infile.trm,label,'_TRM.csv',sep=''), tmpdir, pipeline.args=pipeline.args)
@@ -1496,10 +1508,10 @@ project.PANGEA.TEST.pipeline.Jan2015<- function()
 						#	scenario E					
 						infile.ind		<- '150129_HPTN071_scE'
 						infile.trm		<- '150129_HPTN071_scE'
-						tmpdir			<- '/Users/Oliver/git/HPTN071sim/tmp150201-E'
+						tmpdir			<- '/Users/Oliver/git/HPTN071sim/tmp150203-E'
 						tmpdir			<- paste(tmpdir,label,sep='')
 						dir.create(tmpdir, showWarnings=FALSE)																		
-						set(pipeline.args, which( pipeline.args$stat=='s.PREV.max' ), 'v', '0.078')
+						set(pipeline.args, which( pipeline.args$stat=='s.PREV.max' ), 'v', as.character(s.multi*0.078))
 						file.copy(paste(indir,'/',infile.ind,'_IND.csv',sep=''), paste(tmpdir,'/',infile.ind,label,'_IND.csv',sep=''))
 						file.copy(paste(indir,'/',infile.trm,'_TRM.csv',sep=''), paste(tmpdir,'/',infile.trm,label,'_TRM.csv',sep=''))
 						file			<- rPANGEAHIVsim.pipeline(tmpdir, paste(infile.ind,label,'_IND.csv',sep=''), paste(infile.trm,label,'_TRM.csv',sep=''), tmpdir, pipeline.args=pipeline.args)
@@ -1510,17 +1522,442 @@ project.PANGEA.TEST.pipeline.Jan2015<- function()
 						#	scenario F					
 						infile.ind		<- '150129_HPTN071_scF'
 						infile.trm		<- '150129_HPTN071_scF'
-						tmpdir			<- '/Users/Oliver/git/HPTN071sim/tmp150201-F'
+						tmpdir			<- '/Users/Oliver/git/HPTN071sim/tmp150203-F'
 						tmpdir			<- paste(tmpdir,label,sep='')
 						dir.create(tmpdir, showWarnings=FALSE)																		
-						set(pipeline.args, which( pipeline.args$stat=='s.PREV.max' ), 'v', '0.083')
+						set(pipeline.args, which( pipeline.args$stat=='s.PREV.max' ), 'v', as.character(s.multi*0.083))
 						file.copy(paste(indir,'/',infile.ind,'_IND.csv',sep=''), paste(tmpdir,'/',infile.ind,label,'_IND.csv',sep=''))
 						file.copy(paste(indir,'/',infile.trm,'_TRM.csv',sep=''), paste(tmpdir,'/',infile.trm,label,'_TRM.csv',sep=''))
 						file			<- rPANGEAHIVsim.pipeline(tmpdir, paste(infile.ind,label,'_IND.csv',sep=''), paste(infile.trm,label,'_TRM.csv',sep=''), tmpdir, pipeline.args=pipeline.args)
 						#system(file)													
 					}					
 				}, by='label']
+		}
+		#
+		#	fixed seq sampling fractions etc
+		#
+		if(1)
+		{
+			indir			<- '/Users/Oliver/git/HPTN071sim/source/rPANGEAHIVsim/inst/misc'
+			pipeline.args	<- rPANGEAHIVsim.pipeline.args( yr.start=1985, yr.end=2020, seed=42, s.MODEL='Prop2DiagB4I', report.prop.recent=1.0,
+					s.PREV.max=NA, s.INTERVENTION.prop=NA, s.INTERVENTION.start=2015, s.INTERVENTION.mul= NA, s.ARCHIVAL.n=50,
+					epi.model='HPTN071', epi.dt=1/48, epi.import=0.05,
+					v.N0tau=1, v.r=2.851904, v.T50=-2,
+					wher.mu=log(0.00447743)-0.5^2/2, wher.sigma=0.5, bwerm.mu=log(0.002239075)-0.3^2/2, bwerm.sigma=0.3, er.gamma=4,
+					dbg.GTRparam=0, dbg.rER=0, index.starttime.mode='fix1955', startseq.mode='many', seqtime.mode='AtDiag')								
+			
+			# proposed standard run and control simulation
+			pipeline.vary	<- data.table(	seqtime.mode=	c('AtDiag','AtDiag','AtDiag','AtDiag','AtDiag','AtDiag','AtDiag','AtDiag','AtDiag'),	
+					s.MODEL=				c('Prop2DiagB4I','Prop2DiagB4I','Prop2Untreated','Fixed2Prop','Fixed2Prop','Fixed2Prop','Fixed2Prop','Fixed2Prop','Fixed2Prop'),													
+					startseq.mode=			c('many','many','many','many','many','many','many','many','many'),
+					s.multi=				c(1,2,1,1,1,1,2,1,1),
+					yr.end=					c(2020,2020,2020,2020,2020,2020,2020,2020,2018),
+					epi.import=				c(0.05,0.05,0.05,0.05,0.05,0.05,0.05,0.2,0.05),
+					s.PREV.max.n=			c(1600,1600,1600,1600,1600,1600,1600,1600,1280),
+					s.INTERVENTION.prop=	c(NA,NA,NA,0.85,0.5,0.25,0.5,0.5,0.375),
+					s.INTERVENTION.mul=		c(1,1,1,NA,NA,NA,NA,NA,NA),
+					label=					c('-mDI','-mDIs2x','-mPU','-mFP85','-mFP50','-mFP25','-mFP50s2x','-mFP50c20','-mFP50e18'))						
+			dummy			<- pipeline.vary[, {				
+						set(pipeline.args, which( pipeline.args$stat=='seqtime.mode' ), 'v', as.character(seqtime.mode))
+						set(pipeline.args, which( pipeline.args$stat=='s.MODEL' ), 'v', as.character(s.MODEL))											
+						set(pipeline.args, which( pipeline.args$stat=='startseq.mode' ), 'v', as.character(startseq.mode))
+						set(pipeline.args, which( pipeline.args$stat=='s.INTERVENTION.mul' ), 'v', as.character(s.INTERVENTION.mul))
+						set(pipeline.args, which( pipeline.args$stat=='s.INTERVENTION.prop' ), 'v', as.character(s.INTERVENTION.prop))
+						set(pipeline.args, which( pipeline.args$stat=='epi.import' ), 'v', as.character(epi.import))
+						print(pipeline.args)						
+						if(1)
+						{
+							#	scenario A					
+							infile.ind		<- '150129_HPTN071_scA'
+							infile.trm		<- '150129_HPTN071_scA'
+							tmpdir			<- '/Users/Oliver/git/HPTN071sim/tmp150204-A'
+							tmpdir			<- paste(tmpdir,label,sep='')
+							dir.create(tmpdir, showWarnings=FALSE)																								
+							set(pipeline.args, which( pipeline.args$stat=='s.PREV.max.n' ), 'v', as.character(s.multi*s.PREV.max.n))
+							file.copy(paste(indir,'/',infile.ind,'_IND.csv',sep=''), paste(tmpdir,'/',infile.ind,label,'_IND.csv',sep=''))
+							file.copy(paste(indir,'/',infile.trm,'_TRM.csv',sep=''), paste(tmpdir,'/',infile.trm,label,'_TRM.csv',sep=''))
+							file			<- rPANGEAHIVsim.pipeline(tmpdir, paste(infile.ind,label,'_IND.csv',sep=''), paste(infile.trm,label,'_TRM.csv',sep=''), tmpdir, pipeline.args=pipeline.args)
+							#system(file)													
+						}
+						if(1)
+						{
+							#	scenario B					
+							infile.ind		<- '150129_HPTN071_scB'
+							infile.trm		<- '150129_HPTN071_scB'
+							tmpdir			<- '/Users/Oliver/git/HPTN071sim/tmp150204-B'
+							tmpdir			<- paste(tmpdir,label,sep='')
+							dir.create(tmpdir, showWarnings=FALSE)																		
+							set(pipeline.args, which( pipeline.args$stat=='s.PREV.max.n' ), 'v', as.character(s.multi*s.PREV.max.n))
+							file.copy(paste(indir,'/',infile.ind,'_IND.csv',sep=''), paste(tmpdir,'/',infile.ind,label,'_IND.csv',sep=''))
+							file.copy(paste(indir,'/',infile.trm,'_TRM.csv',sep=''), paste(tmpdir,'/',infile.trm,label,'_TRM.csv',sep=''))
+							file			<- rPANGEAHIVsim.pipeline(tmpdir, paste(infile.ind,label,'_IND.csv',sep=''), paste(infile.trm,label,'_TRM.csv',sep=''), tmpdir, pipeline.args=pipeline.args)
+							#system(file)													
+						}
+						if(1)
+						{
+							#	scenario C					
+							infile.ind		<- '150129_HPTN071_scC'
+							infile.trm		<- '150129_HPTN071_scC'
+							tmpdir			<- '/Users/Oliver/git/HPTN071sim/tmp150204-C'
+							tmpdir			<- paste(tmpdir,label,sep='')
+							dir.create(tmpdir, showWarnings=FALSE)																		
+							set(pipeline.args, which( pipeline.args$stat=='s.PREV.max.n' ), 'v', as.character(s.multi*s.PREV.max.n))
+							file.copy(paste(indir,'/',infile.ind,'_IND.csv',sep=''), paste(tmpdir,'/',infile.ind,label,'_IND.csv',sep=''))
+							file.copy(paste(indir,'/',infile.trm,'_TRM.csv',sep=''), paste(tmpdir,'/',infile.trm,label,'_TRM.csv',sep=''))
+							file			<- rPANGEAHIVsim.pipeline(tmpdir, paste(infile.ind,label,'_IND.csv',sep=''), paste(infile.trm,label,'_TRM.csv',sep=''), tmpdir, pipeline.args=pipeline.args)
+							#system(file)													
+						}
+						if(1)
+						{
+							#	scenario D					
+							infile.ind		<- '150129_HPTN071_scD'
+							infile.trm		<- '150129_HPTN071_scD'
+							tmpdir			<- '/Users/Oliver/git/HPTN071sim/tmp150204-D'
+							tmpdir			<- paste(tmpdir,label,sep='')
+							dir.create(tmpdir, showWarnings=FALSE)																		
+							set(pipeline.args, which( pipeline.args$stat=='s.PREV.max.n' ), 'v', as.character(s.multi*s.PREV.max.n))
+							file.copy(paste(indir,'/',infile.ind,'_IND.csv',sep=''), paste(tmpdir,'/',infile.ind,label,'_IND.csv',sep=''))
+							file.copy(paste(indir,'/',infile.trm,'_TRM.csv',sep=''), paste(tmpdir,'/',infile.trm,label,'_TRM.csv',sep=''))
+							file			<- rPANGEAHIVsim.pipeline(tmpdir, paste(infile.ind,label,'_IND.csv',sep=''), paste(infile.trm,label,'_TRM.csv',sep=''), tmpdir, pipeline.args=pipeline.args)
+							#system(file)													
+						}
+						if(1)
+						{
+							#	scenario E					
+							infile.ind		<- '150129_HPTN071_scE'
+							infile.trm		<- '150129_HPTN071_scE'
+							tmpdir			<- '/Users/Oliver/git/HPTN071sim/tmp150204-E'
+							tmpdir			<- paste(tmpdir,label,sep='')
+							dir.create(tmpdir, showWarnings=FALSE)																		
+							set(pipeline.args, which( pipeline.args$stat=='s.PREV.max.n' ), 'v', as.character(s.multi*s.PREV.max.n))
+							file.copy(paste(indir,'/',infile.ind,'_IND.csv',sep=''), paste(tmpdir,'/',infile.ind,label,'_IND.csv',sep=''))
+							file.copy(paste(indir,'/',infile.trm,'_TRM.csv',sep=''), paste(tmpdir,'/',infile.trm,label,'_TRM.csv',sep=''))
+							file			<- rPANGEAHIVsim.pipeline(tmpdir, paste(infile.ind,label,'_IND.csv',sep=''), paste(infile.trm,label,'_TRM.csv',sep=''), tmpdir, pipeline.args=pipeline.args)
+							#system(file)													
+						}
+						if(1)
+						{
+							#	scenario F					
+							infile.ind		<- '150129_HPTN071_scF'
+							infile.trm		<- '150129_HPTN071_scF'
+							tmpdir			<- '/Users/Oliver/git/HPTN071sim/tmp150204-F'
+							tmpdir			<- paste(tmpdir,label,sep='')
+							dir.create(tmpdir, showWarnings=FALSE)																									
+							set(pipeline.args, which( pipeline.args$stat=='s.PREV.max.n' ), 'v', as.character(s.multi*s.PREV.max.n))
+							file.copy(paste(indir,'/',infile.ind,'_IND.csv',sep=''), paste(tmpdir,'/',infile.ind,label,'_IND.csv',sep=''))
+							file.copy(paste(indir,'/',infile.trm,'_TRM.csv',sep=''), paste(tmpdir,'/',infile.trm,label,'_TRM.csv',sep=''))
+							file			<- rPANGEAHIVsim.pipeline(tmpdir, paste(infile.ind,label,'_IND.csv',sep=''), paste(infile.trm,label,'_TRM.csv',sep=''), tmpdir, pipeline.args=pipeline.args)
+							#system(file)													
+						}					
+					}, by='label']
+		}
+		#
+		#	double check R2 -- now very low!
+		#
+		if(1)
+		{
+			indir			<- '/Users/Oliver/git/HPTN071sim/source/rPANGEAHIVsim/inst/misc'
+			pipeline.args	<- rPANGEAHIVsim.pipeline.args( yr.start=1985, yr.end=2020, seed=42, s.MODEL='Fixed2Prop', report.prop.recent=1.0,
+					s.PREV.max.n=1600, s.INTERVENTION.prop=0.5, s.INTERVENTION.start=2015, s.INTERVENTION.mul= NA, s.ARCHIVAL.n=50,
+					epi.model='HPTN071', epi.dt=1/48, epi.import=0.05, root.edge.fixed=0,
+					v.N0tau=1, v.r=2.851904, v.T50=-2,
+					wher.mu=log(0.00447743)-0.5^2/2, wher.sigma=0.5, bwerm.mu=log(0.002239075)-0.3^2/2, bwerm.sigma=0.3, er.gamma=4,
+					dbg.GTRparam=0, dbg.rER=0, index.starttime.mode='fix1955', startseq.mode='many', seqtime.mode='AtDiag')								
+			
+			# proposed standard run and control simulation
+			pipeline.vary	<- data.table(	wher.mu=				c(log(0.00447743)-0.5^2/2,log(0.00447743)-0.5^2/2,log(0.00447743)-0.5^2/2,log(0.00447743)-0.3^2/2,log(0.00447743)-0.5^2/2,log(0.00447743)-0.5^2/2,log(0.00447743)-0.5^2/2,log(0.00447743)-0.3^2/2,log(0.002239075)-0.16^2/2,log(0.00447743)-0.5^2/2,log(0.00447743)-0.5^2/2,log(0.00447743)-0.5^2/2,log(0.00447743)-0.5^2/2),
+											wher.sigma=				c(0.5,0.5,0.5,0.3,0.5,0.5,0.5,0.3, 0.16, 0.5, 0.5, 0.5, 0.5),
+											bwerm.mu=				c(log(0.002239075)-0.3^2/2, log(0.002239075)-0.2^2/2, log(0.002239075)-0.16^2/2, log(0.002239075)-0.16^2/2,log(0.002239075)-0.3^2/2, log(0.002239075)-0.2^2/2, log(0.002239075)-0.16^2/2, log(0.002239075)-0.16^2/2, log(0.002239075)-0.16^2/2,log(0.002239075)-0.3^2/2, log(0.002239075)-0.2^2/2,log(0.002239075)-0.3^2/2, log(0.002239075)-0.2^2/2),
+											bwerm.sigma=			c(0.3, 0.2, 0.16, 0.16,0.3, 0.2, 0.16, 0.16, 0.16, 0.3, 0.2, 0.3, 0.2),
+											startseq.mode=			c('many','many','many','many','one','one','one','one','one','one','one','one','one'),
+											index.starttime.mode=	c('fix1955','fix1955','fix1955','fix1955','fix1955','fix1955','fix1955','fix1955','fix1955','fix1965','fix1965','fix1972','fix1972'),
+											label=					c('-bh30','-bh20','-bh16','-wh30','-obh30','-obh20','-obh16','-owh30','-owh16','-obh3065','-obh2065','-obh3072','-obh2072'))						
+			dummy			<- pipeline.vary[, {				
+						set(pipeline.args, which( pipeline.args$stat=='wher.mu' ), 'v', as.character(wher.mu))
+						set(pipeline.args, which( pipeline.args$stat=='wher.sigma' ), 'v', as.character(wher.sigma))											
+						set(pipeline.args, which( pipeline.args$stat=='bwerm.mu' ), 'v', as.character(bwerm.mu))
+						set(pipeline.args, which( pipeline.args$stat=='bwerm.sigma' ), 'v', as.character(bwerm.sigma))
+						set(pipeline.args, which( pipeline.args$stat=='startseq.mode' ), 'v', as.character(startseq.mode))
+						set(pipeline.args, which( pipeline.args$stat=='index.starttime.mode' ), 'v', as.character(index.starttime.mode))
+						
+						print(pipeline.args)						
+						if(1)
+						{
+							#	scenario A					
+							infile.ind		<- '150129_HPTN071_scA'
+							infile.trm		<- '150129_HPTN071_scA'
+							tmpdir			<- '/Users/Oliver/git/HPTN071sim/tmp150206-A'
+							tmpdir			<- paste(tmpdir,label,sep='')
+							dir.create(tmpdir, showWarnings=FALSE)																															
+							file.copy(paste(indir,'/',infile.ind,'_IND.csv',sep=''), paste(tmpdir,'/',infile.ind,label,'_IND.csv',sep=''))
+							file.copy(paste(indir,'/',infile.trm,'_TRM.csv',sep=''), paste(tmpdir,'/',infile.trm,label,'_TRM.csv',sep=''))
+							file			<- rPANGEAHIVsim.pipeline(tmpdir, paste(infile.ind,label,'_IND.csv',sep=''), paste(infile.trm,label,'_TRM.csv',sep=''), tmpdir, pipeline.args=pipeline.args)
+							#system(file)													
+						}					
+						if(1)
+						{
+							#	scenario E					
+							infile.ind		<- '150129_HPTN071_scE'
+							infile.trm		<- '150129_HPTN071_scE'
+							tmpdir			<- '/Users/Oliver/git/HPTN071sim/tmp150206-E'
+							tmpdir			<- paste(tmpdir,label,sep='')
+							dir.create(tmpdir, showWarnings=FALSE)																									
+							file.copy(paste(indir,'/',infile.ind,'_IND.csv',sep=''), paste(tmpdir,'/',infile.ind,label,'_IND.csv',sep=''))
+							file.copy(paste(indir,'/',infile.trm,'_TRM.csv',sep=''), paste(tmpdir,'/',infile.trm,label,'_TRM.csv',sep=''))
+							file			<- rPANGEAHIVsim.pipeline(tmpdir, paste(infile.ind,label,'_IND.csv',sep=''), paste(infile.trm,label,'_TRM.csv',sep=''), tmpdir, pipeline.args=pipeline.args)
+							#system(file)													
+						}											
+					}, by='label']
+		}
+		#
+		#	high R2 runs
+		#
+		if(1)
+		{
+			indir			<- '/Users/Oliver/git/HPTN071sim/source/rPANGEAHIVsim/inst/misc'
+			pipeline.args	<- rPANGEAHIVsim.pipeline.args( yr.start=1985, yr.end=2020, seed=42, s.MODEL='Fixed2Prop', report.prop.recent=1.0,
+					s.PREV.max.n=1600, s.INTERVENTION.prop=0.25, s.INTERVENTION.start=2015, s.INTERVENTION.mul= NA, s.ARCHIVAL.n=50,
+					epi.model='HPTN071', epi.dt=1/48, epi.import=0.05, root.edge.fixed=1,
+					v.N0tau=1, v.r=2.851904, v.T50=-2,
+					wher.mu=log(0.002239075)-0.3^2/2, wher.sigma=0.3, 
+					bwerm.mu=log(0.002239075)-0.3^2/2, bwerm.sigma=0.3, er.gamma=4,
+					dbg.GTRparam=1, dbg.rER=1, index.starttime.mode='fix1955', startseq.mode='many', seqtime.mode='AtDiag')								
+			
+			# proposed standard run and control simulation
+			pipeline.vary	<- data.table(	startseq.mode=			c('many','one'),					
+					label=					c('-m111','-o111'))						
+			dummy			<- pipeline.vary[, {				
+						set(pipeline.args, which( pipeline.args$stat=='startseq.mode' ), 'v', as.character(startseq.mode))
+						
+						print(pipeline.args)						
+						if(1)
+						{
+							#	scenario F					
+							infile.ind		<- '150129_HPTN071_scF'
+							infile.trm		<- '150129_HPTN071_scF'
+							tmpdir			<- '/Users/Oliver/git/HPTN071sim/tmp150227-F'
+							tmpdir			<- paste(tmpdir,label,sep='')
+							dir.create(tmpdir, showWarnings=FALSE)																															
+							file.copy(paste(indir,'/',infile.ind,'_IND.csv',sep=''), paste(tmpdir,'/',infile.ind,label,'_IND.csv',sep=''))
+							file.copy(paste(indir,'/',infile.trm,'_TRM.csv',sep=''), paste(tmpdir,'/',infile.trm,label,'_TRM.csv',sep=''))
+							file			<- rPANGEAHIVsim.pipeline(tmpdir, paste(infile.ind,label,'_IND.csv',sep=''), paste(infile.trm,label,'_TRM.csv',sep=''), tmpdir, pipeline.args=pipeline.args)
+							#system(file)													
+						}					
+						if(1)
+						{
+							#	scenario E					
+							infile.ind		<- '150129_HPTN071_scE'
+							infile.trm		<- '150129_HPTN071_scE'
+							tmpdir			<- '/Users/Oliver/git/HPTN071sim/tmp150227-E'
+							tmpdir			<- paste(tmpdir,label,sep='')
+							dir.create(tmpdir, showWarnings=FALSE)																									
+							file.copy(paste(indir,'/',infile.ind,'_IND.csv',sep=''), paste(tmpdir,'/',infile.ind,label,'_IND.csv',sep=''))
+							file.copy(paste(indir,'/',infile.trm,'_TRM.csv',sep=''), paste(tmpdir,'/',infile.trm,label,'_TRM.csv',sep=''))
+							file			<- rPANGEAHIVsim.pipeline(tmpdir, paste(infile.ind,label,'_IND.csv',sep=''), paste(infile.trm,label,'_TRM.csv',sep=''), tmpdir, pipeline.args=pipeline.args)
+							#system(file)													
+						}											
+					}, by='label']
+		}
+}
+##--------------------------------------------------------------------------------------------------------
+##	olli 12.02.15
+##--------------------------------------------------------------------------------------------------------
+project.PANGEA.TEST.pipeline.Feb2015.final<- function()
+{	
+	if(0)
+	{
+		indir			<- '/Users/Oliver/git/HPTN071sim/source/rPANGEAHIVsim/inst/misc'
+		pipeline.args	<- rPANGEAHIVsim.pipeline.args( yr.start=1985, yr.end=NA, seed=NA, s.MODEL='Fixed2Prop', report.prop.recent=1.0,
+				s.PREV.max.n=NA, s.INTERVENTION.prop=NA, s.INTERVENTION.start=2015, s.INTERVENTION.mul= NA, s.ARCHIVAL.n=50,
+				epi.model='HPTN071', epi.dt=1/48, epi.import=NA, root.edge.fixed=0,
+				v.N0tau=1, v.r=2.851904, v.T50=-2,
+				wher.mu=log(0.00447743)-0.5^2/2, wher.sigma=0.5, bwerm.mu=log(0.002239075)-0.3^2/2, bwerm.sigma=0.3, er.gamma=4,
+				dbg.GTRparam=0, dbg.rER=0, index.starttime.mode='fix1970', startseq.mode='one', seqtime.mode='AtDiag')								
+		
+		# proposed standard run and control simulation
+		pipeline.vary	<- data.table(	label=					c('-sq','-ph','-tr20','-s2x','-mFP85','-y3', '-mFP25'),										
+										yr.end=					c(2020, 2020,  2020,  2020,   2020,    2018, 2020),
+										epi.import=				c(0.05, 0.05,  0.2,   0.05,   0.05,    0.05, 0.05),
+										s.PREV.max.n=			c(1600, 1600,  1600,  3200,   1600,    1280, 1600),
+										s.INTERVENTION.prop=	c(0.5,  0.5,   0.5,   0.5,    0.85,    0.375, 0.25),
+										seed=                   c(42,   5,     7,     11,     13,      17, 42)
+										)						
+		dummy			<- pipeline.vary[, {				
+					set(pipeline.args, which( pipeline.args$stat=='yr.end' ), 'v', as.character(yr.end))
+					set(pipeline.args, which( pipeline.args$stat=='epi.import' ), 'v', as.character(epi.import))
+					set(pipeline.args, which( pipeline.args$stat=='s.PREV.max.n' ), 'v', as.character(s.PREV.max.n))											
+					set(pipeline.args, which( pipeline.args$stat=='s.INTERVENTION.prop' ), 'v', as.character(s.INTERVENTION.prop))
+					set(pipeline.args, which( pipeline.args$stat=='s.seed' ), 'v', as.character(seed))
+					print(pipeline.args)						
+					if(1)
+					{
+						#	scenario A					
+						infile.ind		<- '150129_HPTN071_scA'
+						infile.trm		<- '150129_HPTN071_scA'
+						tmpdir			<- '/Users/Oliver/git/HPTN071sim/tmp150208-A'
+						tmpdir			<- paste(tmpdir,label,sep='')
+						dir.create(tmpdir, showWarnings=FALSE)																														
+						file.copy(paste(indir,'/',infile.ind,'_IND.csv',sep=''), paste(tmpdir,'/',infile.ind,label,'_IND.csv',sep=''))
+						file.copy(paste(indir,'/',infile.trm,'_TRM.csv',sep=''), paste(tmpdir,'/',infile.trm,label,'_TRM.csv',sep=''))
+						file			<- rPANGEAHIVsim.pipeline(tmpdir, paste(infile.ind,label,'_IND.csv',sep=''), paste(infile.trm,label,'_TRM.csv',sep=''), tmpdir, pipeline.args=pipeline.args)
+						#system(file)													
+					}
+					if(1)
+					{
+						#	scenario B					
+						infile.ind		<- '150129_HPTN071_scB'
+						infile.trm		<- '150129_HPTN071_scB'
+						tmpdir			<- '/Users/Oliver/git/HPTN071sim/tmp150208-B'
+						tmpdir			<- paste(tmpdir,label,sep='')
+						dir.create(tmpdir, showWarnings=FALSE)																		
+						file.copy(paste(indir,'/',infile.ind,'_IND.csv',sep=''), paste(tmpdir,'/',infile.ind,label,'_IND.csv',sep=''))
+						file.copy(paste(indir,'/',infile.trm,'_TRM.csv',sep=''), paste(tmpdir,'/',infile.trm,label,'_TRM.csv',sep=''))
+						file			<- rPANGEAHIVsim.pipeline(tmpdir, paste(infile.ind,label,'_IND.csv',sep=''), paste(infile.trm,label,'_TRM.csv',sep=''), tmpdir, pipeline.args=pipeline.args)
+						#system(file)													
+					}
+					if(1)
+					{
+						#	scenario C					
+						infile.ind		<- '150129_HPTN071_scC'
+						infile.trm		<- '150129_HPTN071_scC'
+						tmpdir			<- '/Users/Oliver/git/HPTN071sim/tmp150208-C'
+						tmpdir			<- paste(tmpdir,label,sep='')
+						dir.create(tmpdir, showWarnings=FALSE)																		
+						file.copy(paste(indir,'/',infile.ind,'_IND.csv',sep=''), paste(tmpdir,'/',infile.ind,label,'_IND.csv',sep=''))
+						file.copy(paste(indir,'/',infile.trm,'_TRM.csv',sep=''), paste(tmpdir,'/',infile.trm,label,'_TRM.csv',sep=''))
+						file			<- rPANGEAHIVsim.pipeline(tmpdir, paste(infile.ind,label,'_IND.csv',sep=''), paste(infile.trm,label,'_TRM.csv',sep=''), tmpdir, pipeline.args=pipeline.args)
+						#system(file)													
+					}
+					if(1)
+					{
+						#	scenario D					
+						infile.ind		<- '150129_HPTN071_scD'
+						infile.trm		<- '150129_HPTN071_scD'
+						tmpdir			<- '/Users/Oliver/git/HPTN071sim/tmp150208-D'
+						tmpdir			<- paste(tmpdir,label,sep='')
+						dir.create(tmpdir, showWarnings=FALSE)																		
+						file.copy(paste(indir,'/',infile.ind,'_IND.csv',sep=''), paste(tmpdir,'/',infile.ind,label,'_IND.csv',sep=''))
+						file.copy(paste(indir,'/',infile.trm,'_TRM.csv',sep=''), paste(tmpdir,'/',infile.trm,label,'_TRM.csv',sep=''))
+						file			<- rPANGEAHIVsim.pipeline(tmpdir, paste(infile.ind,label,'_IND.csv',sep=''), paste(infile.trm,label,'_TRM.csv',sep=''), tmpdir, pipeline.args=pipeline.args)
+						#system(file)													
+					}
+					if(1)
+					{
+						#	scenario E					
+						infile.ind		<- '150129_HPTN071_scE'
+						infile.trm		<- '150129_HPTN071_scE'
+						tmpdir			<- '/Users/Oliver/git/HPTN071sim/tmp150208-E'
+						tmpdir			<- paste(tmpdir,label,sep='')
+						dir.create(tmpdir, showWarnings=FALSE)																		
+						file.copy(paste(indir,'/',infile.ind,'_IND.csv',sep=''), paste(tmpdir,'/',infile.ind,label,'_IND.csv',sep=''))
+						file.copy(paste(indir,'/',infile.trm,'_TRM.csv',sep=''), paste(tmpdir,'/',infile.trm,label,'_TRM.csv',sep=''))
+						file			<- rPANGEAHIVsim.pipeline(tmpdir, paste(infile.ind,label,'_IND.csv',sep=''), paste(infile.trm,label,'_TRM.csv',sep=''), tmpdir, pipeline.args=pipeline.args)
+						#system(file)													
+					}
+					if(1)
+					{
+						#	scenario F					
+						infile.ind		<- '150129_HPTN071_scF'
+						infile.trm		<- '150129_HPTN071_scF'
+						tmpdir			<- '/Users/Oliver/git/HPTN071sim/tmp150208-F'
+						tmpdir			<- paste(tmpdir,label,sep='')
+						dir.create(tmpdir, showWarnings=FALSE)																									
+						file.copy(paste(indir,'/',infile.ind,'_IND.csv',sep=''), paste(tmpdir,'/',infile.ind,label,'_IND.csv',sep=''))
+						file.copy(paste(indir,'/',infile.trm,'_TRM.csv',sep=''), paste(tmpdir,'/',infile.trm,label,'_TRM.csv',sep=''))
+						file			<- rPANGEAHIVsim.pipeline(tmpdir, paste(infile.ind,label,'_IND.csv',sep=''), paste(infile.trm,label,'_TRM.csv',sep=''), tmpdir, pipeline.args=pipeline.args)
+						#system(file)													
+					}					
+				}, by='label']
+		
 	}
+}
+##--------------------------------------------------------------------------------------------------------
+##	runs for Manon's clustering analysis
+##	olli 31.03.15
+##--------------------------------------------------------------------------------------------------------
+project.PANGEA.TEST.pipeline.Apr2015.Manon<- function()
+{	
+	if(0)
+	{
+		indir			<- '/Users/Oliver/git/HPTN071sim/source/rPANGEAHIVsim/inst/misc'
+		pipeline.args	<- rPANGEAHIVsim.pipeline.args( yr.start=1985, yr.end=2020, seed=42, s.MODEL='Prop2SuggestedSampling', report.prop.recent=1.0,
+				s.PREV.max=1.0, s.INTERVENTION.start=2015, 
+				epi.model='HPTN071', epi.dt=1/48, epi.import=0.2, root.edge.fixed=0,
+				v.N0tau=1, v.r=2.851904, v.T50=-2,
+				wher.mu=log(0.00447743)-0.5^2/2, wher.sigma=0.5, bwerm.mu=log(0.002239075)-0.3^2/2, bwerm.sigma=0.3, er.gamma=4,
+				dbg.GTRparam=0, dbg.rER=0, index.starttime.mode='fix1970', startseq.mode='one', seqtime.mode=NA)								
+		
+		# proposed standard run and control simulation
+		pipeline.vary	<- data.table(	label=					c('-f70s3','-f70s6','-f80s3','-f80s6'),
+										seqtime.mode=			c('AtYear3', 'AtYear6', 'AtYear3', 'AtYear6'),
+										s.PREV.max= 			c(1.0, 1.0, 1.0, 1.0),
+										index.starttime.mode=	c('fix1970', 'fix1970', 'fix1980', 'fix1980')										
+										)						
+		dummy			<- pipeline.vary[, {				
+					set(pipeline.args, which( pipeline.args$stat=='index.starttime.mode' ), 'v', as.character(index.starttime.mode))
+					set(pipeline.args, which( pipeline.args$stat=='seqtime.mode' ), 'v', as.character(seqtime.mode))
+					set(pipeline.args, which( pipeline.args$stat=='s.PREV.max' ), 'v', as.character(s.PREV.max))
+					print(pipeline.args)										
+					if(1)
+					{
+						#	scenario E					
+						infile.ind		<- '150129_HPTN071_scE'
+						infile.trm		<- '150129_HPTN071_scE'
+						tmpdir			<- '/Users/Oliver/git/HPTN071sim/tmp150401-E'
+						tmpdir			<- paste(tmpdir,label,sep='')
+						dir.create(tmpdir, showWarnings=FALSE)																		
+						file.copy(paste(indir,'/',infile.ind,'_IND.csv',sep=''), paste(tmpdir,'/',infile.ind,label,'_IND.csv',sep=''))
+						file.copy(paste(indir,'/',infile.trm,'_TRM.csv',sep=''), paste(tmpdir,'/',infile.trm,label,'_TRM.csv',sep=''))
+						file			<- rPANGEAHIVsim.pipeline(tmpdir, paste(infile.ind,label,'_IND.csv',sep=''), paste(infile.trm,label,'_TRM.csv',sep=''), tmpdir, pipeline.args=pipeline.args)
+						#system(file)													
+					}								
+				}, by='label']
+		
+	}
+}
+##--------------------------------------------------------------------------------------------------------
+##	check simulated sequences: create ExaML tree and estimate R2
+##	olli 09.02.15
+##--------------------------------------------------------------------------------------------------------
+project.PANGEA.TEST.pipeline.Feb2015.randomize<- function()
+{	
+	set.seed(42)
+	indir		<- '/Users/Oliver/duke/2014_Gates/methods_comparison_pipeline/FINAL'
+	outdir		<- '/Users/Oliver/duke/2014_Gates/methods_comparison_pipeline/FINAL_RND'
+	dfi			<- data.table(FILE=list.files(indir, '.*zip$', full.names=FALSE))
+	
+	dfi[, SC:= sapply(strsplit(FILE, '_'),'[[',3)]
+	dfi[, CONFIG:= sapply(strsplit(SC, '-'),'[[',2)]
+	set(dfi, NULL, 'SC', dfi[, sapply(strsplit(SC, '-'),'[[',1)])
+	dfi[, DATAT:= sapply(strsplit(FILE, '_'),'[[',5)]
+	set(dfi, NULL, 'DATAT', dfi[, gsub('.zip','',DATAT,fixed=T)])
+	
+	set(dfi, NULL, 'OBJECTIVE', 'SecondObj')
+	set(dfi, dfi[,which(CONFIG=='sq')],'OBJECTIVE', 'FirstObj')
+	dfi			<- merge(dfi,dfi[, list(FILE=FILE, DUMMY=sample(length(FILE),length(FILE))), by='OBJECTIVE'],by=c('OBJECTIVE','FILE'))
+	tmp			<- dfi[, which(OBJECTIVE=='SecondObj')]
+	set(dfi, tmp, 'DUMMY', dfi[tmp, DUMMY] + dfi[OBJECTIVE=='FirstObj', max(DUMMY)])
+	
+	setkey(dfi, DUMMY)
+	dfi[, SC_RND:= toupper(letters[seq_len(nrow(dfi))])]
+	
+	dfi[, GSUB_FROM:= sapply(strsplit(FILE, '_'),'[[',3)]
+	dfi[, GSUB_TO:= paste(OBJECTIVE,'_sc',SC_RND,sep='')]
+	
+	tmp		<- dfi[, {
+				cat(paste('process file',FILE))
+				tmpdir			<- paste(indir,'/tmp',SC_RND,sep='')
+				unzip( paste(indir,'/',FILE,sep=''), exdir=tmpdir)
+				files.name.o	<- list.files( paste(indir,'/tmp',SC_RND,sep='') )
+				files.name.n	<- gsub(GSUB_FROM,GSUB_TO,files.name.o)
+				files.name.n	<- gsub('HPTN071','PANGEAsim_Regional',files.name.n)
+				file.rename( paste(tmpdir, files.name.o, sep='/'), paste(tmpdir, files.name.n, sep='/'))
+				newzip			<- gsub(GSUB_FROM,GSUB_TO,FILE)
+				newzip			<- gsub('HPTN071','PANGEAsim_Regional',newzip)
+				zip(  paste(outdir,'/',newzip,sep=''), paste(tmpdir, files.name.n, sep='/'), flags = "-FSr9XTj")
+				file.remove( paste(tmpdir, files.name.n, sep='/'), showWarnings=FALSE)
+				file.remove( tmpdir, showWarnings=FALSE )				
+			}, by='DUMMY']
 }
 ##--------------------------------------------------------------------------------------------------------
 ##	check simulated sequences: create ExaML tree and estimate R2
@@ -2854,6 +3291,837 @@ project.PANGEA.TEST.pipeline.October2014<- function()
 }
 ##--------------------------------------------------------------------------------------------------------
 ##	check simulated sequences: create ExaML tree and estimate R2
+##	olli 02.02.15
+##--------------------------------------------------------------------------------------------------------
+project.PANGEA.TEST.SSApg.CLUSTERBEAST.skygrid.hky<- function()
+{
+	require(phytools)
+	require(hivclust)
+	require(XML)
+	#	load outgroup sequences
+	file			<- system.file(package="rPANGEAHIVsim", "misc",'PANGEA_SSAfg_HXB2outgroup.R')
+	cat(paste('\nLoading outgroup seq from file', file))
+	load(file)		#expect "outgroup.seq.gag" "outgroup.seq.pol" "outgroup.seq.env"	
+	
+	tree.id.labelsep		<- '|'
+	tree.id.label.idx.ctime	<- 4 	
+	select		<- 'grid-mseq500'
+	select		<- 'grid-cseq3'
+	#select		<- 'grid-mseq400'
+	indir		<- '/Users/Oliver/duke/2014_Gates/methods_comparison_pipeline/150402'
+	#indir		<- '/Users/Oliver/git/HPTN071sim/tmp140914/140716_RUN001_INTERNAL'  
+	outdir		<- indir
+	infiles		<- list.files(indir, '.*INTERNAL.R$', full.names=FALSE)
+	#stopifnot(length(infiles)==1)
+	#	read BEAST template files	
+	infile.beast.pol	<- system.file(package="rPANGEAHIVsim", "misc",'BEAST_template_vTESTpol_grid-fixedtree.xml')
+	infile.beast.pol	<- '~/git/HPTN071sim/source/rPANGEAHIVsim/inst/misc/BEAST_template_vTESTpol_grid-fixedtree.xml'
+	bxml.template.pol	<- xmlTreeParse(infile.beast.pol, useInternalNodes=TRUE, addFinalizer = TRUE)
+	infile.beast.gag	<- system.file(package="rPANGEAHIVsim", "misc",'BEAST_template_vTESTgag.xml')
+	bxml.template.gag	<- xmlTreeParse(infile.beast.gag, useInternalNodes=TRUE, addFinalizer = TRUE)
+	infile.beast.env	<- system.file(package="rPANGEAHIVsim", "misc",'BEAST_template_vTESTenv.xml')		
+	bxml.template.env	<- xmlTreeParse(infile.beast.env, useInternalNodes=TRUE, addFinalizer = TRUE)	
+	#
+	#	run  
+	#	
+	for(i in seq_along(infiles))
+	{
+		infile			<- infiles[i]
+		#	load simulated data
+		file			<- paste(indir, '/', infile, sep='')
+		cat(paste('\nLoading file', file))
+		load(file)		#expect "df.epi"    "df.trms"   "df.inds"   "df.sample" "df.seq"
+		set( df.seq, NULL, 'IDCLU', df.seq[, as.integer(IDCLU)] )
+		#			
+		if(grepl('nseq',select))
+		{
+			thresh.NSEQ		<- as.numeric(substring(select, 5)) 
+			thresh.brl		<- c(seq(0.001, 0.05, 0.001), seq(0.06, 0.5, 0.1))
+			thresh.nseq		<- sapply(thresh.brl, function(x)
+					{
+						clustering		<- hivc.clu.clusterbythresh(seq.ph, thresh.brl=x, dist.brl=tmp, retval="all")
+						which(clustering$size.tips>10)
+						length(which(!is.na(clustering$clu.mem[ seq_len(Ntip(seq.ph))] )))					
+					})
+			thresh.brl		<- thresh.brl[ which(thresh.nseq>=thresh.NSEQ)[1] ]
+			clustering		<- hivc.clu.clusterbythresh(seq.ph, thresh.brl=thresh.brl, dist.brl=tmp, retval="all")		
+			cat(paste('\nFound clusters, n=', length(clustering$clu.idx)))
+			seq.select		<- subset( data.table( PH_NODE_ID=seq_len(Ntip(seq.ph)), CLU_ID=clustering$clu.mem[ seq_len(Ntip(seq.ph))] ), !is.na(CLU_ID) )
+			seq.select[, LABEL:= seq.select[, seq.ph$tip.label[PH_NODE_ID]] ]
+			seq.select		<- merge(df.seq, seq.select, by='LABEL')
+		}
+		if(grepl('mseq',select))
+		{
+			thresh.NSEQ		<- as.numeric(substring(select, 10))
+			seq.select		<- subset(df.inds, !is.na(IDCLU))
+			seq.select		<- subset(merge(seq.select, seq.select[, list(CLU_N=-length(which(!is.na(TIME_SEQ)))), by='IDCLU'], by='IDCLU'), CLU_N<0 & !is.na(TIME_SEQ))
+			setkey(seq.select, CLU_N, IDCLU)
+			tmp				<- unique(seq.select)
+			tmp[, CLU_CN:= tmp[,cumsum(-CLU_N)]]
+			tmp				<- tmp[seq_len( tmp[, which(CLU_CN>=thresh.NSEQ)[1]] ), ] 
+			seq.select		<- merge( seq.select, subset(tmp, select=IDCLU), by='IDCLU' )
+			seq.select		<- merge(df.seq, seq.select, by=c('IDCLU','IDPOP'))			
+			cat(paste('\nFound clusters, n=', seq.select[, length(unique(IDCLU))])) 
+			cat(paste('\nFound sequences, n=', seq.select[, length(unique(IDPOP))]))					
+		}
+		if(grepl('cseq',select))
+		{
+			thresh.NSEQ		<- as.numeric(substring(select, 10))
+			seq.select		<- subset(df.inds, !is.na(IDCLU))
+			seq.select		<- subset(merge(seq.select, seq.select[, list(CLU_N=-length(which(!is.na(TIME_SEQ)))), by='IDCLU'], by='IDCLU'), CLU_N<=-thresh.NSEQ & !is.na(TIME_SEQ))
+			setkey(seq.select, CLU_N, IDCLU)
+			tmp				<- unique(seq.select)
+			seq.select		<- merge( seq.select, subset(tmp, select=IDCLU), by='IDCLU' )
+			seq.select		<- merge(df.seq, seq.select, by=c('IDCLU','IDPOP'))			
+			cat(paste('\nFound clusters, n=', seq.select[, length(unique(IDCLU))])) 
+			cat(paste('\nFound sequences, n=', seq.select[, length(unique(IDPOP))]))					
+		}
+		#
+		#	read NEWICK trees for each cluster phylogeny, if there
+		#
+		phd		<- NULL
+		tmp		<- list.files(indir, '_DATEDTREE.newick$', full.names=FALSE)
+		tmp		<- tmp[ grepl(substr(infile, 1, regexpr('_SIMULATED',infile)), tmp) ]
+		if(length(tmp))
+		{
+			# select
+			phd					<- read.tree(paste(indir, tmp, sep='/'))
+			
+			tmp2				<- data.table(IDPOP= sapply(phd, function(x) x$tip.label[1]), IDX=seq_along(phd))
+			set( tmp2, NULL, 'IDPOP', tmp2[, as.integer(substring(sapply(strsplit(IDPOP, tree.id.labelsep, fixed=TRUE),'[[',1),7)) ] )
+			tmp2				<- merge(subset(seq.select, select=c(IDPOP, IDCLU)), tmp2, by='IDPOP')			
+			phd					<- lapply(tmp2[,IDX], function(i) phd[[i]] )
+			names(phd)			<- tmp2[, IDCLU]
+			# plot
+			phd.plot			<- eval(parse(text=paste('phd[[',seq_along(phd),']]', sep='',collapse='+')))			
+			#phd.plot			<- drop.tip(phd.plot, which(grepl('NOEXIST', phd.plot$tip.label)), root.edge=1)
+			phd.plot			<- ladderize(phd.plot)
+			tmp					<- paste(indir, '/', gsub('DATEDTREE','BEASTDATEDTREE',tmp), sep='')						
+			pdf(file=gsub('newick','pdf',tmp), w=10, h=Ntip(phd.plot)*0.1)
+			plot(phd.plot, show.tip=TRUE, cex=0.5)
+			dev.off()									
+		}
+		#
+		#	create BEAST XML
+		#		
+		#
+		#	POL
+		#
+		if(1)
+		{
+			cat(paste('\ncreate POL BEAST XML file for seqs=',paste( seq.select[,LABEL], collapse=' ')))
+			pool.infile		<- paste(  substr(infile,1,nchar(infile)-21),'_TEST_pol', sep='' )
+			file.name		<- paste(pool.infile,'_HKY-', select, sep='')
+			seq.select.pol	<- subset(seq.select, select=c("IDCLU", "IDPOP", "LABEL", "POL" ))
+			setnames(seq.select.pol, 'POL', 'SEQ')
+			hivc.beastscript.multilocus.hky( file.name, seq.select.pol, phd, verbose=1 )
+		}				
+	}
+}
+##--------------------------------------------------------------------------------------------------------
+##	check simulated sequences: create ExaML tree and estimate R2
+##	olli 02.02.15
+##--------------------------------------------------------------------------------------------------------
+project.PANGEA.TEST.SSApg.CLUSTERBEAST.skygrid.codon.gtr<- function()
+{
+	require(phytools)
+	require(hivclust)
+	require(XML)
+	#	load outgroup sequences
+	file			<- system.file(package="rPANGEAHIVsim", "misc",'PANGEA_SSAfg_HXB2outgroup.R')
+	cat(paste('\nLoading outgroup seq from file', file))
+	load(file)		#expect "outgroup.seq.gag" "outgroup.seq.pol" "outgroup.seq.env"	
+	
+	tree.id.labelsep		<- '|'
+	tree.id.label.idx.ctime	<- 4 	
+	select		<- 'grid-mseq500'
+	select		<- 'grid-cseq3'
+	#select		<- 'grid-mseq100'
+	indir		<- '/Users/Oliver/duke/2014_Gates/methods_comparison_pipeline/150402'
+	#indir		<- '/Users/Oliver/git/HPTN071sim/tmp140914/140716_RUN001_INTERNAL'  
+	outdir		<- indir
+	infiles		<- list.files(indir, '.*INTERNAL.R$', full.names=FALSE)
+	#stopifnot(length(infiles)==1)
+	#	read BEAST template files	
+	infile.beast.pol	<- system.file(package="rPANGEAHIVsim", "misc",'BEAST_template_vTESTpol_grid-fixedtree.xml')
+	infile.beast.pol	<- '~/git/HPTN071sim/source/rPANGEAHIVsim/inst/misc/BEAST_template_vTESTpol_grid-fixedtree.xml'
+	bxml.template.pol	<- xmlTreeParse(infile.beast.pol, useInternalNodes=TRUE, addFinalizer = TRUE)
+	infile.beast.gag	<- system.file(package="rPANGEAHIVsim", "misc",'BEAST_template_vTESTgag.xml')
+	bxml.template.gag	<- xmlTreeParse(infile.beast.gag, useInternalNodes=TRUE, addFinalizer = TRUE)
+	infile.beast.env	<- system.file(package="rPANGEAHIVsim", "misc",'BEAST_template_vTESTenv.xml')		
+	bxml.template.env	<- xmlTreeParse(infile.beast.env, useInternalNodes=TRUE, addFinalizer = TRUE)	
+	#
+	#	run  
+	#	
+	for(i in seq_along(infiles))
+	{
+		infile			<- infiles[i]
+		#	load simulated data
+		file			<- paste(indir, '/', infile, sep='')
+		cat(paste('\nLoading file', file))
+		load(file)		#expect "df.epi"    "df.trms"   "df.inds"   "df.sample" "df.seq"
+		set( df.seq, NULL, 'IDCLU', df.seq[, as.integer(IDCLU)] )
+		#			
+		if(grepl('nseq',select))
+		{
+			thresh.NSEQ		<- as.numeric(substring(select, 5)) 
+			thresh.brl		<- c(seq(0.001, 0.05, 0.001), seq(0.06, 0.5, 0.1))
+			thresh.nseq		<- sapply(thresh.brl, function(x)
+					{
+						clustering		<- hivc.clu.clusterbythresh(seq.ph, thresh.brl=x, dist.brl=tmp, retval="all")
+						which(clustering$size.tips>10)
+						length(which(!is.na(clustering$clu.mem[ seq_len(Ntip(seq.ph))] )))					
+					})
+			thresh.brl		<- thresh.brl[ which(thresh.nseq>=thresh.NSEQ)[1] ]
+			clustering		<- hivc.clu.clusterbythresh(seq.ph, thresh.brl=thresh.brl, dist.brl=tmp, retval="all")		
+			cat(paste('\nFound clusters, n=', length(clustering$clu.idx)))
+			seq.select		<- subset( data.table( PH_NODE_ID=seq_len(Ntip(seq.ph)), CLU_ID=clustering$clu.mem[ seq_len(Ntip(seq.ph))] ), !is.na(CLU_ID) )
+			seq.select[, LABEL:= seq.select[, seq.ph$tip.label[PH_NODE_ID]] ]
+			seq.select		<- merge(df.seq, seq.select, by='LABEL')
+		}
+		if(grepl('mseq',select))
+		{
+			thresh.NSEQ		<- as.numeric(substring(select, 10))
+			seq.select		<- subset(df.inds, !is.na(IDCLU))
+			seq.select		<- subset(merge(seq.select, seq.select[, list(CLU_N=-length(which(!is.na(TIME_SEQ)))), by='IDCLU'], by='IDCLU'), CLU_N<0 & !is.na(TIME_SEQ))
+			setkey(seq.select, CLU_N, IDCLU)
+			tmp				<- unique(seq.select)
+			tmp[, CLU_CN:= tmp[,cumsum(-CLU_N)]]
+			tmp				<- tmp[seq_len( tmp[, which(CLU_CN>=thresh.NSEQ)[1]] ), ] 
+			seq.select		<- merge( seq.select, subset(tmp, select=IDCLU), by='IDCLU' )
+			seq.select		<- merge(df.seq, seq.select, by=c('IDCLU','IDPOP'))			
+			cat(paste('\nFound clusters, n=', seq.select[, length(unique(IDCLU))])) 
+			cat(paste('\nFound sequences, n=', seq.select[, length(unique(IDPOP))]))					
+		}
+		if(grepl('cseq',select))
+		{
+			thresh.NSEQ		<- as.numeric(substring(select, 10))
+			seq.select		<- subset(df.inds, !is.na(IDCLU))
+			seq.select		<- subset(merge(seq.select, seq.select[, list(CLU_N=-length(which(!is.na(TIME_SEQ)))), by='IDCLU'], by='IDCLU'), CLU_N<=-thresh.NSEQ & !is.na(TIME_SEQ))
+			setkey(seq.select, CLU_N, IDCLU)
+			tmp				<- unique(seq.select)
+			seq.select		<- merge( seq.select, subset(tmp, select=IDCLU), by='IDCLU' )
+			seq.select		<- merge(df.seq, seq.select, by=c('IDCLU','IDPOP'))			
+			cat(paste('\nFound clusters, n=', seq.select[, length(unique(IDCLU))])) 
+			cat(paste('\nFound sequences, n=', seq.select[, length(unique(IDPOP))]))					
+		}
+		#
+		#	read NEWICK trees for each cluster phylogeny, if there
+		#
+		phd		<- NULL
+		tmp		<- list.files(indir, '_DATEDTREE.newick$', full.names=FALSE)
+		tmp		<- tmp[ grepl(substr(infile, 1, regexpr('_SIMULATED',infile)), tmp) ]
+		if(length(tmp))
+		{
+			# select
+			phd					<- read.tree(paste(indir, tmp, sep='/'))
+			
+			tmp2				<- data.table(IDPOP= sapply(phd, function(x) x$tip.label[1]), IDX=seq_along(phd))
+			set( tmp2, NULL, 'IDPOP', tmp2[, as.integer(substring(sapply(strsplit(IDPOP, tree.id.labelsep, fixed=TRUE),'[[',1),7)) ] )
+			tmp2				<- merge(subset(seq.select, select=c(IDPOP, IDCLU)), tmp2, by='IDPOP')			
+			phd					<- lapply(tmp2[,IDX], function(i) phd[[i]] )
+			names(phd)			<- tmp2[, IDCLU]
+			# plot
+			phd.plot			<- eval(parse(text=paste('phd[[',seq_along(phd),']]', sep='',collapse='+')))			
+			#phd.plot			<- drop.tip(phd.plot, which(grepl('NOEXIST', phd.plot$tip.label)), root.edge=1)
+			phd.plot			<- ladderize(phd.plot)
+			tmp					<- paste(indir, '/', gsub('DATEDTREE','BEASTDATEDTREE',tmp), sep='')						
+			pdf(file=gsub('newick','pdf',tmp), w=10, h=Ntip(phd.plot)*0.1)
+			plot(phd.plot, show.tip=TRUE, cex=0.5)
+			dev.off()									
+		}
+		#
+		#	create BEAST XML
+		#		
+		#
+		#	POL
+		#
+		if(1)
+		{
+			cat(paste('\ncreate POL BEAST XML file for seqs=',paste( seq.select[,LABEL], collapse=' ')))
+			pool.infile		<- paste(  substr(infile,1,nchar(infile)-21),'_TEST_pol', sep='' )
+			file.name		<- paste(pool.infile,'_CODON-GTR-', select, sep='')
+			seq.select.pol	<- subset(seq.select, select=c("IDCLU", "IDPOP", "LABEL", "POL" ))
+			setnames(seq.select.pol, 'POL', 'SEQ')			
+			hivc.beastscript.multilocus.codon.gtr( file.name, seq.select.pol, phd, verbose=1 )		
+		}				
+	}
+}
+##--------------------------------------------------------------------------------------------------------
+##	check simulated sequences: create ExaML tree and estimate R2
+##	olli 04.02.15
+##--------------------------------------------------------------------------------------------------------
+project.PANGEA.TEST.SeqNo<- function()
+{
+	indir			<- '/Users/Oliver/duke/2014_Gates/methods_comparison_pipeline/150205'
+	dfi				<- data.table(FILE=list.files(indir, '.*SIMULATED_INTERNAL.R$', full.names=FALSE))
+	dfi[, SC:= sapply(strsplit(FILE, '_'),'[[',3)]
+	dfi[, CONFIG:= sapply(strsplit(SC, '-'),'[[',2)]
+	set(dfi, NULL, 'SC', dfi[, sapply(strsplit(SC, '-'),'[[',1)])	
+	dfs				<- dfi[,{
+								file			<- paste(indir, FILE, sep='/' )
+								cat(paste('\nprocess file=',file))
+								load(file)
+								df.inds
+								tmp2				<- subset( df.inds, DOD>pipeline.args['yr.end',][, as.numeric(v)] & floor(TIME_TR)<pipeline.args['yr.end',][, as.numeric(v)])
+								sc.alive20.infl20	<- tmp2[, length(which(!is.na(TIME_SEQ)))/length(TIME_SEQ) ]					
+								tmp2				<- subset( df.inds, floor(TIME_TR)>=2000 & floor(TIME_TR)<pipeline.args['yr.end',][, as.numeric(v)])
+								sc.infg99l20		<- tmp2[, length(which(!is.na(TIME_SEQ)))/length(TIME_SEQ) ]				
+								sn.g14				<- subset( df.inds, TIME_SEQ>=pipeline.args['s.INTERVENTION.start',][, as.numeric(v)] & floor(TIME_TR)<pipeline.args['yr.end',][, as.numeric(v)])[, length(which(!is.na(TIME_SEQ))) ] 
+								sn.total			<- subset(df.inds, floor(TIME_TR)<pipeline.args['yr.end',][, as.numeric(v)])[, length(which(!is.na(TIME_SEQ))) ]
+								list(SN_TOTAL=sn.total, SN_G14=sn.g14, SC_20=sc.alive20.infl20, SC_9920=sc.infg99l20)								
+							}, by=c('SC','CONFIG')]
+	setkey(dfs, CONFIG, SC)
+	dfs[, PC_G14:= SN_G14/SN_TOTAL]
+}
+##--------------------------------------------------------------------------------------------------------
+##	check simulated sequences: create ExaML tree and estimate R2
+##	olli 04.02.15
+##--------------------------------------------------------------------------------------------------------
+project.PANGEA.TEST.Surveys<- function()
+{
+	indir			<- '/Users/Oliver/duke/2014_Gates/methods_comparison_pipeline/150205'
+	dfi				<- data.table(FILE=list.files(indir, '.*SIMULATED_INTERNAL.R$', full.names=FALSE))
+	dfi[, SC:= sapply(strsplit(FILE, '_'),'[[',3)]
+	dfi[, CONFIG:= sapply(strsplit(SC, '-'),'[[',2)]
+	set(dfi, NULL, 'SC', dfi[, sapply(strsplit(SC, '-'),'[[',1)])
+	#
+	#	complete census
+	#
+	df.sp			<- dfi[,{
+								file			<- paste(indir, FILE, sep='/' )
+								cat(paste('\nprocess file=',file))
+								load(file)
+								df.sp	<- PANGEA.SeroPrevalenceSurvey(df.inds, epi.adult=13, s.INTERVENTION.start=2015, sp.prop.of.sexactive=1, sp.times=c(12, 8, 4, 0), test=1 )								
+								df.sp[, list(ALIVE_N=sum(ALIVE_N), ALIVE_AND_HIV_N=sum(ALIVE_AND_HIV_N), ALIVE_AND_DIAG_N=sum(ALIVE_AND_DIAG_N), ALIVE_AND_ART_N=sum(ALIVE_AND_ART_N), ALIVE_AND_SEQ_N=sum(ALIVE_AND_SEQ_N)), by='YR']				
+							}, by=c('SC','CONFIG')]
+	df.sp[, DIAG_PC:= ALIVE_AND_DIAG_N/ALIVE_AND_HIV_N]
+	df.sp[, ART_PC:= ALIVE_AND_ART_N/ALIVE_AND_HIV_N]
+	df.sp[, SEQ_PC:= ALIVE_AND_SEQ_N/ALIVE_AND_HIV_N]
+	df.sp			<- melt( df.sp, id.vars=c('SC','CONFIG','YR'), measure.vars=c('DIAG_PC','ART_PC','SEQ_PC') )	
+	ggplot(df.sp, aes(x=YR, y=value, colour=SC, group=SC)) + geom_point() + geom_line() +
+			scale_color_brewer(name='scenario', palette='Paired') + 
+			scale_x_continuous(breaks=df.sp[, unique(YR)], expand=c(.2,.2)) +
+			facet_wrap(CONFIG~variable, scales='free_y', ncol=3) +
+			theme_bw() + labs(x='', y='proportion') 
+	file	<- paste(indir, '150205_TEST_SurveyComplete.pdf')
+	ggsave(file=file, w=12, h=6)
+	#
+	#	survey on 5%
+	#
+	df.sp			<- dfi[,{
+				file			<- paste(indir, FILE, sep='/' )
+				cat(paste('\nprocess file=',file))
+				load(file)
+				df.sp									
+				df.sp[, list(ALIVE_N=sum(ALIVE_N), ALIVE_AND_DIAG_N=sum(ALIVE_AND_DIAG_N), ALIVE_AND_ART_N=sum(ALIVE_AND_ART_N), ALIVE_AND_SEQ_N=sum(ALIVE_AND_SEQ_N)), by='YR'] 
+			}, by=c('SC','CONFIG')]
+	df.sp			<- melt( df.sp, id.vars=c('SC','CONFIG','YR'), measure.vars=c('ALIVE_N','ALIVE_AND_DIAG_N','ALIVE_AND_ART_N','ALIVE_AND_SEQ_N') )
+	ggplot(df.sp, aes(x=YR, y=value, colour=SC, group=SC)) + geom_point() + geom_line() +
+			scale_color_brewer(name='scenario', palette='Paired') + 
+			scale_x_continuous(breaks=df.sp[, unique(YR)], expand=c(.2,.2)) +
+			facet_wrap(CONFIG~variable, scales='free_y', ncol=4) +
+			theme_bw() + labs(x='', y='proportion') 
+	file	<- paste(indir, '150205_TEST_SurveySampled.pdf')
+	ggsave(file=file, w=14, h=7)
+}
+##--------------------------------------------------------------------------------------------------------
+##	check simulated sequences: create ExaML tree and estimate R2
+##	olli 03.02.15
+##--------------------------------------------------------------------------------------------------------
+project.PANGEA.TEST.PropCD4atDiag<- function()
+{	
+	#check time to coalescence in true dated tree
+	label.sep		<- '|'
+	label.idx.date	<- 4
+	label.idx.idpop	<- 1
+	indir			<- '/Users/Oliver/duke/2014_Gates/methods_comparison_pipeline/150205'
+	dfi				<- data.table(FILE=list.files(indir, '.*SIMULATED_INTERNAL.R$', full.names=FALSE))
+	dfi[, SC:= sapply(strsplit(FILE, '_'),'[[',3)]
+	dfi[, CONFIG:= sapply(strsplit(SC, '-'),'[[',2)]
+	set(dfi, NULL, 'SC', dfi[, sapply(strsplit(SC, '-'),'[[',1)])	
+	
+	df				<- dfi[, {
+								file			<- paste(indir, FILE, sep='/' )
+								cat(paste('\nprocess',file))
+								load(file)
+								ans				<- subset(df.inds, !is.na(DIAG_T) & DIAG_T<2020, c(TIME_SEQ, RECENT_TR, DIAG_T, DIAG_CD4 ))
+								tmp				<- sample(seq_len(nrow(ans)), round(nrow(ans)*.5))
+								ans[, RECENT_TRr:= NA_character_]
+								set(ans, tmp, 'RECENT_TRr', ans[tmp, as.character(RECENT_TR)])
+								ans
+							}, by=c('SC', 'CONFIG')]
+	df[, DIAG_CD4c:= df[, cut(DIAG_CD4, breaks=c(0,200,350,500,700,2000))]]
+	set( df, NULL, 'RECENT_TRr', df[, factor(RECENT_TRr)] )
+	#	plot CD4 counts at time of diagnosis
+	df	<- subset(df, CONFIG%in%c('mFP25','mFP50','mFP85'))
+	ggplot(df, aes(x=floor(DIAG_T), fill=DIAG_CD4c)) + geom_bar(binwidth=1, position='fill', alpha=0.5) + 
+			labs(fill='CD4 category', y='percent of diagnosed', x='year diagnosed') + scale_y_continuous(breaks=seq(0,1,0.1)) + scale_fill_brewer(palette='Set1') +
+			theme_bw() + theme(panel.grid.major.y=element_line(colour="black", size=0.2)) + facet_grid(SC~CONFIG)
+	file	<- paste(indir, '150205_TEST_CD4atDiagnosis.pdf')
+	ggsave(file=file, w=12, h=12)
+	
+	ggplot(subset(df, !is.na(TIME_SEQ)), aes(x=floor(DIAG_T), fill=DIAG_CD4c)) + geom_bar(binwidth=1, position='fill', alpha=0.5) + 
+			labs(fill='CD4 category', y='percent of diagnosed\namong sequenced', x='year diagnosed') + scale_y_continuous(breaks=seq(0,1,0.1)) + scale_fill_brewer(palette='Set1') +
+			theme_bw() + theme(panel.grid.major.y=element_line(colour="black", size=0.2)) + facet_grid(SC~CONFIG)
+	file	<- paste(indir, '150205_TEST_CD4atDiagnosisAmongSequenced.pdf')
+	ggsave(file=file, w=12, h=12)
+	
+	#	plot recent at time of diagnosis
+	ggplot(df, aes(x=floor(DIAG_T), fill=RECENT_TR)) + geom_bar(binwidth=1, position='fill', alpha=0.5) + 
+			labs(fill='Infected in\nlast 6 months', y='percent of diagnosed', x='year diagnosed') + scale_y_continuous(breaks=seq(0,1,0.1)) + scale_fill_brewer(palette='Set1') +
+			theme_bw() + theme(panel.grid.major.y=element_line(colour="black", size=0.2)) + facet_grid(SC~CONFIG)
+	file	<- paste(indir, '150205_TEST_RECENT.pdf')
+	ggsave(file=file, w=12, h=12)
+	
+	ggplot(subset(df, !is.na(TIME_SEQ) & !is.na(RECENT_TRr)), aes(x=floor(DIAG_T), fill=RECENT_TRr)) + geom_bar(binwidth=1, position='fill', alpha=0.5) + 
+			labs(fill='Infected in\nlast 6 months', y='percent of diagnosed\nfor whom recency known and sequenced', x='year diagnosed') + scale_y_continuous(breaks=seq(0,1,0.1)) + scale_fill_brewer(palette='Set1') +
+			theme_bw() + theme(panel.grid.major.y=element_line(colour="black", size=0.2)) + facet_grid(SC~CONFIG)
+	file	<- paste(indir, '150205_TEST_RECENTAmongSequenced50.pdf')
+	ggsave(file=file, w=12, h=12)
+	
+}
+##--------------------------------------------------------------------------------------------------------
+##	check simulated sequences: create ExaML tree and estimate R2
+##	olli 03.02.15
+##--------------------------------------------------------------------------------------------------------
+project.PANGEA.TEST.CoClusteringAcute<- function()
+{
+	label.sep		<- '|'
+	label.idx.date	<- 4
+	label.idx.idpop	<- 1
+	indir			<- '/Users/Oliver/duke/2014_Gates/methods_comparison_pipeline/150205'
+	dfi				<- data.table(FILE=list.files(indir, '.*SIMULATED_INTERNAL.R$', full.names=FALSE))
+	dfi[, SC:= sapply(strsplit(FILE, '_'),'[[',3)]
+	dfi[, CONFIG:= sapply(strsplit(SC, '-'),'[[',2)]
+	set(dfi, NULL, 'SC', dfi[, sapply(strsplit(SC, '-'),'[[',1)])
+	#
+	#	true phylo
+	#
+	clu				<- dfi[, 	{
+									#FILE<- dfi[2,FILE]
+									file	<- paste(indir, FILE, sep='/' )
+									cat(paste('\nprocess',file))										
+									load( file )
+									#
+									clu		<- subset(df.inds, !is.na(TIME_SEQ))[, list(RECENT_Y=sum(length(which(RECENT_TR=='Y'))), SIZE=length(IDPOP) ), by='IDCLU']
+									subset(clu, SIZE>1)
+								}, by=c('SC','CONFIG')]
+	clu[, SIZEc:= cut(SIZE, breaks=c(0,4,10,1e3), labels=c('<=4','5-10','>10'))]					
+	clup			<- clu[, list(RECENT_P=mean(RECENT_Y/SIZE)), by=c('SC','CONFIG','SIZEc')]
+	ggplot(clup, aes(x=SIZEc, y=RECENT_P, group=SC, colour=SC)) + geom_point() + geom_line() + facet_grid(.~CONFIG) + 
+			theme_bw() + scale_colour_brewer(palette='Paired', name='scenario') +
+			labs(x='Number of seqs in true dated cluster phylogeny', y='individuals within 6 mo of HIV infection\n(%)')
+	file	<- paste(indir, '150205_TEST_ClustWithin6Mo_truephylo.pdf')
+	ggsave(file=file, w=8, h=6)
+	
+	ggplot(subset(clup, grepl('s2x',CONFIG)), aes(x=SIZEc, y=RECENT_P, group=SC, colour=SC)) + geom_point() + geom_line() + facet_grid(.~CONFIG) + 
+			theme_bw() + scale_colour_brewer(palette='Paired', name='scenario') +
+			labs(x='Number of seqs in true dated cluster phylogeny', y='individuals within 6 mo of HIV infection\n(%)')
+	
+	
+	#
+	#	NJ tree
+	#
+	#	load outgroup sequences
+	file			<- system.file(package="rPANGEAHIVsim", "misc",'PANGEA_SSAfg_HXB2outgroup.R')
+	cat(paste('\nLoading outgroup seq from file', file))
+	load(file)		#expect "outgroup.seq.gag" "outgroup.seq.pol" "outgroup.seq.env"
+	
+	clu				<- dfi[, 	{				
+				file	<- paste(indir, FILE, sep='/' )
+				cat(paste('\nprocess',file))										
+				load( file )
+				#	concatenate sequences	
+				tmp				<- tolower(do.call('rbind',strsplit(df.seq[, paste(GAG,POL,ENV,sep='')],'')))		
+				rownames(tmp)	<- df.seq[, paste(IDCLU,label.sep,LABEL,sep='')]	
+				seq				<- as.DNAbin(tmp)
+				tmp				<- cbind(outgroup.seq.gag[,seq_len(df.seq[1, nchar(GAG)])], outgroup.seq.pol, outgroup.seq.env)
+				seq				<- rbind(seq,tmp)
+				#	NJ tree
+				seq.ph			<- nj(dist.dna(seq, model='raw'))		
+				tmp				<- which(seq.ph$tip.label=="HXB2")
+				seq.ph			<- reroot(seq.ph, tmp, seq.ph$edge.length[which(seq.ph$edge[,2]==tmp)])
+				seq.ph			<- ladderize(seq.ph)
+				#	clustering at 4%
+				seq.brdist		<- hivc.clu.brdist.stats(seq.ph, eval.dist.btw="leaf", stat.fun=hivc.clu.min.transmission.cascade)
+				seq.clu			<- lapply(c(0.04, 0.06, 0.08), function(x)
+						{
+							clustering		<- hivc.clu.clusterbythresh(seq.ph, thresh.brl=x, dist.brl=seq.brdist, retval="all")
+							seq.clu		<- subset( data.table( PH_NODE_ID=seq_len(Ntip(seq.ph)), CLU_ID=clustering$clu.mem[ seq_len(Ntip(seq.ph))] ), !is.na(CLU_ID) )
+							seq.clu[, LABEL:= seq.clu[, seq.ph$tip.label[PH_NODE_ID]] ]
+							seq.clu[, PH_NODE_ID:=NULL]
+							seq.clu[, BRL:=x]
+							seq.clu
+						})
+				seq.clu			<- do.call('rbind',seq.clu)
+				seq.clu[, IDPOP:=seq.clu[, as.integer(substring(sapply(strsplit(LABEL,label.sep,fixed=TRUE),'[[',2),7))]]
+				
+				seq.clu			<- merge(seq.clu, subset(df.inds, !is.na(TIME_SEQ), c(IDPOP, RECENT_TR)), by='IDPOP')				
+				seq.clu			<- seq.clu[, list(RECENT_Y=sum(length(which(RECENT_TR=='Y'))), SIZE=length(IDPOP) ), by=c('CLU_ID','BRL')]
+				setnames(seq.clu, 'CLU_ID','IDPHCLU')
+				seq.clu
+			}, by=c('SC','CONFIG')]
+	file	<- paste(indir, '150205_TEST_ClustWithin6Mo_clusters.R')
+	save(file=file, clu)
+	clu[, SIZEc:= cut(SIZE, breaks=c(0,4,10,1e3), labels=c('<=4','5-10','>10'))]					
+	clup			<- clu[, list(RECENT_P=mean(RECENT_Y/SIZE)), by=c('SC','CONFIG','SIZEc','BRL')]
+	ggplot(clup, aes(x=SIZEc, y=RECENT_P, group=SC, colour=SC)) + geom_point() + geom_line() + facet_grid(BRL~CONFIG) + 
+			theme_bw() + scale_colour_brewer(palette='Paired', name='scenario') +
+			labs(x='Number of seqs in true dated cluster phylogeny', y='individuals within 6 mo of HIV infection\n(%)')
+	file	<- paste(indir, '150205_TEST_ClustWithin6Mo_clusters.pdf')
+	ggsave(file=file, w=8, h=10)
+	
+}
+##--------------------------------------------------------------------------------------------------------
+##	check reproducibility
+##	olli 03.02.15
+##--------------------------------------------------------------------------------------------------------
+project.PANGEA.TEST.Reproducible<- function()
+{	
+	#check time to coalescence in true dated tree
+	label.sep		<- '|'
+	label.idx.date	<- 4
+	label.idx.idpop	<- 1
+	
+	file		<- "/Users/Oliver/git/HPTN071sim/tmp150204-C-mFP50/150129_HPTN071_scC-mFP50_INTERNAL/150129_HPTN071_scC-mFP50_SIMULATED_INTERNAL.R"
+	load(file)
+	df.epi2		<- copy(df.epi)    
+	df.trms2	<- copy(df.trms)
+	df.inds2	<- copy(df.inds)   
+	df.sample2	<- copy(df.sample)
+	df.seq2		<- copy(df.seq)
+	df.sp2		<- copy(df.sp)	
+	file		<-  "/Users/Oliver/git/HPTN071sim/tmp150204-C-mFP50_save/150129_HPTN071_scC-mFP50_INTERNAL/150129_HPTN071_scC-mFP50_SIMULATED_INTERNAL.R"
+	load(file)
+	
+	all(df.epi[, PREV]==df.epi2[, PREV])
+	all(df.epi[, IMPORT]==df.epi2[, IMPORT])
+	all(df.sample[, s.nTOTAL]==df.sample2[, s.nTOTAL])
+	all(subset(df.inds, !is.na(TIME_SEQ))[, TIME_SEQ]==subset(df.inds2, !is.na(TIME_SEQ))[, TIME_SEQ])
+	all(subset(df.inds, !is.na(TIME_SEQ))[, IDCLU]==subset(df.inds2, !is.na(TIME_SEQ))[, IDCLU])	
+	all(df.sp[, ALIVE_N]==df.sp2[, ALIVE_N])
+	all(df.sp[, ALIVE_AND_SEQ_N]==df.sp2[, ALIVE_AND_SEQ_N])
+	
+	all(df.seq[, IDPOP]==df.seq2[, IDPOP])
+	all(df.seq[, GAG]==df.seq2[, GAG])
+	all(df.seq[, POL]==df.seq2[, POL])
+	all(df.seq[, ENV]==df.seq2[, ENV])
+}
+##--------------------------------------------------------------------------------------------------------
+##	check simulated sequences: create ExaML tree and estimate R2
+##	olli 03.02.15
+##--------------------------------------------------------------------------------------------------------
+project.PANGEA.TEST.PropAcute<- function()
+{	
+	#check time to coalescence in true dated tree
+	label.sep		<- '|'
+	label.idx.date	<- 4
+	label.idx.idpop	<- 1
+	indir			<- '/Users/Oliver/duke/2014_Gates/methods_comparison_pipeline/150205'
+	dfi				<- data.table(FILE=list.files(indir, '.*DATEDTREE.newick$', full.names=FALSE))
+	dfi[, SC:= sapply(strsplit(FILE, '_'),'[[',3)]
+	dfi[, CONFIG:= sapply(strsplit(SC, '-'),'[[',2)]
+	set(dfi, NULL, 'SC', dfi[, sapply(strsplit(SC, '-'),'[[',1)])	
+	scl		<- data.table(SC=c('scA','scB','scC','scD','scE','scF'),SCL=c('Intervention=fast, Acute=low','Intervention=fast, Acute=high','Intervention=slow, Acute=low','Intervention=slow, Acute=high','Intervention=none, Acute=low','Intervention=none, Acute=high'))
+	coal	<- dfi[, {
+						file			<- paste(indir, FILE, sep='/' )
+						cat(paste('\nprocess',file))
+						phd				<- read.tree(file)						
+						load( gsub('DATEDTREE.newick','SIMULATED_INTERNAL.R',file) )
+						singletons.n	<- length(which(sapply(phd, Ntip)==1))
+						phd				<- phd[ which(sapply(phd, Ntip)>1) ]
+						#	sampling times of tips and node.depth of tips for every tree
+						tmp				<- lapply(seq_along(phd), function(k)
+								{
+									ph	<- phd[[k]]
+									tmp	<- data.table(	LABEL=ph$tip.label, CLU_IDX=k, 
+														IDPOP= as.integer(substring(sapply(strsplit(ph$tip.label,label.sep,fixed=T),'[[',label.idx.idpop),7)),
+														TIME_SEQ=as.numeric(sapply(strsplit(ph$tip.label,label.sep,fixed=T),'[[',label.idx.date)))
+									tmp[, BRL:=ph$edge.length[ sort(ph$edge[,2],index.return=T)$ix ][ seq_len(Ntip(ph)) ] ]
+									tmp
+								})
+						coal			<- do.call('rbind',tmp)
+						coal			<- merge(coal, subset(df.inds, !is.na(DIAG_T), select=c(IDPOP, DIAG_T)), by='IDPOP')
+						coal
+					}, by=c('SC','CONFIG')]
+	coal	<- merge(coal, scl, by='SC')
+	coal[, PERIOD_SEQ:= coal[, cut(TIME_SEQ, breaks=c(1980,2004,2014,Inf), labels=c('<=2004','2005-2014','>=2015'))]]
+	coal[, PERIOD_DIAG:= coal[, cut(DIAG_T, breaks=c(1980,2004,2014,Inf), labels=c('<=2004','2005-2014','>=2015'))]]
+	#ggplot(coalb, aes(x=BRL)) + geom_histogram(binwidth=.5) + facet_grid(SC~CONFIG) + theme_bw()
+	ggplot(coal, aes(x=BRL, colour=SCL)) + stat_ecdf() + facet_grid(CONFIG~PERIOD_DIAG) + theme_bw() + labs(x='time to coalescence of tips',y='empirical CDF') +
+			scale_color_brewer(name='scenarios', palette='Paired')	
+	file	<- paste(indir, '150205_TEST_Time2CoalescenceOfTips.pdf')
+	ggsave(file=file, w=12, h=15)
+	
+	coal[, PERIOD_SEQ:= coal[, cut(TIME_SEQ, breaks=c(1980,2004,2012,2016, Inf), labels=c('<=2004','2005-2012','2013-2016','>=2017'))]]
+	coal[, PERIOD_DIAG:= coal[, cut(DIAG_T, breaks=c(1980,2004,2012,2016, Inf), labels=c('<=2004','2005-2012','2013-2016','>=2017'))]]
+	#ggplot(coalb, aes(x=BRL)) + geom_histogram(binwidth=.5) + facet_grid(SC~CONFIG) + theme_bw()
+	ggplot(coal, aes(x=BRL, colour=SCL)) + stat_ecdf() + facet_grid(CONFIG~PERIOD_DIAG) + theme_bw() + labs(x='time to coalescence of tips',y='empirical CDF') +
+			scale_color_brewer(name='scenarios', palette='Paired')	
+	file	<- paste(indir, '150205_TEST_Time2CoalescenceOfTips2.pdf')
+	ggsave(file=file, w=12, h=15)
+	
+	coal[, PERIOD_SEQ:= coal[, cut(TIME_SEQ, breaks=c(1980,2004,2009, Inf), labels=c('<=2004','2005-2009','>=2010'))]]
+	coal[, PERIOD_DIAG:= coal[, cut(DIAG_T, breaks=c(1980,2004,2009, Inf), labels=c('<=2004','2005-2009','>=2010'))]]
+	#ggplot(coalb, aes(x=BRL)) + geom_histogram(binwidth=.5) + facet_grid(SC~CONFIG) + theme_bw()
+	ggplot(coal, aes(x=BRL, colour=SCL)) + stat_ecdf() + facet_grid(CONFIG~PERIOD_DIAG) + theme_bw() + labs(x='time to coalescence of tips',y='empirical CDF') +
+			scale_color_brewer(name='scenarios', palette='Paired')	
+	file	<- paste(indir, '150204_TEST_Time2CoalescenceOfTips3.pdf')
+	ggsave(file=file, w=12, h=15)
+}
+##--------------------------------------------------------------------------------------------------------
+##	check simulated sequences: create ExaML tree and estimate R2
+##	olli 02.02.15
+##--------------------------------------------------------------------------------------------------------
+project.PANGEA.TEST.SSApg.CLUSTERBEAST.extendedskyline<- function()
+{
+	require(phytools)
+	require(hivclust)
+	require(XML)
+	#	load outgroup sequences
+	file			<- system.file(package="rPANGEAHIVsim", "misc",'PANGEA_SSAfg_HXB2outgroup.R')
+	cat(paste('\nLoading outgroup seq from file', file))
+	load(file)		#expect "outgroup.seq.gag" "outgroup.seq.pol" "outgroup.seq.env"	
+	
+	tree.id.labelsep		<- '|'
+	tree.id.label.idx.ctime	<- 4 	
+	select		<- 'mseq500'
+	#select		<- 'mseq100'
+	indir		<- '/Users/Oliver/duke/2014_Gates/methods_comparison_pipeline/150203'
+	#indir		<- '/Users/Oliver/git/HPTN071sim/tmp140914/140716_RUN001_INTERNAL'  
+	outdir		<- indir
+	infiles		<- list.files(indir, '.*INTERNAL.R$', full.names=FALSE)
+	#stopifnot(length(infiles)==1)
+	#	read BEAST template files	
+	infile.beast.pol	<- system.file(package="rPANGEAHIVsim", "misc",'BEAST_template_vTESTpol.xml')
+	bxml.template.polut	<- xmlTreeParse(infile.beast.pol, useInternalNodes=TRUE, addFinalizer = TRUE)
+	infile.beast.pol	<- system.file(package="rPANGEAHIVsim", "misc",'BEAST_template_vTESTpol_fixedtree.xml')
+	#infile.beast.pol	<- '~/git/HPTN071sim/source/rPANGEAHIVsim/inst/misc/BEAST_template_vTESTpol_fixedtree.xml'
+	bxml.template.polft	<- xmlTreeParse(infile.beast.pol, useInternalNodes=TRUE, addFinalizer = TRUE)
+	infile.beast.gag	<- system.file(package="rPANGEAHIVsim", "misc",'BEAST_template_vTESTgag.xml')
+	bxml.template.gag	<- xmlTreeParse(infile.beast.gag, useInternalNodes=TRUE, addFinalizer = TRUE)
+	infile.beast.env	<- system.file(package="rPANGEAHIVsim", "misc",'BEAST_template_vTESTenv.xml')		
+	bxml.template.env	<- xmlTreeParse(infile.beast.env, useInternalNodes=TRUE, addFinalizer = TRUE)	
+	#
+	#	run  
+	#	
+	for(i in seq_along(infiles))
+	{
+		infile			<- infiles[i]
+		#	load simulated data
+		file			<- paste(indir, '/', infile, sep='')
+		cat(paste('\nLoading file', file))
+		load(file)		#expect "df.epi"    "df.trms"   "df.inds"   "df.sample" "df.seq"
+		set( df.seq, NULL, 'IDCLU', df.seq[, as.integer(IDCLU)] )
+		#			
+		if(grepl('nseq',select))
+		{
+			thresh.NSEQ		<- as.numeric(substring(select, 5)) 
+			thresh.brl		<- c(seq(0.001, 0.05, 0.001), seq(0.06, 0.5, 0.1))
+			thresh.nseq		<- sapply(thresh.brl, function(x)
+					{
+						clustering		<- hivc.clu.clusterbythresh(seq.ph, thresh.brl=x, dist.brl=tmp, retval="all")
+						which(clustering$size.tips>10)
+						length(which(!is.na(clustering$clu.mem[ seq_len(Ntip(seq.ph))] )))					
+					})
+			thresh.brl		<- thresh.brl[ which(thresh.nseq>=thresh.NSEQ)[1] ]
+			clustering		<- hivc.clu.clusterbythresh(seq.ph, thresh.brl=thresh.brl, dist.brl=tmp, retval="all")		
+			cat(paste('\nFound clusters, n=', length(clustering$clu.idx)))
+			seq.select		<- subset( data.table( PH_NODE_ID=seq_len(Ntip(seq.ph)), CLU_ID=clustering$clu.mem[ seq_len(Ntip(seq.ph))] ), !is.na(CLU_ID) )
+			seq.select[, LABEL:= seq.select[, seq.ph$tip.label[PH_NODE_ID]] ]
+			seq.select		<- merge(df.seq, seq.select, by='LABEL')
+		}
+		if(grepl('mseq',select))
+		{
+			thresh.NSEQ		<- as.numeric(substring(select, 5))
+			seq.select		<- subset(df.inds, !is.na(IDCLU))
+			seq.select		<- subset(merge(seq.select, seq.select[, list(CLU_N=-length(which(!is.na(TIME_SEQ)))), by='IDCLU'], by='IDCLU'), CLU_N<0 & !is.na(TIME_SEQ))
+			setkey(seq.select, CLU_N, IDCLU)
+			tmp				<- unique(seq.select)
+			tmp[, CLU_CN:= tmp[,cumsum(-CLU_N)]]
+			tmp				<- tmp[seq_len( tmp[, which(CLU_CN>=thresh.NSEQ)[1]] ), ] 
+			seq.select		<- merge( seq.select, subset(tmp, select=IDCLU), by='IDCLU' )
+			seq.select		<- merge(df.seq, seq.select, by=c('IDCLU','IDPOP'))			
+			cat(paste('\nFound clusters, n=', seq.select[, length(unique(IDCLU))])) 
+			cat(paste('\nFound sequences, n=', seq.select[, length(unique(IDPOP))]))					
+		}
+		#
+		#	read NEWICK trees for each cluster phylogeny, if there
+		#
+		tmp		<- list.files(indir, '_DATEDTREE.newick$', full.names=FALSE)
+		tmp		<- tmp[ grepl(substr(infile, 1, regexpr('_SIMULATED',infile)), tmp) ]
+		if(length(tmp))
+		{
+			# select
+			phd					<- read.tree(paste(indir, tmp, sep='/'))
+			
+			tmp2				<- data.table(IDPOP= sapply(phd, function(x) x$tip.label[1]), IDX=seq_along(phd))
+			set( tmp2, NULL, 'IDPOP', tmp2[, as.integer(substring(sapply(strsplit(IDPOP, tree.id.labelsep, fixed=TRUE),'[[',1),7)) ] )
+			tmp2				<- merge(subset(seq.select, select=c(IDPOP, IDCLU)), tmp2, by='IDPOP')			
+			phd					<- lapply(tmp2[,IDX], function(i) phd[[i]] )
+			names(phd)			<- tmp2[, IDCLU]
+			# plot
+			phd.plot			<- eval(parse(text=paste('phd[[',seq_along(phd),']]', sep='',collapse='+')))			
+			#phd.plot			<- drop.tip(phd.plot, which(grepl('NOEXIST', phd.plot$tip.label)), root.edge=1)
+			phd.plot			<- ladderize(phd.plot)
+			tmp					<- paste(indir, '/', gsub('DATEDTREE','BEASTDATEDTREE',tmp), sep='')						
+			pdf(file=gsub('newick','pdf',tmp), w=10, h=Ntip(phd.plot)*0.1)
+			plot(phd.plot, show.tip=TRUE, cex=0.5)
+			dev.off()
+			
+			bxml.template.pol	<- bxml.template.polft						
+		}
+		else
+		{
+			phd					<- NULL
+			bxml.template.pol	<- bxml.template.polut
+		}
+		#
+		#	create BEAST XML
+		#		
+		#
+		#	POL
+		#
+		if(1)
+		{
+			cat(paste('\ncreate POL BEAST XML file for seqs=',paste( seq.select[,LABEL], collapse=' ')))
+			pool.infile		<- paste(  substr(infile,1,nchar(infile)-21),'_TEST_pol', sep='' )
+			#	write XML file with new sequences
+			bxml			<- newXMLDoc(addFinalizer=T)
+			bxml.beast		<- newXMLNode("beast", doc=bxml, addFinalizer=T)
+			tmp				<- newXMLCommentNode(text=paste("Generated by HIVCLUST from template",infile.beast.pol), parent=bxml.beast, doc=bxml, addFinalizer=T)
+			#	add new taxa 
+			tmp 			<- subset(seq.select, select=LABEL)
+			tmp[, BEASTlabel:=LABEL]
+			setnames(tmp, 'LABEL', 'FASTASampleCode')
+			bxml			<- hivc.beast.add.taxa(bxml, tmp, beast.label.datepos= 4, beast.label.sep= '|', beast.date.direction= "forwards", beast.date.units= "years", verbose=1)
+			#	add alignment for every transmission cluster
+			for(clu in seq.select[, unique(IDCLU)])
+			{
+				tmp				<- tolower(do.call('rbind',strsplit(subset(seq.select, IDCLU==clu)[, POL],'')))
+				rownames(tmp)	<- subset(seq.select, IDCLU==clu)[, LABEL]
+				tmp				<- as.DNAbin(tmp)
+				bxml			<- hivc.beast.add.alignment(bxml, tmp, beast.alignment.id=paste("POL.alignment_CLU",clu,sep=''), beast.alignment.dataType= "nucleotide", verbose=1)				
+			}
+			#	add starting tree for every transmission cluster			
+			for(clu in names(phd))
+			{
+				bxml			<- hivc.beast.add.startingtree(bxml, phd[[clu]], beast.rootHeight= NA, beast.usingDates="true", beast.newickid=paste("startingTree_CLU",clu,sep=''), beast.brlunits="years", verbose=1)	
+			}
+			#	add CODON patterns for every alignment
+			for(clu in seq.select[, unique(IDCLU)])
+				for(k in 1:3)
+				{					
+					bxml		<- hivc.beast.add.patterns(bxml, paste("POL.n100.rlx.gmrf.CP",k,".patterns_CLU",clu,sep=''), paste("POL.alignment_CLU",clu,sep=''), k, beast.patterns.every=3, beast.patterns.strip='false', verbose=1)
+				}
+			#	add tree model for every alignment
+			for(clu in seq.select[, unique(IDCLU)])
+			{
+				bxml			<- hivc.beast.add.treemodel(bxml, paste("treeModel_CLU",clu,sep=''), paste("treeModel.rootHeight_CLU",clu,sep=''), paste("treeModel.internalNodeHeights_CLU",clu,sep=''), paste("treeModel.allInternalNodeHeights_CLU",clu,sep=''), newick.id=paste("startingTree_CLU",clu,sep=''), internalNodes='true', rootNode='true', verbose=1)
+			}
+			#	add variableDemographic
+			tmp					<- paste('treeModel_CLU',seq.select[, unique(IDCLU)], sep='')
+			bxml				<- hivc.beast.add.variableDemographic(bxml, 'demographic', tmp, 'coalescent', type='stepwise', useMidpoints='true', 
+					popSize.id='demographic.popSize', popSize.value='500.0', 
+					demographic.indicators.id='demographic.indicators', demographic.indicators.value='0.0',
+					demographic.popMeanDist.id='demographic.populationMeanDist', demographic.popMean.id='demographic.populationMean', demographic.popMean.value='500.0', 
+					sumStatistic.id='demographic.populationSizeChanges', sumStatistic.elementwise='true', 
+					verbose=1)
+#	population mean value: fix?										
+			#	add uncorrelated relaxed clock for every transmission cluster
+			tmp					<- seq.select[, unique(IDCLU)]
+			clu					<- tmp[1]
+			bxml				<- hivc.beast.add.discretizedBranchRates(bxml, paste("branchRates_CLU",clu,sep=''), paste("treeModel_CLU",clu,sep=''), paste("branchRates.categories_CLU",clu,sep=''),
+					mean.id="ucld.mean", mean.value="0.0025", mean.lower="0.0", sd.id="ucld.stdev", sd.value="0.3333333333333333", sd.lower="0.0", meanInRealSpace="true", 
+					rateCategories.dimension= subset(seq.select, IDCLU==clu)[, 2*(length(unique(IDPOP))-1)], verbose=1)
+			for(clu in tmp[-1])
+			{
+				bxml			<- hivc.beast.add.discretizedBranchRates(bxml, paste("branchRates_CLU",clu,sep=''), paste("treeModel_CLU",clu,sep=''), paste("branchRates.categories_CLU",clu,sep=''),
+						mean.idref="ucld.mean", sd.idref="ucld.stdev", meanInRealSpace="true", 
+						rateCategories.dimension= subset(seq.select, IDCLU==clu)[, 2*(length(unique(IDPOP))-1)], verbose=1)
+			}		
+			#	add rate statistic for first cluster
+			bxml				<- hivc.beast.add.rateStatistics(bxml, 'branchRates', paste('treeModel_CLU',seq.select[1, IDCLU], sep=''), paste('branchRates_CLU',seq.select[1, IDCLU], sep=''))
+			#	add GTR CP1 2 3  models
+			for(k in 1:3)
+			{
+				clu			<- seq.select[, unique(IDCLU)][1]
+				dummy		<- hivc.beast.add.gtrModel(bxml, paste("POL.n100.rlx.gmrf.CP",k,".gtr_CLU", clu,sep=""), paste("POL.n100.rlx.gmrf.CP",k,".patterns_CLU",clu,sep=''), paste("POL.n100.rlx.gmrf.CP",k,".frequencies_CLU",clu,sep=''),
+						rateAC.id=paste("POL.n100.rlx.gmrf.CP",k,".ac",sep=""), rateAC.value="0.3", rateAC.lower="0.0",
+						rateAG.id=paste("POL.n100.rlx.gmrf.CP",k,".ag",sep=""), rateAG.value="1.0", rateAG.lower="0.0",
+						rateAT.id=paste("POL.n100.rlx.gmrf.CP",k,".at",sep=""), rateAT.value="0.2", rateAT.lower="0.0",
+						rateCG.id=paste("POL.n100.rlx.gmrf.CP",k,".cg",sep=""), rateCG.value="0.2", rateCG.lower="0.0",
+						rateGT.id=paste("POL.n100.rlx.gmrf.CP",k,".gt",sep=""), rateGT.value="0.1", rateGT.lower="0.0",
+						frequencies.dimension='4', frequencyModel.dataType='nucleotide')
+				for(clu in seq.select[, unique(IDCLU)][-1])
+					dummy	<- hivc.beast.add.gtrModel(bxml, paste("POL.n100.rlx.gmrf.CP",k,".gtr_CLU", clu,sep=""), paste("POL.n100.rlx.gmrf.CP",k,".patterns_CLU",clu,sep=''), paste("POL.n100.rlx.gmrf.CP",k,".frequencies_CLU",clu,sep=''),
+							rateAC.idref=paste("POL.n100.rlx.gmrf.CP",k,".ac",sep=""), 
+							rateAG.idref=paste("POL.n100.rlx.gmrf.CP",k,".ag",sep=""), 
+							rateAT.idref=paste("POL.n100.rlx.gmrf.CP",k,".at",sep=""), 
+							rateCG.idref=paste("POL.n100.rlx.gmrf.CP",k,".cg",sep=""), 
+							rateGT.idref=paste("POL.n100.rlx.gmrf.CP",k,".gt",sep=""), 
+							frequencies.dimension='4', frequencyModel.dataType='nucleotide')				
+			}	
+			#	add CP1 2 3  site models 
+			for(k in 1:3)
+			{
+				clu			<- seq.select[, unique(IDCLU)][1]
+				dummy		<- hivc.beast.add.siteModel(bxml, paste("POL.n100.rlx.gmrf.CP",k,".siteModel_CLU", clu,sep=""), paste("POL.n100.rlx.gmrf.CP",k,".gtr_CLU", clu,sep=""), 
+						relativeRate.id=paste("POL.n100.rlx.gmrf.CP",k,".mu",sep=""), relativeRate.value="1.0", relativeRate.lower="0.0",
+						gamma.id=paste("POL.n100.rlx.gmrf.CP",k,".alpha",sep=""), gamma.value="0.5", gamma.lower="0.0",
+						gammaCategories="4", verbose=1)
+				for(clu in seq.select[, unique(IDCLU)][-1])
+					dummy	<- hivc.beast.add.siteModel(bxml, paste("POL.n100.rlx.gmrf.CP",k,".siteModel_CLU", clu,sep=""), paste("POL.n100.rlx.gmrf.CP",k,".gtr_CLU", clu,sep=""), 
+							relativeRate.idref=paste("POL.n100.rlx.gmrf.CP",k,".mu",sep=""), gamma.idref=paste("POL.n100.rlx.gmrf.CP",k,".alpha",sep=""), gammaCategories="4", verbose=1)				
+			}
+			#	copy compoundParameter
+			dummy				<- addChildren( bxml.beast, xmlClone(getNodeSet(bxml.template.pol, paste("//*[@id='ALL.n100.rlx.gmrf.allMus']",sep=''))[[1]], addFinalizer=T, doc=bxml) )
+			#	add treeLikelihood
+			for(clu in seq.select[, unique(IDCLU)])
+				for(k in 1:3)
+				{
+					dummy		<- hivc.beast.add.treeLikelihood(bxml, paste("POL.n100.rlx.gmrf.CP",k,".treeLikelihood_CLU",clu,sep=""), 
+							paste("POL.n100.rlx.gmrf.CP",k,".patterns_CLU",clu,sep=''), 
+							paste("treeModel_CLU",clu,sep=''), 
+							paste('POL.n100.rlx.gmrf.CP',k,'.siteModel_CLU',clu,sep=''), 
+							paste("branchRates_CLU",clu,sep=''), useAmbiguities='false', verbose=1)
+				}
+			#	add compound likelihood
+			tmp					<- as.vector(sapply(seq.select[, unique(IDCLU)], function(clu) sapply(1:3,function(k){ paste("POL.n100.rlx.gmrf.CP",k,".treeLikelihood_CLU",clu,sep="") }) ))
+			bxml				<- hivc.beast.add.likelihood(bxml, 'likelihood', tmp)
+			#	copy operators
+			dummy				<- addChildren( bxml.beast, xmlClone(getNodeSet(bxml.template.pol, paste("//operators",sep=''))[[1]], addFinalizer=T, doc=bxml) )
+			#	add branch rate category operators
+			for(clu in seq.select[, unique(IDCLU)])
+			{
+				bxml			<- hivc.beast.add.uniformIntegerOperator(bxml, paste("branchRates.categories_CLU",clu,sep=''), "10")
+				bxml			<- hivc.beast.add.swapOperator(bxml, paste("branchRates.categories_CLU",clu,sep=''), "1", "10", "false")
+			}
+			#	copy mcmc
+			dummy				<- addChildren( bxml.beast, xmlClone(getNodeSet(bxml.template.pol, paste("//mcmc",sep=''))[[1]], addFinalizer=T, doc=bxml) )
+			#	add tree log for every transmission cluster
+			for(clu in seq.select[, unique(IDCLU)])
+			{				
+				bxml			<- hivc.beast.add.logTree(bxml, paste("logTree_CLU",clu,sep=''), paste("treeModel_CLU",clu,sep=''), paste("branchRates_CLU",clu,sep=''), 'posterior', logEvery='3000', fileName=paste(pool.infile,'_CLU', clu, '_', select, '.trees', sep=''), nexusFormat='true', sortTranslationTable='true', verbose=1)	
+			}
+			#	change MCMC attributes
+			bxml				<- hivc.beast.adjust.mcmc(bxml, beast.mcmc.chainLength=3000000, beast.mcmc.logEvery=3000, verbose=1)
+			#	change outfile name of log 
+			tmp							<- getNodeSet(bxml, "//*[@id='fileLog']")[[1]]
+			xmlAttrs(tmp)["fileName"]	<- paste(pool.infile,'_', select, '.log', sep='')			
+			#	add VDAnalysis
+			tmp					<- sapply(seq.select[, unique(IDCLU)], function(clu) paste(pool.infile,'_CLU', clu, '_', select, '.trees', sep=''))			
+			bxml				<- hivc.beast.add.VDAnalysis(bxml, 'demographic.analysis', paste(pool.infile,'_', select, '.log', sep=''), tmp, paste(pool.infile,'_', select, '_VDA.csv', sep=''), populationModelType='stepwise', populationFirstColumn='demographic.popSize1', indicatorsFirstColumn='demographic.indicators1', burnIn="0.1", useMidpoints="true", verbose=1)
+			#	write to file
+			file		<- paste(indir,'/',pool.infile,'_',select,".xml", sep='')
+			cat(paste("\nwrite xml file to",file))
+			saveXML(bxml, file=file)	
+		}				
+	}
+}
+##--------------------------------------------------------------------------------------------------------
+##	check simulated sequences: create ExaML tree and estimate R2
 ##	olli 14.09.14
 ##--------------------------------------------------------------------------------------------------------
 project.PANGEA.TEST.SSApg.BEAST<- function()
@@ -2870,6 +4138,7 @@ project.PANGEA.TEST.SSApg.BEAST<- function()
 	tree.id.label.idx.ctime	<- 4 	
 	select		<- 'nseq800'
 	select		<- 'nseq500'
+	select		<- 'mseq100'
 	indir		<- '/Users/Oliver/duke/2014_Gates/methods_comparison_pipeline/150201b'
 	#indir		<- '/Users/Oliver/git/HPTN071sim/tmp140914/140716_RUN001_INTERNAL'  
 	outdir		<- indir
@@ -2906,8 +4175,7 @@ project.PANGEA.TEST.SSApg.BEAST<- function()
 		df.seq.env		<- as.DNAbin(tmp)
 		seq				<- cbind(df.seq.gag,df.seq.pol,df.seq.env)
 		tmp				<- cbind(outgroup.seq.gag[,1:ncol(df.seq.gag)], outgroup.seq.pol, outgroup.seq.env)
-		seq				<- rbind(seq,tmp)
-		#	get 100 'divergent' sequences from different clusters
+		seq				<- rbind(seq,tmp)		
 		tmp				<- dist.dna( seq, model='raw' )
 		seq.ph			<- nj(tmp)		
 		tmp				<- which(seq.ph$tip.label=="HXB2")
@@ -2921,6 +4189,7 @@ project.PANGEA.TEST.SSApg.BEAST<- function()
 			thresh.nseq		<- sapply(thresh.brl, function(x)
 					{
 						clustering		<- hivc.clu.clusterbythresh(seq.ph, thresh.brl=x, dist.brl=tmp, retval="all")
+						which(clustering$size.tips>10)
 						length(which(!is.na(clustering$clu.mem[ seq_len(Ntip(seq.ph))] )))					
 					})
 			thresh.brl		<- thresh.brl[ which(thresh.nseq>=thresh.NSEQ)[1] ]
@@ -2929,6 +4198,19 @@ project.PANGEA.TEST.SSApg.BEAST<- function()
 			seq.select		<- subset( data.table( PH_NODE_ID=seq_len(Ntip(seq.ph)), CLU_ID=clustering$clu.mem[ seq_len(Ntip(seq.ph))] ), !is.na(CLU_ID) )
 			seq.select[, LABEL:= seq.select[, seq.ph$tip.label[PH_NODE_ID]] ]
 			seq.select		<- merge(df.seq, seq.select, by='LABEL')
+		}
+		if(grepl('mseq',select))
+		{
+			thresh.NSEQ		<- as.numeric(substring(select, 5))
+			seq.select		<- subset(df.inds, !is.na(IDCLU))
+			seq.select		<- subset(merge(seq.select, seq.select[, list(CLU_N=-length(which(!is.na(TIME_SEQ)))), by='IDCLU'], by='IDCLU'), CLU_N<0 & !is.na(TIME_SEQ))
+			setkey(seq.select, CLU_N, IDCLU)
+			tmp				<- unique(seq.select)
+			tmp[, CLU_CN:= tmp[,cumsum(-CLU_N)]]
+			tmp				<- tmp[seq_len( tmp[, which(CLU_CN>=thresh.NSEQ)[1]] ), ] 
+			seq.select		<- merge( seq.select, subset(tmp, select=IDCLU), by='IDCLU' )
+			cat(paste('\nFound clusters, n=', seq.select[, length(unique(IDCLU))])) 
+			cat(paste('\nFound sequences, n=', seq.select[, length(unique(IDPOP))]))							
 		}
 		if(select=='same')
 		{
@@ -2968,21 +4250,27 @@ project.PANGEA.TEST.SSApg.BEAST<- function()
 			seq.select		<- merge(df.seq, seq.select, by='LABEL')			
 		}
 		#
-		#	create NEWICK tree if there
+		#	read NEWICK trees for each cluster phylogeny, if there
 		#
 		tmp		<- list.files(indir, '_DATEDTREE.newick$', full.names=FALSE)
 		tmp		<- tmp[ grepl(substr(infile, 1, regexpr('_SIMULATED',infile)), tmp) ]
 		if(length(tmp))
 		{
+			# select
 			phd					<- read.tree(paste(indir, tmp, sep='/'))
-			tmp2				<- setdiff(phd$tip.label, seq.select[, LABEL])
-			phd					<- drop.tip(phd, tmp2, root.edge=1)
-			tmp					<- paste(indir, '/', gsub('DATEDTREE','BEASTDATEDTREE',tmp), sep='')
-			write.tree(phd, tmp )			
-			pdf(file=gsub('newick','pdf',tmp), w=10, h=Ntip(phd)*0.1)
-			plot(phd, show.tip=TRUE, cex=0.5)
+			tmp2				<- data.table(IDCLU= as.integer(substring(names(phd),7)), IDX=seq_along(phd))
+			tmp2				<- merge(unique(seq.select), tmp2, by='IDCLU')[, unique(IDX)]
+			phd					<- lapply(tmp2, function(i) phd[[i]] )
+			# plot
+			phd.plot			<- eval(parse(text=paste('phd[[',seq_along(phd),']]', sep='',collapse='+')))			
+			#phd.plot			<- drop.tip(phd.plot, which(grepl('NOEXIST', phd.plot$tip.label)), root.edge=1)
+			phd.plot			<- ladderize(phd.plot)
+			tmp					<- paste(indir, '/', gsub('DATEDTREE','BEASTDATEDTREE',tmp), sep='')						
+			pdf(file=gsub('newick','pdf',tmp), w=10, h=Ntip(phd.plot)*0.1)
+			plot(phd.plot, show.tip=TRUE, cex=0.5)
 			dev.off()
-			bxml.template.pol	<- bxml.template.polft
+			
+			bxml.template.pol	<- bxml.template.polft						
 		}
 		else
 		{
@@ -3079,7 +4367,7 @@ project.PANGEA.TEST.SSApg.BEAST<- function()
 			#	change MCMC attributes
 			if(!is.null(phd))
 			{
-				bxml	<- hivc.beast.adjust.mcmc(bxml, beast.mcmc.chainLength=3000000, beast.mcmc.logEvery=1000, verbose=1)				
+				bxml	<- hivc.beast.adjust.mcmc(bxml, beast.mcmc.chainLength=3000000, beast.mcmc.logEvery=3000, verbose=1)				
 			}
 			#	change outfile name 
 			bxml.onodes	<- getNodeSet(bxml, "//*[@fileName]")
@@ -3151,8 +4439,8 @@ project.PANGEA.TEST.SSApg.ExaMLR2<- function()
 	require(hivclust)
 	tree.id.labelsep		<- '|'
 	tree.id.label.idx.ctime	<- 4 
-	indir		<- '/Users/Oliver/duke/2014_Gates/methods_comparison_pipeline/150201'  
-	outdir		<- '/Users/Oliver/duke/2014_Gates/methods_comparison_pipeline/150201'
+	indir		<- '/Users/Oliver/duke/2014_Gates/methods_comparison_pipeline/150227'  
+	outdir		<- '/Users/Oliver/duke/2014_Gates/methods_comparison_pipeline/150227'
 	infiles		<- list.files(indir, '.*INTERNAL.R$', full.names=FALSE)
 	#stopifnot(length(infiles)==1)
 	#
@@ -3247,6 +4535,7 @@ project.PANGEA.TEST.SSApg.ExaMLR2<- function()
 	infiles			<- list.files(indir, paste('^ExaML_result.*',gene,'seq.*finaltree.000$',sep=''), full.names=FALSE)
 	for(i in seq_along(infiles))
 	{
+		#	 read files
 		infile			<- infiles[i]
 		file			<- paste(indir,'/',infile,sep='')
 		ph				<- read.tree(file)
@@ -3256,7 +4545,7 @@ project.PANGEA.TEST.SSApg.ExaMLR2<- function()
 		#tmp				<- list.files(indir, paste(substr(tmp, 1, regexpr('_INFO',tmp) ),'.*INTERNAL.R$', sep=''), full.names=FALSE)
 		#cat(paste('\nLoad file=',tmp))		
 		load(file)
-		
+		#	re-root at HXB2 (outgroup, because the simulated sequences are HIV-1C)
 		tmp				<- which(ph$tip.label=="HXB2")
 		ph				<- reroot(ph, tmp, ph$edge.length[which(ph$edge[,2]==tmp)])
 		ph				<- ladderize(ph)		
@@ -3278,7 +4567,9 @@ project.PANGEA.TEST.SSApg.ExaMLR2<- function()
 		set(ph.info, NULL, 'CALENDAR_TIME', ph.info[, as.numeric(sapply(strsplit(LABEL, tree.id.labelsep, fixed=TRUE),'[[',tree.id.label.idx.ctime))] )
 		tmp				<- lm(ROOT2TIP~CALENDAR_TIME, data=ph.info)		 
 		set( ph.info, NULL, 'ROOT2TIP_LM', predict(tmp, type='response') ) 	
-		tmp2			<- c( R2=round(summary(tmp)$r.squared,d=3), SLOPE= as.numeric(round(coef(tmp)['CALENDAR_TIME'],d=4)), TMRCA=as.numeric(round( -coef(tmp)['(Intercept)']/coef(tmp)['CALENDAR_TIME'], d=1 )) )
+		tmp2			<- c( 	R2=round(summary(tmp)$r.squared,d=3), 
+								SLOPE= as.numeric(round(coef(tmp)['CALENDAR_TIME'],d=4)), 
+								TMRCA=as.numeric(round( -coef(tmp)['(Intercept)']/coef(tmp)['CALENDAR_TIME'], d=1 )) )
 		ggplot(ph.info, aes(x=CALENDAR_TIME, y=ROOT2TIP, colour=IDCLU)) + geom_point(alpha=0.75) + geom_line(alpha=0.1, aes(group=IDCLU)) + geom_line(aes(y=ROOT2TIP_LM)) +
 				#scale_x_continuous(breaks=seq(1980,2020,2)) +						
 				scale_colour_discrete(guide=FALSE) +
