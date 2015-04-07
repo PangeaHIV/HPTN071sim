@@ -1781,7 +1781,8 @@ project.PANGEA.TEST.pipeline.Feb2015.final<- function()
 										s.PREV.max.n=			c(1600, 1600,  1600,  3200,   1600,    1280, 1600),
 										s.INTERVENTION.prop=	c(0.5,  0.5,   0.5,   0.5,    0.85,    0.375, 0.25),
 										seed=                   c(42,   5,     7,     11,     13,      17, 42)
-										)						
+										)		
+		pipeline.vary	<- pipeline.vary[7,] 				
 		dummy			<- pipeline.vary[, {				
 					set(pipeline.args, which( pipeline.args$stat=='yr.end' ), 'v', as.character(yr.end))
 					set(pipeline.args, which( pipeline.args$stat=='epi.import' ), 'v', as.character(epi.import))
@@ -1800,7 +1801,8 @@ project.PANGEA.TEST.pipeline.Feb2015.final<- function()
 						file.copy(paste(indir,'/',infile.ind,'_IND.csv',sep=''), paste(tmpdir,'/',infile.ind,label,'_IND.csv',sep=''))
 						file.copy(paste(indir,'/',infile.trm,'_TRM.csv',sep=''), paste(tmpdir,'/',infile.trm,label,'_TRM.csv',sep=''))
 						file			<- rPANGEAHIVsim.pipeline(tmpdir, paste(infile.ind,label,'_IND.csv',sep=''), paste(infile.trm,label,'_TRM.csv',sep=''), tmpdir, pipeline.args=pipeline.args)
-						#system(file)													
+						#system(file)	
+						stop()
 					}
 					if(1)
 					{
@@ -1881,18 +1883,19 @@ project.PANGEA.TEST.pipeline.Apr2015.Manon<- function()
 	{
 		indir			<- '/Users/Oliver/git/HPTN071sim/source/rPANGEAHIVsim/inst/misc'
 		pipeline.args	<- rPANGEAHIVsim.pipeline.args( yr.start=1985, yr.end=2020, seed=42, s.MODEL='Prop2SuggestedSampling', report.prop.recent=1.0,
-				s.PREV.max=1.0, s.INTERVENTION.start=2015, 
+				s.PREV.max=NA, s.INTERVENTION.start=2015, 
 				epi.model='HPTN071', epi.dt=1/48, epi.import=0.2, root.edge.fixed=0,
 				v.N0tau=1, v.r=2.851904, v.T50=-2,
 				wher.mu=log(0.00447743)-0.5^2/2, wher.sigma=0.5, bwerm.mu=log(0.002239075)-0.3^2/2, bwerm.sigma=0.3, er.gamma=4,
 				dbg.GTRparam=0, dbg.rER=0, index.starttime.mode='fix1970', startseq.mode='one', seqtime.mode=NA)								
 		
 		# proposed standard run and control simulation
-		pipeline.vary	<- data.table(	label=					c('-f70s3','-f70s6','-f80s3','-f80s6'),
-										seqtime.mode=			c('AtYear3', 'AtYear6', 'AtYear3', 'AtYear6'),
-										s.PREV.max= 			c(1.0, 1.0, 1.0, 1.0),
-										index.starttime.mode=	c('fix1970', 'fix1970', 'fix1980', 'fix1980')										
-										)						
+		pipeline.vary	<- data.table(	label=					c('-f70s3','-f70s6','-f80s3','-f80s6','-f80s3f80','-f80s6f80','-f80s3f60','-f80s6f60','-f80s3f40','-f80s6f40','-f80s3f20','-f80s6f20'),
+										seqtime.mode=			c('AtYear3', 'AtYear6', 'AtYear3', 'AtYear6', 'AtYear3', 'AtYear6', 'AtYear3', 'AtYear6', 'AtYear3', 'AtYear6', 'AtYear3', 'AtYear6'),
+										s.PREV.max= 			c(1.0, 1.0, 1.0, 1.0, 0.8, 0.8, 0.6, 0.6, 0.4, 0.4, 0.2, 0.2),
+										index.starttime.mode=	c('fix1970', 'fix1970', 'fix1980', 'fix1980', 'fix1980', 'fix1980', 'fix1980', 'fix1980', 'fix1980', 'fix1980', 'fix1980', 'fix1980')										
+										)	
+		pipeline.vary	<- pipeline.vary[5:12,]
 		dummy			<- pipeline.vary[, {				
 					set(pipeline.args, which( pipeline.args$stat=='index.starttime.mode' ), 'v', as.character(index.starttime.mode))
 					set(pipeline.args, which( pipeline.args$stat=='seqtime.mode' ), 'v', as.character(seqtime.mode))
@@ -1903,16 +1906,33 @@ project.PANGEA.TEST.pipeline.Apr2015.Manon<- function()
 						#	scenario E					
 						infile.ind		<- '150129_HPTN071_scE'
 						infile.trm		<- '150129_HPTN071_scE'
+						outfile.ind		<- '150407_Regional4Manon'
+						outfile.trm		<- '150407_Regional4Manon'
 						tmpdir			<- '/Users/Oliver/git/HPTN071sim/tmp150401-E'
 						tmpdir			<- paste(tmpdir,label,sep='')
 						dir.create(tmpdir, showWarnings=FALSE)																		
-						file.copy(paste(indir,'/',infile.ind,'_IND.csv',sep=''), paste(tmpdir,'/',infile.ind,label,'_IND.csv',sep=''))
-						file.copy(paste(indir,'/',infile.trm,'_TRM.csv',sep=''), paste(tmpdir,'/',infile.trm,label,'_TRM.csv',sep=''))
-						file			<- rPANGEAHIVsim.pipeline(tmpdir, paste(infile.ind,label,'_IND.csv',sep=''), paste(infile.trm,label,'_TRM.csv',sep=''), tmpdir, pipeline.args=pipeline.args)
+						file.copy(paste(indir,'/',infile.ind,'_IND.csv',sep=''), paste(tmpdir,'/',outfile.ind,label,'_IND.csv',sep=''))
+						file.copy(paste(indir,'/',infile.trm,'_TRM.csv',sep=''), paste(tmpdir,'/',outfile.trm,label,'_TRM.csv',sep=''))
+						file			<- rPANGEAHIVsim.pipeline(tmpdir, paste(outfile.ind,label,'_IND.csv',sep=''), paste(outfile.trm,label,'_TRM.csv',sep=''), tmpdir, pipeline.args=pipeline.args)
 						#system(file)													
 					}								
 				}, by='label']
 		
+	}
+}
+##--------------------------------------------------------------------------------------------------------
+project.PANGEA.TEST.pipeline.Apr2015.Manon.postprocess<- function()
+{
+	indir			<- '/Users/Oliver/git/HPTN071sim'		
+	files			<- list.files(path=indir, pattern='*INTERNAL.R$', recursive='TRUE')
+	files			<- files[ grepl('150401', files)]
+	for(file in files)
+	{
+		load( paste(indir, file, sep='/') )
+		df.trms		<- subset(df.trms, select=c(IDREC, IDTR, TIME_TR, SAMPLED_REC, SAMPLED_TR, IDCLU))
+		df.inds		<- subset(df.inds, select=c(IDPOP, TIME_TR, GENDER, DOB, DOD, DIAG_T, TIME_SEQ, IDCLU))
+		tmp			<- gsub('SIMULATED_INTERNAL','SIM',file)
+		save(df.trms, df.inds, df.seq, file= paste(indir, tmp, sep='/'))
 	}
 }
 ##--------------------------------------------------------------------------------------------------------
@@ -3460,7 +3480,9 @@ project.PANGEA.TEST.SSApg.CLUSTERBEAST.skygrid.codon.gtr<- function()
 		file			<- paste(indir, '/', infile, sep='')
 		cat(paste('\nLoading file', file))
 		load(file)		#expect "df.epi"    "df.trms"   "df.inds"   "df.sample" "df.seq"
-		set( df.seq, NULL, 'IDCLU', df.seq[, as.integer(IDCLU)] )
+		set( df.seq, NULL, 'IDCLU', df.seq[, as.integer(IDCLU)] )		
+		pool.infile		<- paste(  substr(infile,1,nchar(infile)-21),'_TEST_pol', sep='' )
+		file.name		<- paste(pool.infile,'_CODON-GTR-', select, sep='')		
 		#			
 		if(grepl('nseq',select))
 		{
@@ -3525,7 +3547,7 @@ project.PANGEA.TEST.SSApg.CLUSTERBEAST.skygrid.codon.gtr<- function()
 			phd.plot			<- eval(parse(text=paste('phd[[',seq_along(phd),']]', sep='',collapse='+')))			
 			#phd.plot			<- drop.tip(phd.plot, which(grepl('NOEXIST', phd.plot$tip.label)), root.edge=1)
 			phd.plot			<- ladderize(phd.plot)
-			tmp					<- paste(indir, '/', gsub('DATEDTREE','BEASTDATEDTREE',tmp), sep='')						
+			tmp					<- paste(indir, '/', file.name, '_BEASTDATEDTREE.pdf', sep='')						
 			pdf(file=gsub('newick','pdf',tmp), w=10, h=Ntip(phd.plot)*0.1)
 			plot(phd.plot, show.tip=TRUE, cex=0.5)
 			dev.off()									
@@ -3539,8 +3561,6 @@ project.PANGEA.TEST.SSApg.CLUSTERBEAST.skygrid.codon.gtr<- function()
 		if(1)
 		{
 			cat(paste('\ncreate POL BEAST XML file for seqs=',paste( seq.select[,LABEL], collapse=' ')))
-			pool.infile		<- paste(  substr(infile,1,nchar(infile)-21),'_TEST_pol', sep='' )
-			file.name		<- paste(pool.infile,'_CODON-GTR-', select, sep='')
 			seq.select.pol	<- subset(seq.select, select=c("IDCLU", "IDPOP", "LABEL", "POL" ))
 			setnames(seq.select.pol, 'POL', 'SEQ')			
 			hivc.beastscript.multilocus.codon.gtr( file.name, seq.select.pol, phd, verbose=1 )		

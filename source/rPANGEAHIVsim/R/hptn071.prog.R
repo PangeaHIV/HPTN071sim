@@ -696,9 +696,9 @@ prog.PANGEA.SeqGen.run.v4<- function()
 		file			<- system.file(package="rPANGEAHIVsim", "misc",'PANGEA_SSAfg_HXB2outgroup.R')
 		cat(paste('\nLoading outgroup seq from file', file))
 		load(file)		#expect "outgroup.seq.gag" "outgroup.seq.pol" "outgroup.seq.env"
-		if(nrow(df.seq<2000))
+		if(nrow(df.seq)<2000)
 			df.seq.nj	<- copy(df.seq)
-		if(nrow(df.seq>=2000))
+		if(nrow(df.seq)>=2000)
 		{
 			cat(paste('\nToo many seqs for quick NJ tree calculation, selecting first 2000'))
 			df.seq.nj	<- unique(subset(df.seq, select=c(IDCLU, IDCLU_N)))			
