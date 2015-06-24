@@ -10,6 +10,36 @@ seq.unique<- function(seq.DNAbin.matrix)
 ##--------------------------------------------------------------------------------------------------------
 #	olli copied from hivclust
 ##--------------------------------------------------------------------------------------------------------
+seq.rmgaps<- function(seq.DNAbin.matrix, rm.only.col.gaps=1, rm.char='-', verbose=0)
+{
+	if(class(seq.DNAbin.matrix)=='DNAbin')
+		seq.DNAbin.matrix		<- as.character(seq.DNAbin.matrix)		
+	if(!rm.only.col.gaps)
+	{	
+		if(is.matrix(seq.DNAbin.matrix))
+		{
+			tmp					<- lapply(seq_len(nrow(seq.DNAbin.matrix)), function(i){	seq.DNAbin.matrix[i, !seq.DNAbin.matrix[i,]%in%rm.char]	})
+			names(tmp)			<- rownames(seq.DNAbin.matrix)
+		}
+		else
+		{
+			tmp					<- lapply(seq_along(seq.DNAbin.matrix), function(i){	seq.DNAbin.matrix[[i]][ !seq.DNAbin.matrix[[i]]%in%rm.char]	})
+			names(tmp)			<- names(seq.DNAbin.matrix)
+		}		
+		seq.DNAbin.matrix	<- tmp
+	}
+	else
+	{		
+		gap					<- apply(seq.DNAbin.matrix,2,function(x) all(x%in%rm.char)) 
+		if(verbose)		cat(paste("\nremove gaps, n=",length(which(gap))))
+		if(verbose>1)	cat(paste("\nremove gaps, at pos=",which(gap)))
+		seq.DNAbin.matrix	<- seq.DNAbin.matrix[,!gap]	
+	}
+	as.DNAbin( seq.DNAbin.matrix )
+}
+##--------------------------------------------------------------------------------------------------------
+#	olli copied from hivclust
+##--------------------------------------------------------------------------------------------------------
 seq.singleton2bifurcatingtree<- function(ph.s, dummy.label=NA)
 {	
 	if(!Nnode(ph.s))
@@ -2058,6 +2088,128 @@ PANGEA.TransmissionEdgeEvolutionaryRate.create.sampler<- function(er.meanlog, er
 				}		
 	}	
 	list(rERbw=rERbw, rERbw.args=rERbw.args)	
+}
+##--------------------------------------------------------------------------------------------------------
+#	Function to add gaps into sequences  	
+#	olli originally written 23-06-2015
+##--------------------------------------------------------------------------------------------------------
+PANGEA.align.from.basefreq<- function(indir.refalgn, infile.refalgn, indir.basefreq, callconsensus.minc, outdir, verbose=1)
+{		
+	callconsensus.cmd	<- 'python /Users/Oliver/Dropbox\\ \\(Infectious\\ Disease\\)/PANGEA-BEEHIVE-SHARED/ChrisCode/CallConsensus.py'
+	callconsensus.maxc	<- callconsensus.minc
+	mergealignments.cmd	<- 'python /Users/Oliver/Dropbox\\ \\(Infectious\\ Disease\\)/PANGEA-BEEHIVE-SHARED/ChrisCode/MergeAlignments2.0.py'
+	mergealignments.opt	<- '-d'
+				
+	#	create consensus at coverage cut off		
+	files				<- data.table(FILE=list.files(indir.basefreq, pattern='dat$'))	
+	invisible(files[,{								
+						tmp					<- gsub(' ','\\ ',gsub(')','\\)',gsub('(','\\(',paste(indir.basefreq, '/', FILE, sep=''),fixed=1),fixed=1),fixed=1)				
+						cmd					<- paste(callconsensus.cmd,' ',tmp,' ', callconsensus.minc, ' ', callconsensus.maxc, sep='')
+						#cat(cmd)				
+						ans					<- system(cmd, intern=TRUE)	
+						file				<- paste('TMP_',gsub('BaseFreqs.dat',paste('consensus_C',callconsensus.minc,'.fa',sep=''), FILE),sep='')
+						cat(paste(ans, collapse='\n'), file=paste(outdir, '/', file, sep=''))
+						NULL
+					}, by='FILE'])
+	#	add to reference alignment
+	files				<- data.table(FILE=list.files(outdir, pattern=paste('consensus_C',callconsensus.minc,'.fa',sep='')))
+	ps					<- files[,{
+				cmd	<- paste(mergealignments.cmd,' ',mergealignments.opt,' ',indir.refalgn,'/',infile.refalgn,' ',outdir,'/',FILE,sep='')
+				#cat(cmd)				
+				ans	<- system(cmd, intern=TRUE)	
+				list(SEQ=paste(ans[-1], collapse=''))				
+			}, by='FILE']
+	#	convert consensus alignment to DNAbin
+	set(ps, NULL, 'FILE', ps[, gsub('TMP_','',FILE)])
+	set(ps, NULL, 'FILE', ps[, gsub('_consensus.*','',FILE)])	
+	tmp					<- tolower(do.call('rbind',strsplit(ps[, SEQ],'')))
+	rownames(tmp)		<- ps[, FILE]
+	ps					<- as.DNAbin(tmp)
+	#	clean up
+	tmp			<- list.files(outdir, pattern='^TMP_', full.names=TRUE)
+	invisible(file.remove(tmp))	
+	
+	ps
+}
+##--------------------------------------------------------------------------------------------------------
+#	Function to add gaps into sequences  	
+#	olli originally written 23-06-2015
+##--------------------------------------------------------------------------------------------------------
+PANGEA.add.gaps<- function(indir.simu, indir.gap, infile.simu, infile.gap, gap.country, gap.symbol, gap.seed, verbose=1)
+{		
+	#	find files 		
+	files			<- data.table(FILE=list.files(indir.simu, pattern='\\.fa.*$'))
+	files			<- subset(files, !grepl('^TMP',FILE) & grepl(infile.simu, FILE, fixed=1))
+	if(files[, any(grepl('gag', FILE))])
+	{
+		files[, SIMU:=files[, regmatches(FILE,regexpr('TRAIN[0-9]', FILE))]]
+		files[, GENE:=files[, sapply(strsplit(FILE,'_'), '[[', 5)]]
+		set(files, NULL, 'GENE', toupper(files[, substr(GENE,1,nchar(GENE)-3)]))
+		set(files, NULL, 'GENE', files[, factor(GENE, levels=c('GAG','POL','ENV'), labels=c('GAG','POL','ENV'))])
+		setkey(files, SIMU, GENE)
+		files			<- subset(files, grepl(infile.simu, FILE, fixed=1) & !is.na(GENE))
+		#	concatenate simu seqs
+		files[, {
+					gag	<- read.dna( paste(indir.simu, FILE[1], sep='/'), format='fasta' )
+					pol	<- read.dna( paste(indir.simu, FILE[2], sep='/'), format='fasta' )
+					env	<- read.dna( paste(indir.simu, FILE[3], sep='/'), format='fasta' )
+					tmp	<- cbind(gag, pol, env)
+					write.dna( tmp, file=paste(indir.simu, '/', 'TMP', gsub('gag','conc',FILE[1]), sep=''), format='fasta', colsep='', nbcol=-1)
+					NULL
+				}, by='SIMU']
+		infile.simu	<- paste('TMP', gsub('gag','conc',files[1,FILE]), sep='')
+	}
+	else
+		infile.simu	<- files[1,FILE]
+	#
+	#	add to fixed PANGEA alignment
+	#
+	ps				<- read.dna(paste(indir.gap,'/',infile.gap,sep=''), format='fasta')
+	tmp				<- ps[(nrow(ps)-20):nrow(ps),]
+	tmp				<- as.character(tmp)
+	tmp[tmp=='?']	<- 'n'	#need this for MAFFT
+	tmp				<- as.DNAbin(tmp)
+	infile.old		<- paste('TMP',gsub('\\.','_last20\\.',infile.gap),sep='')
+	write.dna(tmp, file=paste(indir.simu, infile.old, sep='/'), format='fasta', colsep='', nbcol=-1)	
+	infile.old	<- paste(indir.simu, infile.old, sep='/')	
+	#	mafft --thread 1 --treeout --reorder --keeplength --mapout --ep 0.0 --add new_sequences input > output
+	infile.new	<- paste(indir.simu,'/',infile.simu, sep='')	
+	file		<- paste(indir.simu,'/','TMP', gsub('\\.','mergedpartial\\.',infile.simu), sep='')
+	cmd			<- paste('mafft --thread 4 --treeout --reorder --keeplength --mapout --ep 0.0 --add ',infile.new,' ',infile.old,' > ',file, sep='')
+	cat('\ncalling')
+	cat(cmd)
+	system(cmd)				
+	#	merge all
+	file		<- list.files(indir.simu, pattern='mergedpartial')
+	stopifnot(length(file)==1)
+	tmp	<- read.dna(paste(indir.simu, file, sep='/'), format='fasta')
+	tmp	<- tmp[grepl('IDPOP|HOUSE', rownames(tmp)),]
+	psm	<- rbind(ps, tmp)
+	#
+	#	randomly select gaps from sequences in infile.gap
+	#
+	set.seed(gap.seed)
+	x			<- as.character(psm)
+	tmp			<- which(grepl(gap.country,rownames(x)))
+	gp.df		<- data.table(IDXSIM=which(grepl('IDPOP|HOUSE',rownames(x))))
+	gp.df[, IDXGAP:=sample(tmp, nrow(gp.df), replace=TRUE)]
+	for(i in seq_len(nrow(gp.df)))
+	{
+		z						<- which(x[ gp.df[i, IDXGAP], ]==gap.symbol)
+		x[gp.df[i, IDXSIM],z]	<- gap.symbol
+	}
+	x			<- x[ grepl('IDPOP|HOUSE', rownames(x)), ]
+	#x			<- seq.rmgaps(x, rm.only.col.gaps=1, rm.char=c('-'), verbose=0)
+	#cat(paste('\nSeq length without common gaps ("-")', ncol(x)))	
+	#x			<- seq.rmgaps(as.character(x), rm.only.col.gaps=1, rm.char=c('?'), verbose=0)
+	#cat(paste('\nSeq length with seq coverage (no common "?")', ncol(x)))	
+	sgp			<- seq.rmgaps(x, rm.only.col.gaps=1, rm.char=c('-','?'), verbose=0)
+	cat(paste('\nSeq length without common gaps and with seq coverage (no common "?","-"), n=', ncol(sgp)))
+	#	clean up
+	tmp			<- list.files(indir.simu, pattern='^TMP', full.names=TRUE)
+	file.remove(tmp)
+	
+	sgp	
 }
 ##--------------------------------------------------------------------------------------------------------
 #	return evolutionary rate modifier sampler for transmission edges	

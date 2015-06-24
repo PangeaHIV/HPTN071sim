@@ -58,7 +58,8 @@ if(length(args))
 					DSPS.INPUT.PARSER2		= "prog.DSPS.input.parser.v2",
 					PR.SEQGEN.FILECREATOR	= "prog.PANGEA.SeqGen.createInputFile",
 					PR.SEQGEN.SIMULATOR		= "prog.PANGEA.SeqGen.run.v4",
-					SKYGRID					= "project.PANGEA.TEST.SSApg.CLUSTERBEAST.skygrid"
+					SKYGRID					= "project.PANGEA.TEST.SSApg.CLUSTERBEAST.skygrid",
+					ADDGAPS					= "project.PANGEA.TEST.pipeline.Feb2015.treecomparison.gaps"
 					)
 	}
 	tmp<- na.omit(sapply(args,function(arg)

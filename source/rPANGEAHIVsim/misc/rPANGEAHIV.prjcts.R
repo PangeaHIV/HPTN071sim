@@ -1710,7 +1710,7 @@ project.PANGEA.TEST.pipeline.Feb2015.dev<- function()
 					}, by='label']
 		}
 		#
-		#	high R2 runs
+		#	high R2 runs -- these are used for the tree comparison
 		#
 		if(1)
 		{
@@ -1758,6 +1758,342 @@ project.PANGEA.TEST.pipeline.Feb2015.dev<- function()
 						}											
 					}, by='label']
 		}
+}
+##--------------------------------------------------------------------------------------------------------
+##	olli 22.06.15
+##--------------------------------------------------------------------------------------------------------
+project.PANGEA.TEST.pipeline.Feb2015.treecomparison<- function()
+{		
+	if(1)
+	{
+		indir			<- '/Users/Oliver/git/HPTN071sim/source/rPANGEAHIVsim/inst/misc'
+		pipeline.args	<- rPANGEAHIVsim.pipeline.args( yr.start=1985, yr.end=2020, seed=42, s.MODEL='Fixed2Prop', report.prop.recent=1.0,
+				s.PREV.max.n=1600, s.INTERVENTION.prop=0.25, s.INTERVENTION.start=2015, s.INTERVENTION.mul= NA, s.ARCHIVAL.n=50,
+				epi.model='HPTN071', epi.dt=1/48, epi.import=0.05, root.edge.fixed=1,
+				v.N0tau=1, v.r=2.851904, v.T50=-2,
+				wher.mu=log(0.002239075)-0.3^2/2, wher.sigma=0.3, 
+				bwerm.mu=log(0.002239075)-0.3^2/2, bwerm.sigma=0.3, er.gamma=4,
+				dbg.GTRparam=1, dbg.rER=1, index.starttime.mode='fix1955', startseq.mode='many', seqtime.mode='AtDiag')								
+		
+		# proposed standard run and control simulation
+		pipeline.vary	<- data.table(	startseq.mode=			c('many','one'),					
+				label=					c('-m111','-o111'))						
+		dummy			<- pipeline.vary[, {				
+					set(pipeline.args, which( pipeline.args$stat=='startseq.mode' ), 'v', as.character(startseq.mode))
+					
+					print(pipeline.args)						
+					if(1)
+					{
+						#	scenario F					
+						infile.ind		<- '150129_HPTN071_scF'
+						infile.trm		<- '150129_HPTN071_scF'
+						tmpdir			<- '/Users/Oliver/git/HPTN071sim/tmp150227-F'
+						tmpdir			<- paste(tmpdir,label,sep='')
+						dir.create(tmpdir, showWarnings=FALSE)																															
+						file.copy(paste(indir,'/',infile.ind,'_IND.csv',sep=''), paste(tmpdir,'/',infile.ind,label,'_IND.csv',sep=''))
+						file.copy(paste(indir,'/',infile.trm,'_TRM.csv',sep=''), paste(tmpdir,'/',infile.trm,label,'_TRM.csv',sep=''))
+						file			<- rPANGEAHIVsim.pipeline(tmpdir, paste(infile.ind,label,'_IND.csv',sep=''), paste(infile.trm,label,'_TRM.csv',sep=''), tmpdir, pipeline.args=pipeline.args)
+						#system(file)													
+					}					
+					if(1)
+					{
+						#	scenario E					
+						infile.ind		<- '150129_HPTN071_scE'
+						infile.trm		<- '150129_HPTN071_scE'
+						tmpdir			<- '/Users/Oliver/git/HPTN071sim/tmp150227-E'
+						tmpdir			<- paste(tmpdir,label,sep='')
+						dir.create(tmpdir, showWarnings=FALSE)																									
+						file.copy(paste(indir,'/',infile.ind,'_IND.csv',sep=''), paste(tmpdir,'/',infile.ind,label,'_IND.csv',sep=''))
+						file.copy(paste(indir,'/',infile.trm,'_TRM.csv',sep=''), paste(tmpdir,'/',infile.trm,label,'_TRM.csv',sep=''))
+						file			<- rPANGEAHIVsim.pipeline(tmpdir, paste(infile.ind,label,'_IND.csv',sep=''), paste(infile.trm,label,'_TRM.csv',sep=''), tmpdir, pipeline.args=pipeline.args)
+						#system(file)													
+					}											
+				}, by='label']
+	}
+}
+##--------------------------------------------------------------------------------------------------------
+##	olli 22.06.15
+##--------------------------------------------------------------------------------------------------------
+project.PANGEA.TEST.pipeline.Feb2015.treecomparison.gaps<- function()
+{	
+	#
+	#	prepare gappy PANGEA files at different coverage
+	#
+	if(0)
+	{
+		callconsensus.cmd	<- 'python /Users/Oliver/Dropbox\\ \\(Infectious\\ Disease\\)/PANGEA-BEEHIVE-SHARED/ChrisCode/CallConsensus.py'
+		callconsensus.minc	<- 10
+		callconsensus.maxc	<- 10
+		mergealignments.cmd	<- 'python /Users/Oliver/Dropbox\\ \\(Infectious\\ Disease\\)/PANGEA-BEEHIVE-SHARED/ChrisCode/MergeAlignments2.0.py'
+		mergealignments.opt	<- '-d'
+		
+		indir.refalgn		<- '/Users/Oliver/Dropbox\\ \\(Infectious\\ Disease\\)/PANGEA_data'
+		infile.refalgn		<- 'HIV1_COM_2012_genome_DNA_WithExtraA1UG.fasta'
+		indir.basefreq		<- '/Users/Oliver/Dropbox (Infectious Disease)/PANGEA_data/mapping/2681/BaseFreqs'
+		outdir				<- '/Users/Oliver/git/HPTN071sim/treec150623/PANGEAcov'
+		
+		tmp					<- c(10,20,30,40,50)
+		tmp					<- c(70,90,100)
+		tmp					<- c(200)
+		invisible(sapply(tmp, function(callconsensus.minc)
+						{
+							outfile				<- '150623_PANGEAGlobal2681'
+							outfile				<- paste(outfile, '_C', callconsensus.minc, '.fa', sep='')
+							seq					<- PANGEA.align.from.basefreq(indir.refalgn, infile.refalgn, indir.basefreq, callconsensus.minc, outdir, verbose=1)
+							write.dna(seq, file=paste(outdir, '/', outfile, sep=''), format='fasta', colsep='', nbcol=-1)
+							save(seq, file=paste(outdir, '/', gsub('.fa','.R',outfile,fixed=TRUE), sep=''))
+							NULL
+						}))
+		
+		#	proportion of '?' calls
+		files	<- list.files(outdir, pattern='PANGEAGlobal.*fa$')
+		ss		<- lapply(files, function(x) read.dna(paste(outdir,'/',x,sep=''), format='fasta'))	
+		dfc		<- lapply(seq_along(ss), function(i)
+				{
+					tmp		<- as.character(ss[[i]])
+					data.table(FILE=files[i], SEQ=rownames(tmp), NSEQ=apply(tmp!='-', 1, sum), NOCOV=apply(tmp=='?' | tmp=='n', 1, sum))				
+				})
+		dfc		<- do.call('rbind', dfc)
+		dfc[, COVERAGE:= dfc[, regmatches(FILE,regexpr('C[0-9]+',FILE))]]
+		set(dfc, NULL, 'COVERAGE', dfc[,as.numeric(substring(COVERAGE,2))])		
+		dfc[, SITE:= dfc[, substr(SEQ, 6,7)]]
+		dfci	<- dfc[, list(CALLED= median( (NSEQ-NOCOV)/NSEQ) ), by=c('SITE','COVERAGE')]
+		setkey(dfci, SITE, COVERAGE)
+		save(dfci, dfc, file='~/git/HPTN071sim/treec150623/withgaps/150623_HPTN071_CoverageComparison.R')
+		ggplot(dfci, aes(x=COVERAGE, y=CALLED*100, colour=SITE, group=SITE)) + 
+				geom_line() + geom_point() +
+				scale_x_continuous(expand=c(0,0)) +
+				scale_y_continuous(breaks=seq(0,100,20),limits=c(0,100),expand=c(0,0)) +
+				labs(x='majority coverage\n(minimum number of aligned short read calls that agree)', y='Non-?N calls out of ACGTRWS?N calls\n(median %)') + theme_bw()
+		ggsave(file='~/git/HPTN071sim/treec150623/withgaps/150623_HPTN071_CoverageComparison.pdf', w=6, h=6)
+	}
+	#
+	#	create gappy simulated sequences
+	#
+	if(1)
+	{
+		indir.simu		<- '/Users/Oliver/git/HPTN071sim/treec150623/nogaps'
+		indir.gap		<-	'~/git/HPTN071sim/treec150623/PANGEAcov'
+		infile.gap		<- '150623_PANGEAGlobal2681_C5.fa'
+		outdir			<- '/Users/Oliver/git/HPTN071sim/treec150623/withgaps'					
+		gap.symbol		<- '?'
+		gap.seed		<- 42
+		
+		if(0)
+		{
+			gap.country		<- 'BW'
+			infile.gaps		<- sapply(c(5,10,20,50,100),function(x) paste('150623_PANGEAGlobal2681_C',x,'.fa',sep=''))
+			invisible(lapply(infile.gaps, function(infile.gap)
+							{
+								outfile.cov		<- regmatches(infile.gap,regexpr('C[0-9]+',basename(infile.gap)))
+								infile.simu		<- '150623_HPTN071_TRAIN1_SIMULATED'
+								outfile			<- paste(infile.simu, '_', gap.country, outfile.cov, '.fa', sep='')	
+								ans				<- PANGEA.add.gaps(indir.simu, indir.gap, infile.simu, infile.gap, gap.country, gap.symbol, gap.seed, verbose=1)
+								write.dna(ans, file=paste(outdir, outfile, sep='/'), format='fasta', colsep='', nbcol=-1)					
+								infile.simu		<- '150623_HPTN071_TRAIN2_SIMULATED'
+								outfile			<- paste(infile.simu, '_', gap.country, outfile.cov, '.fa', sep='')
+								ans				<- PANGEA.add.gaps(indir.simu, indir.gap, infile.simu, infile.gap, gap.country, gap.symbol, gap.seed, verbose=1)
+								write.dna(ans, file=paste(outdir, outfile, sep='/'), format='fasta', colsep='', nbcol=-1)					
+							}))						
+			gap.country		<- 'UG'
+			infile.gaps		<- sapply(c(5,10,20,50,100),function(x) paste('150623_PANGEAGlobal2681_C',x,'.fa',sep=''))
+			invisible(lapply(infile.gaps, function(infile.gap)
+							{
+								outfile.cov		<- regmatches(infile.gap,regexpr('C[0-9]+',basename(infile.gap)))
+								infile.simu		<- '150623_HPTN071_TRAIN1_SIMULATED'
+								outfile			<- paste(infile.simu, '_', gap.country, outfile.cov, '.fa', sep='')	
+								ans				<- PANGEA.add.gaps(indir.simu, indir.gap, infile.simu, infile.gap, gap.country, gap.symbol, gap.seed, verbose=1)
+								write.dna(ans, file=paste(outdir, outfile, sep='/'), format='fasta', colsep='', nbcol=-1)					
+								infile.simu		<- '150623_HPTN071_TRAIN2_SIMULATED'
+								outfile			<- paste(infile.simu, '_', gap.country, outfile.cov, '.fa', sep='')
+								ans				<- PANGEA.add.gaps(indir.simu, indir.gap, infile.simu, infile.gap, gap.country, gap.symbol, gap.seed, verbose=1)
+								write.dna(ans, file=paste(outdir, outfile, sep='/'), format='fasta', colsep='', nbcol=-1)					
+							}))								
+		}
+		if(1)
+		{
+			gap.country		<- 'BW'
+			infile.gaps		<- sapply(c(5,10,20,50,100),function(x) paste('150623_PANGEAGlobal2681_C',x,'.fa',sep=''))
+			invisible(lapply(infile.gaps, function(infile.gap)
+							{
+								outfile.cov		<- regmatches(infile.gap,regexpr('C[0-9]+',basename(infile.gap)))
+								infile.simu		<- 'Vill_99_Apr15'
+								outfile			<- paste(infile.simu, '_', gap.country, outfile.cov, '.fa', sep='')	
+								ans				<- PANGEA.add.gaps(indir.simu, indir.gap, infile.simu, infile.gap, gap.country, gap.symbol, gap.seed, verbose=1)
+								write.dna(ans, file=paste(outdir, outfile, sep='/'), format='fasta', colsep='', nbcol=-1)																		
+							}))						
+			gap.country		<- 'UG'
+			infile.gaps		<- sapply(c(5,10,20,50,100),function(x) paste('150623_PANGEAGlobal2681_C',x,'.fa',sep=''))
+			invisible(lapply(infile.gaps, function(infile.gap)
+							{
+								outfile.cov		<- regmatches(infile.gap,regexpr('C[0-9]+',basename(infile.gap)))
+								infile.simu		<- 'Vill_99_Apr15'
+								outfile			<- paste(infile.simu, '_', gap.country, outfile.cov, '.fa', sep='')	
+								ans				<- PANGEA.add.gaps(indir.simu, indir.gap, infile.simu, infile.gap, gap.country, gap.symbol, gap.seed, verbose=1)
+								write.dna(ans, file=paste(outdir, outfile, sep='/'), format='fasta', colsep='', nbcol=-1)																		
+							}))			
+		}		
+	}
+	#
+	#	select largest cluster & create partition files for regional 
+	#
+	if(0)
+	{		
+		indir.nogaps	<- '/Users/Oliver/git/HPTN071sim/treec150623/nogaps'
+		indir.wgaps		<- '/Users/Oliver/git/HPTN071sim/treec150623/withgaps'
+		infiles.wgaps	<- list.files(indir.wgaps, pattern='^150623_HPTN071_TRAIN.*[0-9]\\.fa$')
+		for(infile.wgaps in infiles.wgaps)
+		{			
+			infile.nogapsR	<- gsub('[^_]*\\.fa','INTERNAL.R',infile.wgaps)
+			#	select large transmission cluster
+			load(paste(indir.nogaps, '/', infile.nogapsR, sep=''))
+			df.clu			<- subset(df.inds, !is.na(TIME_SEQ))[, list(IDPOP=IDPOP, CLUN=length(IDPOP)), by='IDCLU']
+			df.clu			<- subset(df.clu, max(CLUN)==CLUN)
+			tmp				<- read.dna(file=paste(indir.wgaps, '/', infile.wgaps, sep=''), format='fasta')
+			dfs				<- data.table(LABEL= rownames(tmp))
+			dfs[, IDPOP:= as.integer(substring(sapply(strsplit(LABEL,'|',fixed=TRUE), '[[', 1),7))]
+			dfs				<- merge(df.clu, dfs, by='IDPOP')
+			seq		<- tmp[dfs[,LABEL],]
+			file	<- paste(indir.wgaps, '/', gsub('\\.','_lrgstclu\\.',infile.wgaps), sep='')		
+			write.dna(seq, file=file, format='fasta', colsep='', nbcol=-1)
+			save(seq, file=gsub('\\.fa.*','\\.R',file))
+			#	determine partition lengths
+			#	pol start
+			infile.nogaps	<- list.files(indir.nogaps, pattern='pol\\.fa$')
+			infile.nogaps	<- infile.nogaps[ grepl(gsub('_SIMULATED.*','',infile.wgaps),infile.nogaps) ]
+			stopifnot(length(infile.nogaps)==1)				
+			tmp				<- read.dna(paste(indir.nogaps, '/', infile.nogaps, sep=''), format='fasta')[rownames(seq)[1],]
+			stopifnot(nrow(tmp)==1)
+			key				<- paste(as.character(tmp)[1,1:10], collapse='')
+			string			<- paste(as.character(seq[1,]), collapse='')
+			pol.start		<- regexpr(key, string)
+			#	env start
+			infile.nogaps	<- list.files(indir.nogaps, pattern='env\\.fa$')
+			infile.nogaps	<- infile.nogaps[ grepl(gsub('_SIMULATED.*','',infile.wgaps),infile.nogaps) ]
+			stopifnot(length(infile.nogaps)==1)				
+			tmp				<- read.dna(paste(indir.nogaps, '/', infile.nogaps, sep=''), format='fasta')[rownames(seq)[1],]
+			stopifnot(nrow(tmp)==1)
+			key				<- paste(as.character(tmp)[1,1:10], collapse='')
+			string			<- paste(as.character(seq[1,]), collapse='')
+			env.start		<- regexpr(key, string)
+			#	write codon partition file
+			tmp				<- paste(c(	'DNA, gagcodon1 = 1-',pol.start-1,'\\3\n',
+							'DNA, gagcodon2 = 2-',pol.start-1,'\\3\n',
+							'DNA, gagcodon3 = 3-',pol.start-1,'\\3\n',
+							'DNA, polcodon1 = ',pol.start,'-',env.start-1,'\\3\n',
+							'DNA, polcodon2 = ',pol.start+1,'-',env.start-1,'\\3\n',
+							'DNA, polcodon3 = ',pol.start+2,'-',env.start-1,'\\3\n',
+							'DNA, envcodon1 = ',env.start,'-',ncol(seq),'\\3\n',
+							'DNA, envcodon2 = ',env.start+1,'-',ncol(seq),'\\3\n',
+							'DNA, envcodon3 = ',env.start+2,'-',ncol(seq),'\\3\n'), collapse='' )
+			infile.partition	<- gsub('\\.fa.*','_codon\\.txt',basename(file))
+			cat(file=paste(indir.wgaps,'/',infile.partition,sep=''), tmp)
+		}		
+	}
+	#
+	#	create partition files for regional 
+	#
+	if(0)
+	{		
+		indir.nogaps	<- '/Users/Oliver/git/HPTN071sim/treec150623/nogaps'
+		indir.wgaps		<- '/Users/Oliver/git/HPTN071sim/treec150623/withgaps'
+		infiles.wgaps	<- list.files(indir.wgaps, pattern='^Vill_99_Apr15.*[0-9]\\.fa$')
+		for(infile.wgaps in infiles.wgaps)
+		{						
+			#infile.wgaps	<- infiles.wgaps[1]
+			seq				<- read.dna(paste(indir.wgaps, '/', infile.wgaps, sep=''), format='fasta')
+			save(seq, file=paste(indir.wgaps,'/',gsub('\\.fa.*','\\.R',infile.wgaps),sep=''))
+			for(i in seq_len(nrow(seq)))
+			{			
+				#print(i)
+				pol.start	<- regexpr(tolower('TTTTTTAGG'), paste(as.character(seq[i,]), collapse=''))
+				if(pol.start>1)
+					break
+			}
+			stopifnot(pol.start>1)
+			for(i in seq_len(nrow(seq)))
+			{			
+				#print(i) 
+				env.start	<- regexpr(tolower('ATAAGGG'), paste(as.character(seq[i,]), collapse=''))
+				if(env.start>1)
+					break
+			}
+			stopifnot(env.start>1)
+			#	write codon partition file
+			tmp				<- paste(c(	'DNA, gagcodon1 = 1-',pol.start-1,'\\3\n',
+							'DNA, gagcodon2 = 2-',pol.start-1,'\\3\n',
+							'DNA, gagcodon3 = 3-',pol.start-1,'\\3\n',
+							'DNA, polcodon1 = ',pol.start,'-',env.start-1,'\\3\n',
+							'DNA, polcodon2 = ',pol.start+1,'-',env.start-1,'\\3\n',
+							'DNA, polcodon3 = ',pol.start+2,'-',env.start-1,'\\3\n',
+							'DNA, envcodon1 = ',env.start,'-',ncol(seq),'\\3\n',
+							'DNA, envcodon2 = ',env.start+1,'-',ncol(seq),'\\3\n',
+							'DNA, envcodon3 = ',env.start+2,'-',ncol(seq),'\\3\n'), collapse='' )
+			infile.partition	<- gsub('\\.fa.*','_codon\\.txt',infile.wgaps)
+			cat(file=paste(indir.wgaps,'/',infile.partition,sep=''), tmp)
+		}
+	}	
+	#
+	#	create RAxML tree with -fo and codon partitions on mock data
+	#	
+	if(0)
+	{
+		#
+		#	run ExamML with partition
+		#
+		indir		<- indir.wgaps
+		signat.in	<- "ZAC5_lrgstclu"
+		signat.out	<- "ZAC5_lrgstclu"
+		infile		<- gsub(paste('_',signat.in,sep=''),'',gsub('\\..*','',basename(file)))
+		args.parser	<- paste("-m DNA -q",infile.partition)
+		cmd			<- hivc.cmd.examl.bootstrap(indir, infile, signat.in, signat.out, bs.from=0, bs.to=0, prog.bscreate=PR.EXAML.BSCREATE, prog.parser= PR.EXAML.PARSER, prog.starttree= PR.EXAML.STARTTREE, prog.examl=PR.EXAML.EXAML, opt.bootstrap.by="codon", args.parser=args.parser, args.examl="-m GAMMA -D", prog.supportadder=PR.EXAML.BS, tmpdir.prefix="examl")
+		
+		#	run RAxML
+		#	change seed several times to get replicate
+		#	compare trees to true tree tmw
+		#	set up big trees on cluster for best performing RF
+		cmd	<- paste('raxmlHPC-AVX -s ',basename(file),'-m GTRGAMMAI -p42 -n ',gsub('fa','newick',basename(file)), sep='')
+		cmd	<- paste('raxmlHPC-AVX -s ',basename(file),' -q ', paste('TMP_',gsub('fa','txt',basename(file)),sep=''),' -m GTRGAMMAI -p42 -n ',gsub('\\.fa','_codon\\.newick',basename(file)), sep='')
+		cmd	<- paste('raxmlHPC-AVX -f o -s ',basename(file),' -q ', paste('TMP_',gsub('fa','txt',basename(file)),sep=''),' -m GTRGAMMAI -p42 -n ',gsub('\\.fa','_codon_hcold\\.newick',basename(file)), sep='')
+		
+		cat(cmd)		
+	}
+	#
+	#	create ExaML script files
+	#	
+	if(0)
+	{
+		#
+		#	run ExamML with partition
+		#
+		indir.wgaps	<- '/Users/Oliver/git/HPTN071sim/treec150623/withgapstrees'
+		infiles		<- data.table(FILE=list.files(indir.wgaps, pattern='\\.R$'))
+		infiles[,SIGNAT:=infiles[, regmatches(FILE,regexpr('BWC.*|UGC.*', FILE))]]
+		tmp			<- infiles[, list(BASE=gsub(paste('_',SIGNAT,sep=''),'',FILE)), by='FILE']
+		infiles		<- merge(infiles, tmp, by='FILE')
+		set(infiles, NULL, 'SIGNAT', infiles[, gsub('\\.R','',SIGNAT)])
+		infiles[, PARTITION:= gsub('\\.R','_codon.txt',FILE)]
+		bs.from		<- 0
+		bs.to		<- 9
+		bs.n		<- 20
+		
+		invisible(infiles[, {					
+					infile		<- BASE
+					signat.in	<- signat.out	<- SIGNAT
+					args.parser	<- paste("-m DNA -q",PARTITION)
+					cmd			<- hivc.cmd.examl.bootstrap(indir.wgaps, infile, signat.in, signat.out, bs.from=bs.from, bs.to=bs.to, prog.bscreate=PR.EXAML.BSCREATE, prog.parser= PR.EXAML.PARSER, prog.starttree= PR.EXAML.STARTTREE, prog.examl=PR.EXAML.EXAML, opt.bootstrap.by="codon", args.parser=args.parser, args.examl="-f o -m GAMMA", prog.supportadder=PR.EXAML.BS, tmpdir.prefix="examl")					
+					invisible(lapply(cmd, function(x)
+							{												
+								x		<- hivc.cmd.hpcwrapper(x, hpc.walltime=21, hpc.q="pqeelab", hpc.mem="950mb", hpc.nproc=1)
+								signat	<- paste(strsplit(date(),split=' ')[[1]],collapse='_',sep='')
+								outfile	<- paste("ex",signat,sep='.')
+								#cat(x)
+								hivc.cmd.hpccaller(outdir, outfile, x)
+								Sys.sleep(1)
+							}))
+					NULL					
+				}, by='FILE'])				
+	}
 }
 ##--------------------------------------------------------------------------------------------------------
 ##	olli 12.02.15
@@ -1934,6 +2270,856 @@ project.PANGEA.TEST.pipeline.Apr2015.Manon.postprocess<- function()
 		tmp			<- gsub('SIMULATED_INTERNAL','SIM',file)
 		save(df.trms, df.inds, df.seq, file= paste(indir, tmp, sep='/'))
 	}
+}
+##--------------------------------------------------------------------------------------------------------
+##	check simulated sequences: create ExaML tree and estimate R2
+##	olli 08.05.15
+##--------------------------------------------------------------------------------------------------------
+project.PANGEA.TEST.pipeline.Feb2015.plotsim<- function()
+{
+	#	get randomization names
+	set.seed(42)
+	indir		<- '/Users/Oliver/duke/2014_Gates/methods_comparison_pipeline/FINAL'	
+	dfi			<- data.table(FILE=list.files(indir, '.*zip$', full.names=FALSE))
+	
+	dfi[, SC:= sapply(strsplit(FILE, '_'),'[[',3)]
+	dfi[, CONFIG:= sapply(strsplit(SC, '-'),'[[',2)]
+	set(dfi, NULL, 'SC', dfi[, sapply(strsplit(SC, '-'),'[[',1)])
+	dfi[, DATAT:= sapply(strsplit(FILE, '_'),'[[',5)]
+	set(dfi, NULL, 'DATAT', dfi[, gsub('.zip','',DATAT,fixed=T)])
+	
+	set(dfi, NULL, 'OBJECTIVE', 'SecondObj')
+	set(dfi, dfi[,which(CONFIG=='sq')],'OBJECTIVE', 'FirstObj')
+	dfi			<- merge(dfi,dfi[, list(FILE=FILE, DUMMY=sample(length(FILE),length(FILE))), by='OBJECTIVE'],by=c('OBJECTIVE','FILE'))
+	tmp			<- dfi[, which(OBJECTIVE=='SecondObj')]
+	set(dfi, tmp, 'DUMMY', dfi[tmp, DUMMY] + dfi[OBJECTIVE=='FirstObj', max(DUMMY)])
+	
+	setkey(dfi, DUMMY)
+	dfi[, SC_RND:= toupper(letters[seq_len(nrow(dfi))])]
+	
+	dfi[, GSUB_FROM:= sapply(strsplit(FILE, '_'),'[[',3)]
+	dfi[, GSUB_TO:= paste(OBJECTIVE,'_sc',SC_RND,sep='')]
+	
+	#	read df.epi for true simulations 
+	indir	<- '/Users/Oliver/Dropbox\ (Infectious Disease)/PANGEAHIVsim_internal/freeze_Jan15/regional/150208'
+	infiles	<- data.table(FILE=list.files(indir, '.*INTERNAL.R$', full.names=FALSE, recursive=TRUE))
+	infiles[, BASENAME:= basename(FILE)]
+	infiles[, SC:= sapply(strsplit(BASENAME, '_'),'[[',3)]
+	infiles[, CONFIG:= sapply(strsplit(SC, '-'),'[[',2)]
+	set(infiles, NULL, 'SC', infiles[, sapply(strsplit(SC, '-'),'[[',1)])	
+	infiles	<- merge(infiles, subset(dfi, select=c(SC, CONFIG, DATAT, SC_RND, GSUB_FROM, GSUB_TO)), by=c('SC','CONFIG'))
+	set(infiles, NULL, 'BASENAME', NULL)	
+	infiles	<- subset(infiles, CONFIG=='sq' | SC%in%c('scE','scF'))
+	df.epi	<- do.call('rbind',lapply(seq_len(nrow(infiles)), function(i)
+					{
+						file	<- paste(indir, '/', infiles[i, FILE], sep='')
+						cat(paste('\nread file', infiles[i, FILE]))
+						load(file)						
+						epi.adult	<- 13
+						tp			<- 1/12
+						suppressWarnings( df.trms[, MNTH:= df.trms[, floor(TIME_TR) + floor( (TIME_TR%%1)*100 %/% (tp*100) ) * tp]] )						
+						df.epi		<- df.trms[, list(INC=length(IDREC), INC_ACUTE=length(which(TR_ACUTE=='Yes')),IMPORT=length(which(IDTR<0))), by='MNTH']
+						setkey(df.epi, MNTH)
+						tmp			<- df.epi[, 	{
+									sexactive		<- which( (df.inds[['DOB']]+epi.adult-tp/2)<=MNTH  &  (df.inds[['DOD']]+tp/2)>MNTH )
+									infected.ever	<- which( (df.inds[['TIME_TR']]-tp/2)<=MNTH )
+									infected		<- which( (df.inds[['DOB']]-tp/2)<=MNTH  &  (df.inds[['DOD']]-tp/2)>MNTH  &  (df.inds[['TIME_TR']]-tp/2)<=MNTH )
+									diag			<- which( (df.inds[['DOB']]-tp/2)<=MNTH  &  (df.inds[['DOD']]-tp/2)>MNTH  &  (df.inds[['DIAG_T']]-tp/2)<=MNTH )
+									diag.new		<- which( (df.inds[['DIAG_T']]-tp/2)==MNTH )
+									treated			<- which( (df.inds[['DOB']]-tp/2)<=MNTH  &  (df.inds[['DOD']]-tp/2)>MNTH  &  (df.inds[['ART1_T']]-tp/2)<=MNTH & (is.na(df.inds[['VLS1_TE']]) | (df.inds[['VLS1_TE']]-tp/2)>MNTH) )
+									infdead			<- which( (df.inds[['DOD']]-tp/2)==MNTH  &  (df.inds[['TIME_TR']]-tp/2)<=MNTH )									
+									sampled			<- which( (df.inds[['DOB']]-tp/2)<=MNTH  &  (df.inds[['DOD']]-tp/2)>MNTH  &  (df.inds[['TIME_SEQ']]-tp/2)<=MNTH )
+									list(POP=length(sexactive), PREV=length(infected), PREV_EVER=length(infected.ever), PREVDIED=length(infdead), DIAG=length(diag), NEW_DIAG=length(diag.new), TREATED=length(treated), SEQ=length(sampled))				
+								},by='MNTH']
+						df.epi		<- merge( tmp, df.epi, by='MNTH' )		
+						set(df.epi, NULL, 'PREVp', df.epi[, PREV/(POP-PREV)])	
+						set(df.epi, NULL, 'SEQp', df.epi[, SEQ/PREV])
+						set(df.epi, NULL, 'ARTcov', df.epi[, TREATED/PREV])
+						set(df.epi, NULL, 'UNDIAGp', df.epi[, (PREV-DIAG)/PREV])
+						set(df.epi, NULL, 'GROWTHr', c(NA_real_, df.epi[, diff(log(PREV))]))
+						df.epi[, DUMMY:= seq_len(nrow(df.epi))]
+						tmp			<- df.epi[, {
+									tmp						<- seq.int(DUMMY-6,DUMMY+5)
+									tmp[tmp<1]				<- 1
+									tmp[tmp>nrow(df.epi)]	<- nrow(df.epi) 
+									list(	INCp= sum(df.epi[['INC']][tmp]) / mean(df.epi[['POP']][tmp]-df.epi[['PREV']][tmp]),
+											IMPORTp= sum(df.epi[['IMPORT']][tmp]) / sum(df.epi[['INC']][tmp]),
+											ACUTEp= sum(df.epi[['INC_ACUTE']][tmp]) / sum(df.epi[['INC']][tmp])
+											)	
+									}, by='DUMMY']
+						df.epi	<- merge(df.epi, tmp, by='DUMMY')
+						df.epi[, SC:= infiles[i, substr(SC,3,3)]] 
+						df.epi[, DUMMY:=NULL]
+						df.epi			
+					}))
+	#	plot prevalence				
+	df.epi	<- melt(df.epi, id.vars=c('SC', 'MNTH'))	
+	df		<- subset(df.epi, variable%in%c('POP','PREV','INC','PREVp','INCp','SEQp','ARTcov','UNDIAGp','ACUTEp','IMPORTp') & MNTH>=1985)
+	tmp		<- data.table(	variable=c('POP','PREV','INC','PREVp','INCp','SEQp','ARTcov','UNDIAGp','ACUTEp','IMPORTp'),
+							legend=c('adult\npopulation', 'HIV infected', 'new cases\n(month)','Prevalence\n(%)','%Incidence\n(year)','Sequence\ncoverage\n(%)','ART\ncoverage\n(%)','Undiagnosed\n(%)','% transm\nfrom < 3m\n(yr)','% transm\nfrom outside\n(yr)'))
+	set(tmp, NULL, 'legend', tmp[, factor(legend, levels=tmp$legend, labels=tmp$legend)])									
+	df		<- merge(df, tmp, by='variable')
+	tmp		<- df[, which(!variable%in%c('POP','PREV','INC'))]
+	set(df, tmp,'value', df[tmp, value*100])
+	ggplot(df, aes(x=MNTH, y=value, group=SC, colour=SC)) + geom_line() +
+			scale_colour_brewer(palette='Set1') +
+			facet_wrap(~legend, scales='free',ncol=3) +
+			theme_bw() + labs(x='', y='',colour='epidemic scenario', title='Regional\n(since 1985)\n') +
+			theme(legend.position='bottom')
+	outdir	<- '~/Dropbox (Infectious Disease)/PANGEAHIVsim_internal/documents/external/2015_05_results/results'
+	ggsave(file=paste(outdir,'/regional_sincestart.pdf',sep=''), w=10, h=10)
+	
+	df		<- subset(df.epi, variable%in%c('POP','PREV','INC','PREVp','INCp','SEQp','ARTcov','UNDIAGp','ACUTEp','IMPORTp') & MNTH>=2014.5)
+	tmp		<- data.table(	variable=c('POP','PREV','INC','PREVp','INCp','SEQp','ARTcov','UNDIAGp','ACUTEp','IMPORTp'),
+			legend=c('adult\npopulation', 'HIV infected', 'new cases\n(month)','Prevalence\n(%)','%Incidence\n(year)','Sequence\ncoverage\n(%)','ART\ncoverage\n(%)','Undiagnosed\n(%)','% transm\nfrom < 3m\n(yr)','% transm\nfrom outside\n(yr)'))
+	set(tmp, NULL, 'legend', tmp[, factor(legend, levels=tmp$legend, labels=tmp$legend)])									
+	df		<- merge(df, tmp, by='variable')
+	tmp		<- df[, which(!variable%in%c('POP','PREV','INC'))]
+	set(df, tmp,'value', df[tmp, value*100])
+	ggplot(df, aes(group=SC, colour=SC)) +
+			geom_rect(data=NULL, aes(xmin=2015, xmax=2018, ymin=-Inf, ymax=Inf), fill='grey80', colour='transparent', alpha=0.2) +
+			geom_line(aes(x=MNTH, y=value)) +
+			scale_colour_brewer(palette='Set1') +
+			facet_wrap(~legend, scales='free',ncol=3) +
+			theme_bw() + labs(x='', y='',colour='epidemic scenario', title='Regional\n(since start of intervention)\n') +
+			theme(legend.position='bottom')
+	outdir	<- '~/Dropbox (Infectious Disease)/PANGEAHIVsim_internal/documents/external/2015_05_results/results'
+	ggsave(file=paste(outdir,'/regional_sinceintervention.pdf',sep=''), w=10, h=10)
+	
+}	
+##--------------------------------------------------------------------------------------------------------
+##	check simulated sequences: create ExaML tree and estimate R2
+##	olli 08.05.15
+##--------------------------------------------------------------------------------------------------------
+project.PANGEA.TEST.pipeline.Feb2015.resultsforsim<- function()
+{
+	#	get randomization names
+	set.seed(42)
+	indir		<- '/Users/Oliver/duke/2014_Gates/methods_comparison_pipeline/FINAL'	
+	dfi			<- data.table(FILE=list.files(indir, '.*zip$', full.names=FALSE))
+	
+	dfi[, SC:= sapply(strsplit(FILE, '_'),'[[',3)]
+	dfi[, CONFIG:= sapply(strsplit(SC, '-'),'[[',2)]
+	set(dfi, NULL, 'SC', dfi[, sapply(strsplit(SC, '-'),'[[',1)])
+	dfi[, DATAT:= sapply(strsplit(FILE, '_'),'[[',5)]
+	set(dfi, NULL, 'DATAT', dfi[, gsub('.zip','',DATAT,fixed=T)])
+	
+	set(dfi, NULL, 'OBJECTIVE', 'SecondObj')
+	set(dfi, dfi[,which(CONFIG=='sq')],'OBJECTIVE', 'FirstObj')
+	dfi			<- merge(dfi,dfi[, list(FILE=FILE, DUMMY=sample(length(FILE),length(FILE))), by='OBJECTIVE'],by=c('OBJECTIVE','FILE'))
+	tmp			<- dfi[, which(OBJECTIVE=='SecondObj')]
+	set(dfi, tmp, 'DUMMY', dfi[tmp, DUMMY] + dfi[OBJECTIVE=='FirstObj', max(DUMMY)])
+	
+	setkey(dfi, DUMMY)
+	dfi[, SC_RND:= toupper(letters[seq_len(nrow(dfi))])]
+	
+	dfi[, GSUB_FROM:= sapply(strsplit(FILE, '_'),'[[',3)]
+	dfi[, GSUB_TO:= paste(OBJECTIVE,'_sc',SC_RND,sep='')]
+	
+	#	read df.epi for true simulations 
+	indir	<- '/Users/Oliver/Dropbox\ (Infectious Disease)/PANGEAHIVsim_internal/freeze_Jan15/regional/150208'
+	infiles	<- data.table(FILE=list.files(indir, '.*INTERNAL.R$', full.names=FALSE, recursive=TRUE))
+	infiles[, BASENAME:= basename(FILE)]
+	infiles[, SC:= sapply(strsplit(BASENAME, '_'),'[[',3)]
+	infiles[, CONFIG:= sapply(strsplit(SC, '-'),'[[',2)]
+	set(infiles, NULL, 'SC', infiles[, sapply(strsplit(SC, '-'),'[[',1)])	
+	infiles	<- merge(infiles, subset(dfi, select=c(SC, CONFIG, DATAT, SC_RND, GSUB_FROM, GSUB_TO)), by=c('SC','CONFIG'))
+	set(infiles, NULL, 'BASENAME', NULL)	
+	df.epi	<- do.call('rbind',lapply(seq_len(nrow(infiles)), function(i)
+			{
+				file	<- paste(indir, '/', infiles[i, FILE], sep='')
+				cat(paste('\nread file', infiles[i, FILE]))
+				load(file)
+				tmp		<- cbind( df.epi, infiles[i, -which(grepl('FILE', names(infiles))), with=0] )
+				tmp			
+			}))
+	cat(paste('\nread data for scenarios, n=',df.epi[, length(unique(SC_RND))]))
+	
+	# 	get objectives for true simulations
+	#	obj i: A-D decreasing, E-F stable
+	#subset(df.epi, YR==2019)
+	tmp		<- data.table(	SC=paste('sc',c('A','B','C','D','E','F'),sep=''), OBJ_i= c('decreasing','decreasing','decreasing','decreasing','stable','stable'))
+	dfo		<- merge(df.epi, tmp, by='SC')
+	#	obj ii: %incidence in last year of eval period
+	tmp		<- unique(subset(df.epi, select=CONFIG)) 
+	tmp[, YR:=2018]
+	set(tmp, tmp[, which(CONFIG=='y3')], 'YR', 2016)
+	tmp		<- subset(merge(df.epi, tmp, by=c('CONFIG','YR')), select=c(SC, CONFIG, INCp, YR))
+	setkey(tmp, SC)
+	setnames(tmp, c('INCp','YR'), c('OBJ_ii','OBJ_ii_te'))
+	dfo		<- merge(dfo, tmp, by=c('SC','CONFIG'))
+	#	obj iii: ratio incidence
+	tmp		<- merge(tmp, subset(df.epi, YR==2014, select=c(SC, CONFIG, INCp)), by=c('SC','CONFIG'))
+	set(tmp, NULL, 'OBJ_iii', tmp[, OBJ_ii/INCp] )
+	dfo		<- merge(dfo, subset(tmp, select=c(SC, CONFIG, OBJ_iii)), by=c('SC','CONFIG'))
+	#	obj iv: %acute 
+	#subset(df.epi, YR==2014)
+	tmp		<- data.table(	SC=paste('sc',c('A','B','C','D','E','F'),sep=''), OBJ_iv= c('<10%','>30%','<10%','>30%','<10%','>30%'))
+	dfo		<- merge(dfo, tmp, by='SC')
+	#	obj v: %acute at baseline
+	tmp		<- subset(df.epi, YR==2014, select=c(SC, CONFIG, ACUTEp))
+	setkey(tmp, SC)
+	setnames(tmp, 'ACUTEp', 'OBJ_v')
+	dfo		<- merge(dfo, tmp, by=c('SC','CONFIG'))
+	#	obj vi: %acute at last yr of eval period
+	tmp		<- unique(subset(df.epi, select=CONFIG)) 
+	tmp[, YR:=2018]
+	set(tmp, tmp[, which(CONFIG=='y3')], 'YR', 2016)
+	tmp		<- subset(merge(df.epi, tmp, by=c('CONFIG','YR')), select=c(SC, CONFIG, ACUTEp, YR))
+	setkey(tmp, SC)
+	setnames(tmp, c('ACUTEp','YR'),c('OBJ_vi','OBJ_vi_te'))
+	dfo		<- merge(dfo, tmp, by=c('SC','CONFIG'))
+	
+	#	write csv file
+	setkey(dfo, SC, CONFIG)
+	ans		<- unique(dfo)
+	ans		<- subset(ans, select=c(SC, CONFIG, DATAT, SC_RND, GSUB_FROM, GSUB_TO, OBJ_i, OBJ_ii, OBJ_ii_te, OBJ_iii, OBJ_iv, OBJ_v, OBJ_vi, OBJ_vi_te))
+	ans[, TEAM:='True']
+	ans[, SUBMISSION_DATE:='08.05.2015']
+	ans[, SIM_SCENARIO:= paste('150129_PANGEAsim_Regional_',GSUB_TO,'_SIMULATED_',DATAT,sep='')]
+	ans[, USED_GENES:='all']
+	ans[, ESTIMATE:='central']
+	
+	outdir	<- '/Users/Oliver/Dropbox\ (Infectious Disease)/PANGEAHIVsim_internal/documents/external/2015_05_results'
+	file	<- paste(outdir, '/answers_Regional_Feb2015_rFormat.csv', sep='')
+	write.csv(subset(ans, select=c(TEAM, SUBMISSION_DATE, SIM_SCENARIO, USED_GENES, OBJ_i, OBJ_ii, OBJ_iii, OBJ_iv, OBJ_v, OBJ_vi, ESTIMATE)), file=file, row.names=FALSE)
+	
+	setnames(ans, 'OBJ_ii_te','te')
+	ans[, tb:=2014]
+	file	<- paste(outdir, '/Regional_Feb2015_tb_te.csv', sep='')
+	write.csv(subset(ans, select=c(SIM_SCENARIO, tb, te)), file=file, row.names=FALSE)
+	
+	
+}
+##--------------------------------------------------------------------------------------------------------
+##	evaluate results
+##	olli 08.05.15
+##--------------------------------------------------------------------------------------------------------
+project.PANGEA.TEST.pipeline.Feb2015.evaluate<- function()
+{
+	require(RColorBrewer)
+	dfa		<- project.PANGEA.TEST.pipeline.Feb2015.evaluate.read()
+	outdir	<- '~/Dropbox (Infectious Disease)/PANGEAHIVsim_internal/documents/external/2015_05_results/results'
+	save(dfa, file=paste(outdir,'/submissions.R',sep=''))
+	load(paste(outdir,'/submissions.R',sep=''))
+	#	set answers to numerical
+	set(dfa, dfa[, which(OBJ%in%c('OBJ_i','OBJ_iv'))], c('lower95','upper95'), NA_character_)
+	set(dfa, dfa[, which(central=='decreasing')], c('central'), '-1')
+	set(dfa, dfa[, which(central=='stable')], c('central'), '0')
+	set(dfa, dfa[, which(central=='increasing')], c('central'), '1')	
+	set(dfa, dfa[, which(central=='<15%')], c('central'), '-1')
+	set(dfa, dfa[, which(central=='15%-30%')], c('central'), '0')
+	set(dfa, dfa[, which(central=='>30%')], c('central'), '1')
+	set(dfa, NULL, 'central', dfa[, as.numeric(central)])
+	set(dfa, NULL, 'lower95', dfa[, as.numeric(lower95)])
+	set(dfa, NULL, 'upper95', dfa[, as.numeric(upper95)])	
+	#	add simulation type
+	dfa[, DATAT_L:='NA_character_']
+	set(dfa, dfa[, which(grepl('Vill',SIM_SCENARIO))], 'DATAT_L','Village')
+	set(dfa, dfa[, which(grepl('Regional',SIM_SCENARIO))], 'DATAT_L','Regional')
+	#	add objective legend
+	dfa		<- merge(dfa, data.table(USED_GENES=c('pol','all'), USED_GENES_L=c('pol gene','pol+gag+env\ngenome') ), by='USED_GENES')
+	set(dfa, NULL, 'TEAM', dfa[, factor(TEAM)])
+	tmp		<- data.table( 	OBJ=	c('OBJ_i','OBJ_ii','OBJ_iii','OBJ_iv','OBJ_v','OBJ_vi'),
+							OBJ_L=	c('Incidence\nTrend', '%Incidence', 'Incidence\nreduction', '%Acute Ctgr\n(baseline)', '%Acute\n(baseline)', '%Acute\n(endpoint)'))
+	set(tmp, NULL, 'OBJ_L2', tmp[, factor(OBJ_L, levels=OBJ_L, labels=OBJ_L)])
+	set(tmp, NULL, 'OBJ_L', tmp[, factor(OBJ_L, levels=rev(OBJ_L), labels=rev(OBJ_L))])
+	dfa		<- merge(dfa, tmp, by='OBJ')
+	#	add data legend
+	dfa[, DATA_T2:='NA_character_']
+	set(dfa, dfa[, which(DATA_T=='seq')], 'DATA_T2', 'using\nsequences')
+	set(dfa, dfa[, which(DATA_T=='phy')], 'DATA_T2', 'using\ntrue tree')
+	set(dfa, NULL, 'DATA_T2', dfa[, factor(DATA_T2, levels=rev(c('using\nsequences','using\ntrue tree')), labels=rev(c('using\nsequences','using\ntrue tree')))])		
+	#	add scenario type
+	set(dfa, NULL, 'DATA_T', dfa[, factor(DATA_T, levels=c('seq','phy'), labels=c('seq','phy'))])
+	set(dfa, NULL, 'INT_T', dfa[, factor(INT_T, levels=c('fast','slow','none'), labels=c('fast','slow','none'))])
+	set(dfa, NULL, 'AC_T', dfa[, factor(AC_T, levels=c('low','high'), labels=c('low','high'))])
+	set(dfa, NULL, 'IMPRT', dfa[, factor(IMPRT*100, levels=c(5,20,2,0), labels=paste(c(5,20,2,0),'%',sep=''))])
+	set(dfa, NULL, 'SMPL_C', dfa[, factor(SMPL_C*100, levels=c(8, 16, 30, 60), labels=paste(c(8, 16, 30, 60),'%',sep=''))])
+	set(dfa, NULL, 'SMPL_D', dfa[, factor(SMPL_D, levels=c(5,3), labels=c(5,3))])	
+	set(dfa, dfa[, which(SMPL_M=='overs')], 'SMPL_M', 'much')
+	set(dfa, dfa[, which(SMPL_M=='extrs')], 'SMPL_M', 'extreme')
+	set(dfa, dfa[, which(is.na(SMPL_M))], 'SMPL_M', 'extreme')
+	set(dfa, NULL, 'SMPL_M', dfa[, factor(SMPL_M, levels=c('much','extreme'), labels=c('much','extreme'))])	
+	tmp		<- unique(subset( dfa, select=c(DATAT_L, SC_RND, DATA_T, SC, AC_T, INT_T, IMPRT, SMPL_N, SMPL_C, SMPL_M, SMPL_D) ))
+	setkey(tmp, DATAT_L, AC_T, INT_T, DATA_T, IMPRT, SMPL_C, SMPL_D, SMPL_M)
+	tmp[, SCENARIO_L:= paste('%AC=',AC_T,' ARTup=',INT_T,' EXT=',IMPRT,'\n',DATA_T,' ',SMPL_N,' ',SMPL_C,' ',SMPL_D,' ',SMPL_M, ' (',SC_RND,')',sep='')]
+	dfa		<- merge(dfa, subset(tmp, select=c(SC_RND, SCENARIO_L)), by='SC_RND')
+	#	add intervention legend
+	dfa[, INT_L:= dfa[, paste('ART scale up\n',as.character(INT_T),sep='')]]
+	setkey(dfa, INT_T)
+	set(dfa, NULL, 'INT_L', dfa[, factor(INT_L, levels=dfa[, unique(INT_L)], labels=dfa[, unique(INT_L)])])
+	#	add %Acute legend
+	dfa[, AC_L:= dfa[, paste('%Acute\n',as.character(AC_T),sep='')]]
+	setkey(dfa, AC_T)
+	set(dfa, NULL, 'AC_L', dfa[, factor(AC_L, levels=dfa[, unique(AC_L)], labels=dfa[, unique(AC_L)])])
+	#	add team color		
+	TEAM_CL	<- brewer.pal(dfa[,length(unique(TEAM))], 'Paired')
+	names(TEAM_CL)	<- dfa[, unique(TEAM)]
+	TEAM_CL[7]		<- "#386CB0"
+	TEAM_CL[3]		<- "#FF7F00"
+	#	count total submissions primary vs secondary
+	tmp		<- subset(dfa, TEAM!='True' & !grepl('(', TEAM, fixed=1))
+	tmp		<- tmp[, list(	Village=length(which(grepl('Vill',SIM_SCENARIO))), Regional=length(which(grepl('Regional',SIM_SCENARIO)))), by=c('TEAM','OBJ_L','USED_GENES_L')]	
+	tmp		<- melt(tmp, measure.vars=c('Village','Regional'))	
+	ggplot(tmp, aes(x=OBJ_L, y=value, fill=TEAM)) + geom_bar(stat='identity') +
+			facet_grid(USED_GENES_L~variable) +			
+			guides(fill=guide_legend(ncol=2)) +
+			scale_fill_manual(values=TEAM_CL) +
+			labs(x='', y='submissions\n(#)', title='Total scenarios submitted\n(using sequence data or true trees)\n') +
+			theme_bw()+ theme(legend.position='bottom') + coord_flip()	
+	ggsave(file=paste(outdir,'/res_scenarios_total.pdf',sep=''), w=10, h=8)
+	
+	#	count all submissions for primary objectives
+	tmp		<- subset(dfa, TEAM!='True' & !grepl('(', TEAM, fixed=1) & DATA_T=='seq')
+	tmp		<- tmp[, list(	Village=length(which(grepl('Vill',SIM_SCENARIO))), Regional=length(which(grepl('Regional',SIM_SCENARIO)))), by=c('TEAM','OBJ_L')]	
+	tmp		<- melt(tmp, measure.vars=c('Village','Regional'))	
+	ggplot(tmp, aes(x=OBJ_L, y=value, fill=TEAM)) + geom_bar(stat='identity') +
+			facet_grid(~variable) +
+			labs(x='', y='submissions\n(#)', title='Total scenarios submitted\n(using sequence data)\n') +
+			scale_fill_manual(values=TEAM_CL) +
+			guides(fill=guide_legend(ncol=2)) +
+			theme_bw() + theme(legend.position='bottom') + coord_flip()
+	ggsave(file=paste(outdir,'/res_scenarios_total_seqonly.pdf',sep=''), w=10, h=5)
+	
+	#	count complete submissions for primary objectives
+	tmp		<- subset(dfa, TEAM!='True' & !grepl('(', TEAM, fixed=1) & DATA_T=='seq')
+	tmp		<- tmp[, list(	Village=as.numeric(length(setdiff(c('01','02','03','04'),SC_RND))==0), Regional=as.numeric(length(setdiff(c('A','B','C','D'),SC))==0)), by=c('TEAM','OBJ_L','USED_GENES_L')]	
+	tmp		<- melt(tmp, measure.vars=c('Village','Regional'))	
+	ggplot(tmp, aes(x=OBJ_L, y=value, fill=TEAM)) + geom_bar(stat='identity') +
+			facet_grid(USED_GENES_L~variable) +
+			scale_y_continuous(breaks=seq(1,10,1), minor_breaks=NULL) +
+			scale_fill_manual(values=TEAM_CL) +
+			labs(x='', y='complete set of 4 submissions\n(#)', title='Complete submissions to evalute primary objectives\n(either village or regional)') +
+			guides(fill=guide_legend(ncol=2)) +
+			theme_bw() + theme(legend.position='bottom') + coord_flip()
+	ggsave(file=paste(outdir,'/res_scenarios_total_seqonlycomplete.pdf',sep=''), w=10, h=7)
+	#
+	#	show village / regional: Imports, Total Sequence, Sequence Coverage
+	#
+	
+	
+	#	for each team
+	#	all results
+	invisible(sapply(setdiff(dfa[, unique(TEAM)],'True'), function(x)
+		{		
+			#x	<- 'Imperial'
+			df		<- subset(dfa, (TEAM=='True' | TEAM==x) & USED_GENES=='all')
+			set(df, df[, which(TEAM==x)], 'TEAM', 'estimate')
+			set(df, df[, which(TEAM=='True')], 'TEAM', 'true value')
+			set(df, NULL, 'TEAM', df[, factor(TEAM, levels=c('estimate','true value'), labels=c('estimate','true value'))])
+			ggplot(df, aes(y=SCENARIO_L, x=central, xmin=lower95, xmax=upper95, colour=TEAM, pch=TEAM)) + 
+					geom_errorbarh(height=0.3) + geom_point(size=3) + 
+					scale_colour_manual(values = c("red","black")) +
+					scale_shape_manual(values = c(13,18), guide = FALSE) +
+					labs(x='', y='', title= paste('TEAM',x,'\n'), colour='')  +
+					facet_grid(DATAT_L~OBJ_L2, scales='free', space='free_y') +
+					theme_bw() + theme(legend.position='bottom')
+			ggsave(file=paste(outdir,'/res_obj_TEAM_',gsub(' ','_',gsub('\\/|\\(|\\)','',x)),'.pdf',sep=''), w=14, h=0.5*df[, length(unique(SCENARIO_L))])
+			#	results using seq data
+			df		<- subset(dfa, (TEAM=='True' | TEAM==x) & USED_GENES=='all' & DATA_T=='seq')
+			set(df, df[, which(TEAM==x)], 'TEAM', 'estimate')
+			set(df, df[, which(TEAM=='True')], 'TEAM', 'true value')
+			set(df, NULL, 'TEAM', df[, factor(TEAM, levels=c('estimate','true value'), labels=c('estimate','true value'))])
+			ggplot(df, aes(y=SCENARIO_L, x=central, xmin=lower95, xmax=upper95, colour=TEAM, pch=TEAM)) + 
+					geom_errorbarh(height=0.3) + geom_point(size=3) + 
+					scale_colour_manual(values = c("red","black")) +
+					scale_shape_manual(values = c(13,18), guide = FALSE) +
+					labs(x='', y='', title= paste('TEAM',x,'\n'), colour='')  +
+					facet_grid(DATAT_L~OBJ_L2, scales='free', space='free_y') +
+					theme_bw() + theme(legend.position='bottom')
+			ggsave(file=paste(outdir,'/res_objonseq_TEAM_',gsub(' ','_',gsub('\\/|\\(|\\)','',x)),'.pdf',sep=''), w=14, h=0.7*df[, length(unique(SCENARIO_L))])	
+		}))
+	
+	#	for each objective
+	#	compare results across teams
+	require("grid")
+	#	compare objectives with / without seq data, village + regional
+	df	<- subset(dfa, DATA_T=='seq')	
+	#	regional, trees corresponding to seq data sets
+	tmp	<- subset(dfa, DATA_T=='phy' & SMPL_D=='5' & SMPL_M=='much' & SMPL_C=='8%' & SMPL_N==1600 & IMPRT=='5%')
+	df	<- rbind(df, tmp)
+	#	village, trees corresponding to seq data sets
+	tmp	<- subset(dfa, SC_RND%in%c('11','09','12','10','00'))
+	df	<- rbind(df, tmp)
+	tmp	<- subset(df, OBJ%in%c('OBJ_ii','OBJ_iii','OBJ_v','OBJ_vi') & !grepl('(',TEAM,fixed=1) & DATAT_L=='Regional' & USED_GENES=='all')
+	tmp2<- as.data.table(expand.grid(central=c(0.01,0.55), AC_L=c('%Acute\nlow','%Acute\nhigh'), INT_L=c('ART scale up\nfast','ART scale up\nslow','ART scale up\nnone'), TEAM='dummy', DATA_T2='using\ntrue tree', OBJ_L2=c('%Acute\n(baseline)','%Acute\n(endpoint)')))
+	set(tmp2, NULL, 'INT_L', tmp2[, factor(INT_L, levels=c('ART scale up\nfast','ART scale up\nslow','ART scale up\nnone'), labels=c('ART scale up\nfast','ART scale up\nslow','ART scale up\nnone'))])
+	setnames(tmp2, 'TEAM','team')
+	tmp3	<- subset(tmp, TEAM=='True')
+	setnames(tmp3, 'TEAM','team')		
+	ggplot(subset(tmp, TEAM!='True'), aes(y=INT_L, x=central)) +
+			geom_point(data=tmp2, size=1, colour='transparent') +
+			geom_errorbarh(aes(xmin=lower95, xmax=upper95, colour=TEAM), height=0.3) + 
+			geom_point(size=4, aes(colour=TEAM), pch=13) +			
+			geom_point(data=tmp3, size=3, colour='black', pch=18) +
+			scale_colour_manual(values=TEAM_CL) +
+			facet_grid(TEAM+DATA_T2~OBJ_L2+AC_L, scales='free', space='free_y') +
+			theme_bw() + theme(panel.margin.x= unit(0.5, "lines"), legend.position='bottom') +
+			guides(colour=guide_legend(ncol=2)) +
+			labs(x= '\nEstimates', y='', title='Primary objectives: quantitative\n(Regional)\n')	
+	ggsave(file=paste(outdir,'/res_acrossTEAM_primaryregional_nmbrs','.pdf',sep=''), w=13, h=10)
+	#	qualitative
+	tmp		<- subset(df, OBJ%in%c('OBJ_i','OBJ_iv') & !grepl('(',TEAM,fixed=1) & DATAT_L=='Regional' & USED_GENES=='all')
+	set(tmp, NULL, 'central', tmp[, as.character(central)])
+	set(tmp, tmp[, which(OBJ=='OBJ_i' & central=='-1')], 'central', 'declining')
+	set(tmp, tmp[, which(OBJ=='OBJ_i' & central=='0')], 'central', 'stable')
+	set(tmp, tmp[, which(OBJ=='OBJ_i' & central=='1')], 'central', 'increasing')
+	set(tmp, tmp[, which(OBJ=='OBJ_iv' & central=='-1')], 'central', '<15%')
+	set(tmp, tmp[, which(OBJ=='OBJ_iv' & central=='0')], 'central', '15%-30%')
+	set(tmp, tmp[, which(OBJ=='OBJ_iv' & central=='1')], 'central', '>30%')
+	tmp2	<- c('declining','stable','increasing','<15%','15%-30%','>30%')
+	set(tmp, NULL, 'central', tmp[, factor(central, levels=tmp2, labels=tmp2)])	
+	tmp2	<- as.data.table(expand.grid(central=tmp2, AC_T=c('low','high'), INT_L=c('ART scale up\nfast','ART scale up\nslow','ART scale up\nnone'), TEAM='dummy', DATA_T2='using\ntrue tree', OBJ_L2='Incidence\nTrend'))
+	set(tmp2, tmp2[, which(grepl('%', central))], 'OBJ_L2', '%Acute Ctgr\n(baseline)')
+	set(tmp2, NULL, 'INT_L', tmp2[, factor(INT_L, levels=c('ART scale up\nfast','ART scale up\nslow','ART scale up\nnone'), labels=c('ART scale up\nfast','ART scale up\nslow','ART scale up\nnone'))])	
+	setkey(tmp2, central)
+	ggplot(tmp2, aes(y=INT_L, x=central, colour=TEAM)) +
+			#geom_errorbarh(height=0.3) + 
+			geom_point(data=tmp2, size=1, colour='transparent') +
+			geom_jitter(data=subset(tmp, TEAM!='True'), size=3, pch=13, position = position_jitter(width=0, height=.15)) +
+			geom_point(data=subset(tmp, TEAM=='True'), size=3, colour='black', pch=18) +			
+			scale_colour_manual(values=TEAM_CL) +
+			facet_grid(DATA_T2~OBJ_L2+AC_L, scales='free', space='free_y') +
+			theme_bw() + theme(panel.margin.x= unit(0.5, "lines"), legend.position='bottom', panel.grid.minor= element_blank(), panel.grid.major= element_blank()) +
+			guides(colour=guide_legend(ncol=2)) +
+			labs(x= '\nEstimates', y='', title='Primary objectives: qualitatitve\n(Regional)\n')	
+	ggsave(file=paste(outdir,'/res_acrossTEAM_primaryregional_qultv','.pdf',sep=''), w=13, h=6)
+	#invisible(lapply(c('OBJ_ii','OBJ_iii','OBJ_v','OBJ_vi'), function(x)
+	#		{				
+	#			#x	<- 'OBJ_ii'
+	#			tmp	<- subset(df, OBJ==x & !grepl('(',TEAM,fixed=1) & DATAT_L=='Regional' & USED_GENES=='all')
+	#			if(x=='OBJ_i')
+	#				set(tmp, NULL, 'central', tmp[, factor(central, levels=c(1,0,-1), labels=c('increasing','stable','decreasing'))])
+	#			if(x=='OBJ_iv')
+	#				set(tmp, NULL, 'central', tmp[, factor(central, levels=c(1,0,-1), labels=c('>30%','15%-30%','<15%'))])	
+	#			ggplot(subset(tmp, TEAM!='True'), aes(y=DATA_T, x=central, xmin=lower95, xmax=upper95, colour=TEAM)) +
+	#					geom_errorbarh(height=0.3) + geom_point(size=3, pch=13) +
+	#					geom_point(data=subset(tmp, TEAM=='True'), size=3, colour='black', pch=18) +
+	#					scale_colour_manual(values=TEAM_CL) +
+	#					facet_grid(AC_L~INT_L, scales='free', space='free_y') +
+	#					theme_bw() + theme(panel.margin.x= unit(2, "lines")) + 
+	#					labs(x= paste('\n',gsub('\n',' ',tmp[1, OBJ_L]),sep=''), y='')
+	#			ggsave(file=paste(outdir,'/res_acrossTEAM_primaryregional_',x,'.pdf',sep=''), w=10, h=3)
+	#		}))
+	#	%INCIDENCE
+	tmp	<- subset(df, OBJ%in%c('OBJ_ii') & !grepl('(',TEAM,fixed=1) & DATAT_L=='Village' & USED_GENES=='all')
+	set(tmp, NULL, 'OBJ_L2', tmp[, factor(as.character(OBJ_L2))])
+	tmp2<- as.data.table(expand.grid(central=c(0.01,0.03), AC_L=c('%Acute\nlow','%Acute\nhigh'), INT_L=c('ART scale up\nfast','ART scale up\nslow','ART scale up\nnone'), TEAM='dummy', DATA_T2='using\ntrue tree', OBJ_L2=c('%Incidence')))
+	set(tmp2, NULL, 'INT_L', tmp2[, factor(INT_L, levels=c('ART scale up\nfast','ART scale up\nslow','ART scale up\nnone'), labels=c('ART scale up\nfast','ART scale up\nslow','ART scale up\nnone'))])
+	setnames(tmp2, 'TEAM','team')
+	tmp3	<- subset(tmp, TEAM=='True')
+	setnames(tmp3, 'TEAM','team')	
+	ggplot(subset(tmp, TEAM!='True'), aes(y=INT_L, x=central*100, colour=TEAM)) +
+			geom_point(data=tmp2, size=1, colour='transparent') +
+			geom_errorbarh(aes(xmin=lower95*100, xmax=upper95*100), height=0.3) + geom_point(size=3, pch=13) +
+			geom_point(data=tmp3, size=3, colour='black', pch=18) +
+			scale_colour_manual(values=TEAM_CL) +
+			facet_grid(AC_L+DATA_T2~TEAM, scales='free', space='free_y') +
+			theme_bw() + theme(panel.margin.x= unit(0.5, "lines"), legend.position='bottom') +
+			guides(colour=guide_legend(ncol=2)) +
+			labs(x= '%', y='', title='Primary objectives: %Incidence\n(Village)\n')	
+	ggsave(file=paste(outdir,'/res_acrossTEAM_primaryvillage_pcinc','.pdf',sep=''), w=13, h=8)
+	ggplot(subset(tmp, TEAM!='True'), aes(y=INT_L, x=central*100, colour=TEAM)) +
+			geom_point(data=tmp2, size=1, colour='transparent') +
+			geom_errorbarh(aes(xmin=lower95*100, xmax=upper95*100), height=0.3) + geom_point(size=3, pch=13) +
+			geom_point(data=tmp3, size=3, colour='black', pch=18) +
+			scale_colour_manual(values=TEAM_CL) +
+			facet_grid(AC_L+DATA_T2~TEAM, scales='free_y', space='free_y') +
+			theme_bw() + theme(panel.margin.x= unit(0.5, "lines"), legend.position='bottom') +
+			guides(colour=guide_legend(ncol=2)) +
+			labs(x= '%', y='', title='Primary objectives: %Incidence\n(Village)\n')	
+	ggsave(file=paste(outdir,'/res_acrossTEAM_primaryvillage_pcinc_ssc','.pdf',sep=''), w=13, h=8)	
+	#	REDUCTION INCIDENCE
+	tmp	<- subset(df, OBJ%in%c('OBJ_iii') & !grepl('(',TEAM,fixed=1) & DATAT_L=='Village' & USED_GENES=='all')
+	set(tmp, NULL, 'OBJ_L2', tmp[, factor(as.character(OBJ_L2))])
+	tmp2<- as.data.table(expand.grid(central=c(0.01,0.03), AC_L=c('%Acute\nlow','%Acute\nhigh'), INT_L=c('ART scale up\nfast','ART scale up\nslow','ART scale up\nnone'), TEAM='dummy', DATA_T2='using\ntrue tree', OBJ_L2=c('Incidence\nreduction')))
+	set(tmp2, NULL, 'INT_L', tmp2[, factor(INT_L, levels=c('ART scale up\nfast','ART scale up\nslow','ART scale up\nnone'), labels=c('ART scale up\nfast','ART scale up\nslow','ART scale up\nnone'))])
+	setnames(tmp2, 'TEAM','team')
+	tmp3	<- subset(tmp, TEAM=='True')
+	setnames(tmp3, 'TEAM','team')	
+	ggplot(subset(tmp, TEAM!='True'), aes(y=INT_L, x=central, colour=TEAM)) +
+			geom_point(data=tmp2, size=1, colour='transparent') +
+			geom_vline(xintercept=1, colour='grey50', lwd=1) +
+			geom_errorbarh(aes(xmin=lower95, xmax=upper95), height=0.3) + geom_point(size=3, pch=13) +
+			geom_point(data=tmp3, size=3, colour='black', pch=18) +
+			scale_colour_manual(values=TEAM_CL) +
+			facet_grid(AC_L+DATA_T2~TEAM, scales='free', space='free_y') +
+			theme_bw() + theme(panel.margin.x= unit(0.5, "lines"), legend.position='bottom') +
+			guides(colour=guide_legend(ncol=2)) +
+			labs(x= '%', y='', title='Primary objectives: Incidence Reduction\n(Village)\n')	
+	ggsave(file=paste(outdir,'/res_acrossTEAM_primaryvillage_redinc','.pdf',sep=''), w=13, h=8)
+	ggplot(subset(tmp, TEAM!='True'), aes(y=INT_L, x=central, colour=TEAM)) +
+			geom_point(data=tmp2, size=1, colour='transparent') +
+			geom_vline(xintercept=1, colour='grey50', lwd=1) +
+			geom_errorbarh(aes(xmin=lower95, xmax=upper95), height=0.3) + geom_point(size=3, pch=13) +
+			geom_point(data=tmp3, size=3, colour='black', pch=18) +
+			scale_colour_manual(values=TEAM_CL) +
+			facet_grid(AC_L+DATA_T2~TEAM, scales='free_y', space='free_y') +
+			theme_bw() + theme(panel.margin.x= unit(0.5, "lines"), legend.position='bottom') +
+			guides(colour=guide_legend(ncol=2)) +
+			labs(x= '%', y='', title='Primary objectives: Incidence Reduction\n(Village)\n')	
+	ggsave(file=paste(outdir,'/res_acrossTEAM_primaryvillage_redinc_ssc','.pdf',sep=''), w=13, h=8)	
+	#	%ACUTE BASELINE
+	tmp	<- subset(df, OBJ%in%c('OBJ_v') & !grepl('(',TEAM,fixed=1) & DATAT_L=='Village' & USED_GENES=='all')
+	set(tmp, NULL, 'OBJ_L2', tmp[, factor(as.character(OBJ_L2))])
+	tmp2<- as.data.table(expand.grid(central=c(0.01,0.03), AC_L=c('%Acute\nlow','%Acute\nhigh'), INT_L=c('ART scale up\nfast','ART scale up\nslow','ART scale up\nnone'), TEAM='dummy', DATA_T2='using\ntrue tree', OBJ_L2=c('%Acute\n(baseline)')))
+	set(tmp2, NULL, 'INT_L', tmp2[, factor(INT_L, levels=c('ART scale up\nfast','ART scale up\nslow','ART scale up\nnone'), labels=c('ART scale up\nfast','ART scale up\nslow','ART scale up\nnone'))])
+	setnames(tmp2, 'TEAM','team')
+	tmp3	<- subset(tmp, TEAM=='True')
+	setnames(tmp3, 'TEAM','team')	
+	ggplot(subset(tmp, TEAM!='True'), aes(y=INT_L, x=central*100, colour=TEAM)) +
+			geom_point(data=tmp2, size=1, colour='transparent') +			
+			geom_errorbarh(aes(xmin=lower95*100, xmax=upper95*100), height=0.3) + geom_point(size=3, pch=13) +
+			geom_point(data=tmp3, size=3, colour='black', pch=18) +
+			scale_colour_manual(values=TEAM_CL) +
+			facet_grid(AC_L+DATA_T2~TEAM, scales='free', space='free_y') +
+			theme_bw() + theme(panel.margin.x= unit(1, "lines"), legend.position='bottom') +
+			guides(colour=guide_legend(ncol=2)) +
+			labs(x= '%', y='', title='Primary objectives: %Acute at baseline\n(Village)\n')	
+	ggsave(file=paste(outdir,'/res_acrossTEAM_primaryvillage_pcacutebaseline','.pdf',sep=''), w=8, h=7)
+	ggplot(subset(tmp, TEAM!='True'), aes(y=INT_L, x=central*100, colour=TEAM)) +
+			geom_point(data=tmp2, size=1, colour='transparent') +			
+			geom_errorbarh(aes(xmin=lower95*100, xmax=upper95*100), height=0.3) + geom_point(size=3, pch=13) +
+			geom_point(data=tmp3, size=3, colour='black', pch=18) +
+			coord_cartesian(xlim=c(0,50)) +
+			scale_colour_manual(values=TEAM_CL) +
+			facet_grid(AC_L+DATA_T2~TEAM, scales='free_y', space='free_y') +
+			theme_bw() + theme(panel.margin.x= unit(1, "lines"), legend.position='bottom') +
+			guides(colour=guide_legend(ncol=2)) +
+			labs(x= '%', y='', title='Primary objectives: %Acute at baseline\n(Village)\n')	
+	ggsave(file=paste(outdir,'/res_acrossTEAM_primaryvillage_pcacutebaseline_ssc','.pdf',sep=''), w=10, h=7)
+	#	%ACUTE ENDPOINT
+	tmp	<- subset(df, OBJ%in%c('OBJ_vi') & !grepl('(',TEAM,fixed=1) & DATAT_L=='Village' & USED_GENES=='all')
+	set(tmp, NULL, 'OBJ_L2', tmp[, factor(as.character(OBJ_L2))])
+	tmp2<- as.data.table(expand.grid(central=c(0.01,0.03), AC_L=c('%Acute\nlow','%Acute\nhigh'), INT_L=c('ART scale up\nfast','ART scale up\nslow','ART scale up\nnone'), TEAM='dummy', DATA_T2='using\ntrue tree', OBJ_L2=c('%Acute\n(endpoint)')))
+	set(tmp2, NULL, 'INT_L', tmp2[, factor(INT_L, levels=c('ART scale up\nfast','ART scale up\nslow','ART scale up\nnone'), labels=c('ART scale up\nfast','ART scale up\nslow','ART scale up\nnone'))])
+	setnames(tmp2, 'TEAM','team')
+	tmp3	<- subset(tmp, TEAM=='True')
+	setnames(tmp3, 'TEAM','team')	
+	ggplot(subset(tmp, TEAM!='True'), aes(y=INT_L, x=central, colour=TEAM)) +
+			geom_point(data=tmp2, size=1, colour='transparent') +			
+			geom_errorbarh(aes(xmin=lower95, xmax=upper95), height=0.3) + geom_point(size=3, pch=13) +
+			geom_point(data=tmp3, size=3, colour='black', pch=18) +
+			scale_colour_manual(values=TEAM_CL) +
+			facet_grid(AC_L+DATA_T2~TEAM, scales='free', space='free_y') +
+			theme_bw() + theme(panel.margin.x= unit(1, "lines"), legend.position='bottom') +
+			guides(colour=guide_legend(ncol=2)) +
+			labs(x= '%', y='', title='Primary objectives: %Acute at endpoint\n(Village)\n')	
+	ggsave(file=paste(outdir,'/res_acrossTEAM_primaryvillage_pcacuteend','.pdf',sep=''), w=8, h=7)
+	ggplot(subset(tmp, TEAM!='True'), aes(y=INT_L, x=central*100, colour=TEAM)) +
+			geom_point(data=tmp2, size=1, colour='transparent') +			
+			geom_errorbarh(aes(xmin=lower95*100, xmax=upper95*100), height=0.3) + geom_point(size=3, pch=13) +
+			geom_point(data=tmp3, size=3, colour='black', pch=18) +
+			scale_colour_manual(values=TEAM_CL) +
+			facet_grid(AC_L+DATA_T2~TEAM, scales='free_y', space='free_y') +
+			theme_bw() + theme(panel.margin.x= unit(1, "lines"), legend.position='bottom') +
+			guides(colour=guide_legend(ncol=2)) +
+			labs(x= '%', y='', title='Primary objectives: %Acute at endpoint\n(Village)\n')	
+	ggsave(file=paste(outdir,'/res_acrossTEAM_primaryvillage_pcacuteend_ssc','.pdf',sep=''), w=10, h=7)
+	#	OVERALL	
+	tmp	<- subset(df, OBJ%in%c('OBJ_ii','OBJ_iii','OBJ_v','OBJ_vi') & !grepl('(',TEAM,fixed=1) & DATAT_L=='Village' & USED_GENES=='all')
+	tmp2<- as.data.table(expand.grid(central=c(0.01,0.55), AC_L=c('%Acute\nlow','%Acute\nhigh'), INT_L=c('ART scale up\nfast','ART scale up\nslow','ART scale up\nnone'), TEAM='dummy', DATA_T2='using\ntrue tree', OBJ_L2=c('%Acute\n(baseline)','%Acute\n(endpoint)')))
+	set(tmp2, NULL, 'INT_L', tmp2[, factor(INT_L, levels=c('ART scale up\nfast','ART scale up\nslow','ART scale up\nnone'), labels=c('ART scale up\nfast','ART scale up\nslow','ART scale up\nnone'))])
+	setnames(tmp2, 'TEAM','team')
+	tmp3	<- subset(tmp, TEAM=='True')
+	setnames(tmp3, 'TEAM','team')	
+	ggplot(subset(tmp, TEAM!='True'), aes(y=INT_L, x=central, colour=TEAM)) +
+			geom_point(data=tmp2, size=1, colour='transparent') +
+			geom_errorbarh(aes(xmin=lower95, xmax=upper95), height=0.3) + geom_point(size=3, pch=13) +
+			geom_point(data=tmp3, size=3, colour='black', pch=18) +
+			scale_colour_manual(values=TEAM_CL) +
+			facet_grid(TEAM+DATA_T2~OBJ_L2+AC_L, scales='free', space='free_y') +
+			theme_bw() + theme(panel.margin.x= unit(0.5, "lines"), legend.position='bottom') +
+			guides(colour=guide_legend(ncol=2)) +
+			labs(x= 'Estimates', y='', title='Primary objectives: quantitative\n(Village)\n')	
+	ggsave(file=paste(outdir,'/res_acrossTEAM_primaryvillage_nmbrs','.pdf',sep=''), w=13, h=13)
+	#	qualitative
+	tmp		<- subset(df, OBJ%in%c('OBJ_i','OBJ_iv') & !grepl('(',TEAM,fixed=1) & DATAT_L=='Village' & USED_GENES=='all')
+	set(tmp, NULL, 'central', tmp[, as.character(central)])
+	set(tmp, tmp[, which(OBJ=='OBJ_i' & central=='-1')], 'central', 'declining')
+	set(tmp, tmp[, which(OBJ=='OBJ_i' & central=='0')], 'central', 'stable')
+	set(tmp, tmp[, which(OBJ=='OBJ_i' & central=='1')], 'central', 'increasing')
+	set(tmp, tmp[, which(OBJ=='OBJ_iv' & central=='-1')], 'central', '<15%')
+	set(tmp, tmp[, which(OBJ=='OBJ_iv' & central=='0')], 'central', '15%-30%')
+	set(tmp, tmp[, which(OBJ=='OBJ_iv' & central=='1')], 'central', '>30%')
+	tmp2	<- c('declining','stable','increasing','<15%','15%-30%','>30%')
+	set(tmp, NULL, 'central', tmp[, factor(central, levels=tmp2, labels=tmp2)])	
+	tmp2	<- as.data.table(expand.grid(central=tmp2, AC_L=c('%Acute\nlow','%Acute\nhigh'), INT_L=c('ART scale up\nfast','ART scale up\nslow','ART scale up\nnone'), TEAM='dummy', DATA_T2='using\ntrue tree', OBJ_L2='Incidence\nTrend'))
+	set(tmp2, tmp2[, which(grepl('%', central))], 'OBJ_L2', '%Acute Ctgr\n(baseline)')
+	set(tmp2, NULL, 'INT_L', tmp2[, factor(INT_L, levels=c('ART scale up\nfast','ART scale up\nslow','ART scale up\nnone'), labels=c('ART scale up\nfast','ART scale up\nslow','ART scale up\nnone'))])	
+	setkey(tmp2, central)
+	tmp3	<- subset(tmp, TEAM=='True')
+	setnames(tmp2, 'TEAM','team')
+	setnames(tmp3, 'TEAM','team')
+	ggplot(tmp2, aes(y=INT_L, x=central)) +
+			#geom_errorbarh(height=0.3) + 
+			geom_point(data=tmp2, size=1, colour='transparent') +
+			geom_jitter(data=subset(tmp, TEAM!='True'), aes(colour=TEAM), size=3, pch=13, position = position_jitter(width=0, height=.15)) +
+			geom_point(data=tmp3, size=3, colour='black', pch=18) +			
+			scale_colour_manual(values=TEAM_CL) +
+			facet_grid(TEAM+DATA_T2~OBJ_L2+AC_L, scales='free', space='free_y') +
+			theme_bw() + theme(panel.margin.x= unit(0.5, "lines"), legend.position='bottom', panel.grid.minor= element_blank(), panel.grid.major= element_blank()) +
+			guides(colour=guide_legend(ncol=2)) +
+			labs(x= '\nEstimates', y='', title='Primary objectives: qualitative\n(Village)\n')	
+	ggsave(file=paste(outdir,'/res_acrossTEAM_primaryvillage_qultv','.pdf',sep=''), w=13, h=13)	
+	#invisible(lapply(c('OBJ_ii','OBJ_iii','OBJ_v','OBJ_vi'), function(x)
+	#				{				
+	#					tmp	<- subset(df, OBJ==x & !grepl('(',TEAM,fixed=1) & DATAT_L=='Village' & USED_GENES=='all')
+	#					if(x=='OBJ_i')
+	#						set(tmp, NULL, 'central', tmp[, factor(central, levels=c(1,0,-1), labels=c('increasing','stable','decreasing'))])
+	#					if(x=='OBJ_iv')
+	#						set(tmp, NULL, 'central', tmp[, factor(central, levels=c(1,0,-1), labels=c('>30%','15%-30%','<15%'))])	
+	#					ggplot(subset(tmp, TEAM!='True'), aes(y=DATA_T, x=central, xmin=lower95, xmax=upper95, colour=TEAM)) +
+	#							geom_errorbarh(height=0.3) + geom_point(size=3, pch=13) +
+	#							geom_point(data=subset(tmp, TEAM=='True'), size=3, colour='black', pch=18) +
+	#							scale_colour_manual(values=TEAM_CL) +
+	#							facet_grid(AC_L~INT_L, scales='free', space='free_y') +
+	#							theme_bw() + theme(panel.margin.x= unit(2, "lines")) + 
+	#							labs(x= paste('\n',gsub('\n',' ',tmp[1, OBJ_L]),sep=''), y='')
+	#					ggsave(file=paste(outdir,'/res_acrossTEAM_primaryvillage_',x,'.pdf',sep=''), w=10, h=3)
+	#				}))
+	
+
+	#	SECONDARY: compare oversampling during intervention on regional
+	df	<- subset(dfa, DATA_T=='phy' & SMPL_M=='extreme' & DATAT_L=='Regional')	
+	tmp	<- subset(dfa, DATA_T=='phy' & SMPL_M=='much' & SMPL_C=='8%' & SMPL_N==1600 & IMPRT=='5%' & AC_T=='low' & INT_T!='none')
+	df	<- rbind(tmp, df)
+	tmp	<- subset(df, OBJ%in%c('OBJ_ii','OBJ_iii','OBJ_v','OBJ_vi') & !grepl('(',TEAM,fixed=1) & DATAT_L=='Regional' & USED_GENES=='all')
+	tmp[, SMPL_L:= NA_character_]
+	set(tmp, tmp[, which(SMPL_M=='much')], 'SMPL_L', 'sampling\n50% during intervention')
+	set(tmp, tmp[, which(SMPL_M=='extreme')], 'SMPL_L', 'sampling\n85% during intervention')
+	set(tmp, NULL, 'SMPL_L', tmp[, factor(SMPL_L, levels=c('sampling\n85% during intervention','sampling\n50% during intervention'), labels=c('sampling\n85% during intervention','sampling\n50% during intervention'))])
+	ggplot(subset(tmp, TEAM!='True'), aes(y=SMPL_L, x=central, xmin=lower95, xmax=upper95, colour=TEAM)) +
+			geom_errorbarh(height=0.3) + geom_point(size=3, pch=13) +
+			geom_point(data=subset(tmp, TEAM=='True'), size=3, colour='black', pch=18) +
+			scale_colour_manual(values=TEAM_CL) +
+			facet_grid(INT_L~OBJ_L2+AC_L, scales='free', space='free_y') +
+			theme_bw() + theme(panel.margin.x= unit(0.5, "lines"), legend.position='bottom') +
+			guides(colour=guide_legend(ncol=2)) +
+			labs(x= 'Estimates', y='', title='Secondary objective: oversampling during intervention\n(Regional, using true tree)\n')	
+	ggsave(file=paste(outdir,'/res_acrossTEAM_secondary_oversmplintrvntnregional','.pdf',sep=''), w=13, h=5.5)
+	
+		
+	#	SECONDARY: compare imports high / low 
+	df	<- subset(dfa, SC_RND%in%c('P','E','L','H','12','10'))
+	tmp	<- subset(df, OBJ%in%c('OBJ_ii','OBJ_iii','OBJ_v','OBJ_vi') & !grepl('(',TEAM,fixed=1) & USED_GENES=='all')
+	tmp[, IMPRT_L:= NA_character_]
+	set(tmp, tmp[, which(IMPRT=='0%')], 'IMPRT_L', '0% trns/year from outside\n(Village)')
+	set(tmp, tmp[, which(IMPRT=='5%')], 'IMPRT_L', '5% trns/year from outside\n(Regional)')
+	set(tmp, tmp[, which(IMPRT=='20%')], 'IMPRT_L', '20% trns/year from outside\n(Regional)')		
+	set(tmp, NULL, 'IMPRT_L', tmp[, factor(IMPRT_L, levels=rev(c('0% trns/year from outside\n(Village)','5% trns/year from outside\n(Regional)','20% trns/year from outside\n(Regional)')), labels=rev(c('0% trns/year from outside\n(Village)','5% trns/year from outside\n(Regional)','20% trns/year from outside\n(Regional)')))])
+	set(tmp, NULL, 'INT_L', tmp[, factor(as.character(INT_L), levels=c('ART scale up\nfast','ART scale up\nslow'), labels=c('ART scale up\nfast','ART scale up\nslow'))])
+	tmp3	<- subset(tmp, TEAM=='True')
+	setnames(tmp3, 'TEAM','team')
+	tmp2	<- as.data.table(expand.grid(	central=0.1, IMPRT_L=rev(c('0% trns/year from outside\n(Village)','5% trns/year from outside\n(Regional)','20% trns/year from outside\n(Regional)')), 
+											AC_L='%Acute\nhigh', INT_L=c('ART scale up\nfast','ART scale up\nslow'), TEAM=c('Imperial', 'Vancouver', 'Cambridge/Imperial', 'ETH Zurich'), OBJ_L2='%Incidence'))	
+	
+	ggplot(tmp2, aes(y=IMPRT_L, x=central, colour=TEAM)) +
+			geom_point(size=1, colour='transparent') +
+			geom_errorbarh(data=subset(tmp, TEAM!='True'), aes(xmin=lower95, xmax=upper95), height=0.3) + 			
+			geom_point(data=subset(tmp, TEAM!='True'), size=3, pch=13) +
+			geom_point(data=tmp3, size=3, colour='black', pch=18) +
+			scale_colour_manual(values=TEAM_CL) +
+			facet_grid(TEAM+INT_L~OBJ_L2+AC_L, scales='free', space='free_y') +
+			theme_bw() + theme(panel.margin.x= unit(0.5, "lines"), legend.position='bottom') +
+			guides(colour=guide_legend(ncol=2)) +
+			labs(x= '\nEstimates', y='', title='Secondary objective: transmissions from outside\n(using true tree)\n')	
+	ggsave(file=paste(outdir,'/res_acrossTEAM_secondary_cntm','.pdf',sep=''), w=13, h=12)
+	
+	
+	# 	SECONDARY: compare duration sampling
+	df	<- subset(dfa, SC_RND%in%c('O','F','T','L'))
+	tmp	<- subset(df, OBJ%in%c('OBJ_ii','OBJ_iii','OBJ_v','OBJ_vi') & !grepl('(',TEAM,fixed=1) & USED_GENES=='all')
+	tmp[, SMPL_L:= NA_character_]
+	set(tmp, tmp[, which(SMPL_D=='3')], 'SMPL_L', '3 yr sampling duration\nafter intervention start')
+	set(tmp, tmp[, which(SMPL_D=='5')], 'SMPL_L', '5 yr sampling duration\nafter intervention start')		
+	set(tmp, NULL, 'SMPL_L', tmp[, factor(SMPL_L, levels=rev(c('3 yr sampling duration\nafter intervention start','5 yr sampling duration\nafter intervention start')), labels=rev(c('3 yr sampling duration\nafter intervention start','5 yr sampling duration\nafter intervention start')))])
+	ggplot(subset(tmp, TEAM!='True'), aes(y=SMPL_L, x=central, xmin=lower95, xmax=upper95, colour=TEAM)) +
+			geom_errorbarh(height=0.3) + geom_point(size=3, pch=13) +
+			geom_point(data=subset(tmp, TEAM=='True'), size=3, colour='black', pch=18) +
+			scale_colour_manual(values=TEAM_CL) +
+			facet_grid(INT_L~OBJ_L2+AC_L, scales='free', space='free_y') +
+			theme_bw() + theme(panel.margin.x= unit(0.5, "lines"), legend.position='bottom') +
+			guides(colour=guide_legend(ncol=2)) +
+			labs(x= 'Estimates', y='', title='Secondary objective: sampling duration after intervention start\n(Regional, using true tree)\n')	
+	ggsave(file=paste(outdir,'/res_acrossTEAM_secondary_sdurregional','.pdf',sep=''), w=13, h=4)
+	
+	
+	# 	SECONDARY: compare seq coverage 
+	df	<- subset(dfa, SC_RND%in%c('I','J','G','K','T','R','L','H','05','08','06','07','11','09','12','10'))
+	tmp	<- subset(df, OBJ%in%c('OBJ_ii','OBJ_iii','OBJ_v','OBJ_vi') & !grepl('(',TEAM,fixed=1) & USED_GENES=='all')
+	tmp[, SMPL_L:= NA_character_]
+	set(tmp, tmp[, which(SMPL_C=='8%')], 'SMPL_L', '8% coverage (Regional)')
+	set(tmp, tmp[, which(SMPL_C=='16%')], 'SMPL_L', '16% coverage (Regional)')
+	set(tmp, tmp[, which(SMPL_C=='30%')], 'SMPL_L', '30% coverage (Village)')
+	set(tmp, tmp[, which(SMPL_C=='60%')], 'SMPL_L', '60% coverage (Village)')		
+	tmp2	<- c('8% coverage (Regional)','16% coverage (Regional)', '30% coverage (Village)', '60% coverage (Village)')	
+	set(tmp, NULL, 'SMPL_L', tmp[, factor(SMPL_L, levels=rev(tmp2), labels=rev(tmp2))])
+	set(tmp, NULL, 'INT_L', tmp[, factor(as.character(INT_L), levels=c('ART scale up\nfast','ART scale up\nslow'), labels=c('ART scale up\nfast','ART scale up\nslow'))])
+	tmp3	<- subset(tmp, TEAM=='True')
+	setnames(tmp3, 'TEAM','team')			
+	ggplot(subset(tmp, TEAM!='True'), aes(y=SMPL_L, x=central, xmin=lower95, xmax=upper95, colour=TEAM)) +
+			geom_errorbarh(height=0.3) + geom_point(size=3, pch=13) +
+			geom_point(data=tmp3, size=3, colour='black', pch=18) +
+			scale_colour_manual(values=TEAM_CL) +
+			facet_grid(TEAM+INT_L~OBJ_L2+AC_L, scales='free', space='free_y') +
+			theme_bw() + theme(panel.margin.x= unit(0.5, "lines"), legend.position='bottom') +
+			guides(colour=guide_legend(ncol=2)) +
+			labs(x= 'Estimates', y='', title='Secondary objective: sampling coverage\n(using true tree)\n')	
+	ggsave(file=paste(outdir,'/res_acrossTEAM_secondary_scvrg','.pdf',sep=''), w=13, h=10)
+	tmp		<- subset(tmp, !(OBJ=='OBJ_ii' & central>0.1) & !(OBJ=='OBJ_v' & central>0.3 & AC_T=='low') & !(OBJ=='OBJ_vi' & central>0.3 & AC_T=='low'))
+	tmp2	<- as.data.table(expand.grid(	central=0.1, SMPL_L=rev(c('8% coverage (Regional)','16% coverage (Regional)', '30% coverage (Village)', '60% coverage (Village)')), 
+											AC_L='%Acute\nlow', INT_L=c('ART scale up\nfast','ART scale up\nslow'), TEAM=c('Imperial', 'Vancouver', 'Cambridge/Imperial', 'ETH Zurich'), OBJ_L2='%Incidence'))	
+	ggplot(tmp2, aes(y=SMPL_L, x=central, colour=TEAM)) +
+			geom_point(size=1, colour='transparent') +
+			geom_point(data=subset(tmp, TEAM!='True'), size=3, pch=13) + geom_errorbarh(data=subset(tmp, TEAM!='True'), aes(xmin=lower95, xmax=upper95), height=0.3) + 
+			geom_point(data=tmp3, size=3, colour='black', pch=18) +			
+			scale_colour_manual(values=TEAM_CL) +
+			facet_grid(TEAM+INT_L~OBJ_L2+AC_L, scales='free', space='free_y') +
+			theme_bw() + theme(panel.margin.x= unit(0.5, "lines"), legend.position='bottom') +
+			guides(colour=guide_legend(ncol=2)) +
+			labs(x= '\nEstimates', y='', title='Secondary objective: sampling coverage\n(using true tree, range cut)\n')	
+	ggsave(file=paste(outdir,'/res_acrossTEAM_secondary_scvrgcut','.pdf',sep=''), w=13, h=11)
+	
+	
+	
+	dfi<- subset( dfa, select=c(SC_RND, DATAT_L, DATA_T, AC_T, INT_T, IMPRT, SMPL_N, SMPL_C, SMPL_M, SMPL_D) )
+	setkey(dfi, DATAT_L, DATA_T, AC_T, INT_T, IMPRT, SMPL_N, SMPL_C, SMPL_M, SMPL_D)
+	dfi	<- unique(dfi)
+	file<- paste(outdir,'/../docs/SC_RND_info','.csv',sep='')
+	write.csv(dfi, file=file, row.names=FALSE)
+	
+	tmp	<- subset(dfa, select=c(TEAM, DATA_T, DATAT_L, SIM_SCENARIO))
+	setkey(tmp, TEAM, DATA_T, DATAT_L, SIM_SCENARIO)
+	tmp	<- unique(tmp)
+	tmp[, table(TEAM, DATA_T, DATAT_L )]
+}
+##--------------------------------------------------------------------------------------------------------
+##	evaluate results
+##	olli 08.05.15
+##--------------------------------------------------------------------------------------------------------
+project.PANGEA.TEST.pipeline.Feb2015.evaluate.read<- function()
+{
+	#	read truth for regional simus
+	indir	<- '/Users/Oliver/Dropbox\ (Infectious Disease)/PANGEAHIVsim_internal/documents/external/2015_05_results'
+	file	<- paste(indir, '/answers_Regional_Feb2015_rFormat.csv', sep='')
+	df		<- read.submission(file, verbose=0, reset.OBJiv.conservative=1)
+	#	read truth for village simus
+	file	<- paste(indir, '/answers_Village_Feb2015-yr43_rFormat.csv', sep='')
+	tmp		<- read.submission(file, verbose=0, reset.OBJiv.conservative=1)
+	set(tmp, NULL, 'TEAM', 'True')
+	df		<- rbind(df, tmp)
+	#	read submissions
+	tmp		<- list.files(indir, pattern='csv$')
+	tmp		<- tmp[!grepl('answers',tmp)]
+	#	read Eriks multiple submissions
+	tmp2	<- data.table(FILE=tmp[grepl('cambImp',tmp)])
+	tmp2[, RUN:= tmp2[,  sapply( strsplit(FILE,'_'), function(x) rev(x)[1] )]]
+	set(tmp2, NULL, 'RUN', tmp2[, substr(RUN, 1, nchar(RUN)-4)])
+	set(tmp2, NULL, 'RUN', tmp2[, gsub('results0','',RUN)])
+	dfs		<- do.call('rbind',lapply(seq_len(nrow(tmp2)), function(i)
+				{
+					z	<- read.submission( paste(indir, '/', tmp2[i, FILE], sep=''), verbose=0, reset.OBJiv.conservative=1 )
+					set(z, NULL, 'TEAM', z[, paste(TEAM, ' (', tmp2[i, RUN], ')', sep='')])
+					z
+				}))
+	tmp		<- tmp[!grepl('cambImp',tmp)]
+	tmp		<- do.call('rbind',lapply(tmp, function(x) read.submission(paste(indir,'/',x,sep=''), verbose=0, reset.OBJiv.conservative=1)))
+	dfs		<- rbind(dfs, tmp)
+	# 	change team name
+	set(dfs, dfs[, which(TEAM=='Colijn')],'TEAM','Imperial')
+	#	construct Erik's gold submission
+	#	for regional tree, use mergedTab
+	tmp		<- subset(dfs, grepl('merged', TEAM) & grepl('Regional',SIM_SCENARIO))	
+	tmp[, TEAM:='Cambridge/Imperial']	
+	#tmp		<- subset(dfs, grepl('mh30', TEAM) & grepl('Regional',SIM_SCENARIO))	
+	#tmp[, TEAM:='Cambridge/Imperial']
+	#tmp2	<- subset(dfs, grepl('mh15', TEAM) & grepl('Regional',SIM_SCENARIO))	
+	#tmp2[, TEAM:='Cambridge/Imperial']
+	#tmp		<- merge(tmp, tmp2, by=c('TEAM','SUBMISSION_DATE','SIM_SCENARIO','USED_GENES','OBJ'), all=1)
+	#tmp2	<- tmp[, which(is.na(central.x))]
+	#set(tmp, tmp2, 'central.x', tmp[tmp2, central.y])
+	#set(tmp, tmp2, 'lower95.x', tmp[tmp2, lower95.y])
+	#set(tmp, tmp2, 'upper95.x', tmp[tmp2, upper95.y])
+	#setnames(tmp, c('central.x', 'lower95.x', 'upper95.x'), c('central', 'lower95', 'upper95'))
+	#set(tmp, NULL, c('central.y', 'lower95.y', 'upper95.y'), NULL)
+	dfs		<- rbind(dfs, tmp)
+	#	for village tree, use mh30 where available and mh15 where mh30 not available
+	tmp		<- subset(dfs, grepl('mh30', TEAM) & grepl('Vill',SIM_SCENARIO))	
+	tmp[, TEAM:='Cambridge/Imperial']
+	tmp2	<- subset(dfs, grepl('mh15', TEAM) & grepl('Vill',SIM_SCENARIO))	
+	tmp2[, TEAM:='Cambridge/Imperial']
+	tmp		<- merge(tmp, tmp2, by=c('TEAM','SUBMISSION_DATE','SIM_SCENARIO','USED_GENES','OBJ'), all=1)
+	tmp2	<- tmp[, which(is.na(central.x))]
+	set(tmp, tmp2, 'central.x', tmp[tmp2, central.y])
+	set(tmp, tmp2, 'lower95.x', tmp[tmp2, lower95.y])
+	set(tmp, tmp2, 'upper95.x', tmp[tmp2, upper95.y])
+	setnames(tmp, c('central.x', 'lower95.x', 'upper95.x'), c('central', 'lower95', 'upper95'))
+	set(tmp, NULL, c('central.y', 'lower95.y', 'upper95.y'), NULL)
+	dfs		<- rbind(dfs, tmp)
+	#	for village seq, use LSD
+	tmp		<- subset(dfs, grepl('lsd', TEAM) & grepl('Vill',SIM_SCENARIO))	
+	tmp[, TEAM:='Cambridge/Imperial']
+	dfs		<- rbind(dfs, tmp)
+	#	define data types (seq or phylo)
+	dfa		<- rbind(dfs, df)
+	dfa[, DATA_T:=NA_character_]
+	set(dfa, dfa[, which(grepl('Vill_0[1-4]', SIM_SCENARIO))], 'DATA_T', 'seq')
+	set(dfa, dfa[, which(!grepl('Vill_0[1-4]', SIM_SCENARIO))], 'DATA_T', 'phy')	
+	set(dfa, dfa[, which(grepl('FirstObj', SIM_SCENARIO))], 'DATA_T', 'seq')
+	set(dfa, dfa[, which(grepl('SecondObj', SIM_SCENARIO))], 'DATA_T', 'phy')
+	stopifnot(!any(is.na(dfa[, DATA_T])))
+	#	define randomized scenario IDs
+	dfa[, SC_RND:=NA_character_]
+	tmp		<- dfa[, which(grepl('Regional',SIM_SCENARIO))]
+	set(dfa, tmp, 'SC_RND', dfa[tmp, substring(regmatches(SIM_SCENARIO,regexpr('sc[A-Z]',SIM_SCENARIO)),3)])
+	tmp		<- dfa[, which(grepl('Vill',SIM_SCENARIO))]
+	set(dfa, tmp, 'SC_RND', dfa[tmp, substring(regmatches(SIM_SCENARIO,regexpr('Vill_[0-9]+',SIM_SCENARIO)),6)])
+	stopifnot(!any(is.na(dfa[, SC_RND])))
+	
+	#	describe regional simulations in terms of fast/low intervention high/low acute	
+	set.seed(42)
+	dfi			<- data.table(FILE=list.files('/Users/Oliver/duke/2014_Gates/methods_comparison_pipeline/FINAL', '.*zip$', full.names=FALSE))	
+	dfi[, SC:= sapply(strsplit(FILE, '_'),'[[',3)]
+	dfi[, CONFIG:= sapply(strsplit(SC, '-'),'[[',2)]
+	set(dfi, NULL, 'SC', dfi[, sapply(strsplit(SC, '-'),'[[',1)])
+	dfi[, DATAT:= sapply(strsplit(FILE, '_'),'[[',5)]
+	set(dfi, NULL, 'DATAT', dfi[, gsub('.zip','',DATAT,fixed=T)])	
+	set(dfi, NULL, 'OBJECTIVE', 'SecondObj')
+	set(dfi, dfi[,which(CONFIG=='sq')],'OBJECTIVE', 'FirstObj')
+	dfi			<- merge(dfi,dfi[, list(FILE=FILE, DUMMY=sample(length(FILE),length(FILE))), by='OBJECTIVE'],by=c('OBJECTIVE','FILE'))
+	tmp			<- dfi[, which(OBJECTIVE=='SecondObj')]
+	set(dfi, tmp, 'DUMMY', dfi[tmp, DUMMY] + dfi[OBJECTIVE=='FirstObj', max(DUMMY)])	
+	setkey(dfi, DUMMY)
+	dfi[, SC_RND:= toupper(letters[seq_len(nrow(dfi))])]
+	dfi			<- subset(dfi, select=c(SC, SC_RND, CONFIG))
+	set(dfi, NULL, 'SC', dfi[, substring(SC, 3)])
+	dfi			<- merge( dfi, data.table(SC= c('A','B','C','D','E','F'), AC_T=c('low','high','low','high','low','high'), INT_T=c('fast','fast','slow','slow','none','none')), by='SC' )
+	tmp			<- data.table(	CONFIG=	c('sq','s2x','y3','mFP85','ph','tr20'),
+								IMPRT=	c(.05, .05, .05, .05, .05, .2),
+								SMPL_N=	c(1600, 3200, 1280, 1600, 1600, 1600),
+								SMPL_C= c(0.08, 0.16, 0.08, 0.08, 0.08, 0.08),
+								SMPL_M=	c('overs', 'overs', 'overs', 'extrs', 'overs', 'overs'),
+								SMPL_D= c(5, 5, 3, 5, 5, 5))
+	dfi			<- merge( dfi, tmp, by='CONFIG')					
+	set(dfi, NULL, c('CONFIG'), NULL)
+	#	add info for village
+	tmp			<- data.table(	SC_RND= c('03','02','01','04','05','08','06','07','11','09','12','10','00'),
+								AC_T=	c('low','low','high','high','low','low','high','high','low','low','high','high','low'),
+								INT_T=	c('fast','slow','fast','slow','fast','slow','fast','slow','fast','slow','fast','slow','none'),
+								#SMPL_C=	c(0.25, 0.25, 0.25, 0.25, 0.5, 0.5, 0.5, 0.5, 0.25, 0.25, 0.25, 0.25, 0.25),
+								SMPL_C=	c(0.3, 0.3, 0.3, 0.3, 0.6, 0.6, 0.6, 0.6, 0.3, 0.3, 0.3, 0.3, 0.3),
+								SMPL_D= 5,
+								SMPL_N= c(777, 857, 957, 1040, 1469, 1630, 1831, 1996, 638, 686, 956, 1012, 872),
+								IMPRT=	c(0.02, 0.02, 0.02, 0.02, 0.02, 0.02, 0.02, 0.02, 0, 0, 0, 0, 0.02))	
+	dfi			<- rbind(dfi, tmp, fill=TRUE,use.names=TRUE)
+	#	merge to dfa
+	cat(paste('\nnumber of rows before merge with dfi, n=', nrow(dfa)))
+	dfa			<- merge(dfa, dfi, by='SC_RND')
+	cat(paste('\nnumber of rows before merge with dfi, n=', nrow(dfa)))
+	
+	dfa
 }
 ##--------------------------------------------------------------------------------------------------------
 ##	check simulated sequences: create ExaML tree and estimate R2
@@ -3315,127 +4501,70 @@ project.PANGEA.TEST.pipeline.October2014<- function()
 ##--------------------------------------------------------------------------------------------------------
 project.PANGEA.TEST.SSApg.CLUSTERBEAST.skygrid.hky<- function()
 {
-	require(phytools)
-	require(hivclust)
-	require(XML)
-	#	load outgroup sequences
-	file			<- system.file(package="rPANGEAHIVsim", "misc",'PANGEA_SSAfg_HXB2outgroup.R')
-	cat(paste('\nLoading outgroup seq from file', file))
-	load(file)		#expect "outgroup.seq.gag" "outgroup.seq.pol" "outgroup.seq.env"	
+	require(rBEAST)
 	
 	tree.id.labelsep		<- '|'
 	tree.id.label.idx.ctime	<- 4 	
-	select		<- 'grid-mseq500'
-	select		<- 'grid-cseq3'
-	#select		<- 'grid-mseq400'
-	indir		<- '/Users/Oliver/duke/2014_Gates/methods_comparison_pipeline/150402'
+	#select		<- 'grid-mseq500'
+	#select		<- 'grid-cseq3'
+	select		<- 'grid-mseq400'
+	indir		<- '/Users/Oliver/duke/2014_Gates/methods_comparison_pipeline/150414'
 	#indir		<- '/Users/Oliver/git/HPTN071sim/tmp140914/140716_RUN001_INTERNAL'  
 	outdir		<- indir
 	infiles		<- list.files(indir, '.*INTERNAL.R$', full.names=FALSE)
 	#stopifnot(length(infiles)==1)
-	#	read BEAST template files	
-	infile.beast.pol	<- system.file(package="rPANGEAHIVsim", "misc",'BEAST_template_vTESTpol_grid-fixedtree.xml')
-	infile.beast.pol	<- '~/git/HPTN071sim/source/rPANGEAHIVsim/inst/misc/BEAST_template_vTESTpol_grid-fixedtree.xml'
-	bxml.template.pol	<- xmlTreeParse(infile.beast.pol, useInternalNodes=TRUE, addFinalizer = TRUE)
-	infile.beast.gag	<- system.file(package="rPANGEAHIVsim", "misc",'BEAST_template_vTESTgag.xml')
-	bxml.template.gag	<- xmlTreeParse(infile.beast.gag, useInternalNodes=TRUE, addFinalizer = TRUE)
-	infile.beast.env	<- system.file(package="rPANGEAHIVsim", "misc",'BEAST_template_vTESTenv.xml')		
-	bxml.template.env	<- xmlTreeParse(infile.beast.env, useInternalNodes=TRUE, addFinalizer = TRUE)	
 	#
 	#	run  
 	#	
-	for(i in seq_along(infiles))
+	selects		<- c( paste('grid-mseq',seq(600, 1200, 200), sep=''), paste('grid-clsmseq',seq(600, 1200, 200), sep=''), paste('grid-clrndseq',seq(600, 1200, 200), sep=''))
+	for(select in selects)
 	{
-		infile			<- infiles[i]
-		#	load simulated data
-		file			<- paste(indir, '/', infile, sep='')
-		cat(paste('\nLoading file', file))
-		load(file)		#expect "df.epi"    "df.trms"   "df.inds"   "df.sample" "df.seq"
-		set( df.seq, NULL, 'IDCLU', df.seq[, as.integer(IDCLU)] )
-		#			
-		if(grepl('nseq',select))
+		for(i in seq_along(infiles))
 		{
-			thresh.NSEQ		<- as.numeric(substring(select, 5)) 
-			thresh.brl		<- c(seq(0.001, 0.05, 0.001), seq(0.06, 0.5, 0.1))
-			thresh.nseq		<- sapply(thresh.brl, function(x)
-					{
-						clustering		<- hivc.clu.clusterbythresh(seq.ph, thresh.brl=x, dist.brl=tmp, retval="all")
-						which(clustering$size.tips>10)
-						length(which(!is.na(clustering$clu.mem[ seq_len(Ntip(seq.ph))] )))					
-					})
-			thresh.brl		<- thresh.brl[ which(thresh.nseq>=thresh.NSEQ)[1] ]
-			clustering		<- hivc.clu.clusterbythresh(seq.ph, thresh.brl=thresh.brl, dist.brl=tmp, retval="all")		
-			cat(paste('\nFound clusters, n=', length(clustering$clu.idx)))
-			seq.select		<- subset( data.table( PH_NODE_ID=seq_len(Ntip(seq.ph)), CLU_ID=clustering$clu.mem[ seq_len(Ntip(seq.ph))] ), !is.na(CLU_ID) )
-			seq.select[, LABEL:= seq.select[, seq.ph$tip.label[PH_NODE_ID]] ]
-			seq.select		<- merge(df.seq, seq.select, by='LABEL')
+			infile			<- infiles[i]
+			#	load simulated data
+			file			<- paste(indir, '/', infile, sep='')
+			file.name		<- paste(indir, gsub('_SIMULATED_INTERNAL.R',paste('_TEST_pol_HKY_fixedtree_',select,'.xml',sep=''),infile), sep='/')
+			cat(paste('\nLoading file', file))
+			load(file)		#expect "df.epi"    "df.trms"   "df.inds"   "df.sample" "df.seq"
+			set( df.seq, NULL, 'IDCLU', df.seq[, as.integer(IDCLU)] )
+			setnames(df.seq, c("LABEL", "IDCLU", "IDPOP"), c("TAXON_NAME", "CLU_ID", "TAXON_ID"))
+			#	
+			seq.select		<- beast.choose.seq.by.clusters(df.seq, select, verbose=1)
+			#
+			#	read NEWICK trees for each cluster phylogeny, if there
+			#
+			phd		<- NULL
+			tmp		<- list.files(indir, '_DATEDTREE.newick$', full.names=FALSE)
+			tmp		<- tmp[ grepl(substr(infile, 1, regexpr('_SIMULATED',infile)), tmp) ]
+			if(length(tmp))
+			{
+				# select
+				phd					<- read.tree(paste(indir, tmp, sep='/'))
+				
+				tmp2				<- data.table(TAXON_ID= sapply(phd, function(x) x$tip.label[1]), IDX=seq_along(phd))
+				set( tmp2, NULL, 'TAXON_ID', tmp2[, as.integer(substring(sapply(strsplit(TAXON_ID, tree.id.labelsep, fixed=TRUE),'[[',1),7)) ] )
+				tmp2				<- merge(subset(seq.select, select=c(TAXON_ID, CLU_ID)), tmp2, by='TAXON_ID')			
+				phd					<- lapply(tmp2[,IDX], function(i) phd[[i]] )
+				names(phd)			<- tmp2[, CLU_ID]
+				# plot
+				phd.plot			<- eval(parse(text=paste('phd[[',seq_along(phd),']]', sep='',collapse='+')))			
+				#phd.plot			<- drop.tip(phd.plot, which(grepl('NOEXIST', phd.plot$tip.label)), root.edge=1)
+				phd.plot			<- ladderize(phd.plot)
+				tmp					<- paste(indir, '/', gsub('DATEDTREE','BEASTDATEDTREE',tmp), sep='')
+				pdf(file=gsub('.xml','_BEASTDATEDTREE.pdf',file.name), w=10, h=Ntip(phd.plot)*0.1)
+				plot(phd.plot, show.tip=TRUE, cex=0.5)
+				dev.off()									
+			}
+			#
+			#	create BEAST XML POL
+			#
+			seq.select.pol	<- subset(seq.select, select=c("CLU_ID", "TAXON_ID", "TAXON_NAME", "POL" ))
+			setnames(seq.select.pol, 'POL', 'SEQ')									
+			bxml			<- beastscript.multilocus.hky( file.name, seq.select.pol, phd, verbose=1 )
+			cat(paste("\nwrite xml file to",file.name))
+			saveXML(bxml, file=file.name)				
 		}
-		if(grepl('mseq',select))
-		{
-			thresh.NSEQ		<- as.numeric(substring(select, 10))
-			seq.select		<- subset(df.inds, !is.na(IDCLU))
-			seq.select		<- subset(merge(seq.select, seq.select[, list(CLU_N=-length(which(!is.na(TIME_SEQ)))), by='IDCLU'], by='IDCLU'), CLU_N<0 & !is.na(TIME_SEQ))
-			setkey(seq.select, CLU_N, IDCLU)
-			tmp				<- unique(seq.select)
-			tmp[, CLU_CN:= tmp[,cumsum(-CLU_N)]]
-			tmp				<- tmp[seq_len( tmp[, which(CLU_CN>=thresh.NSEQ)[1]] ), ] 
-			seq.select		<- merge( seq.select, subset(tmp, select=IDCLU), by='IDCLU' )
-			seq.select		<- merge(df.seq, seq.select, by=c('IDCLU','IDPOP'))			
-			cat(paste('\nFound clusters, n=', seq.select[, length(unique(IDCLU))])) 
-			cat(paste('\nFound sequences, n=', seq.select[, length(unique(IDPOP))]))					
-		}
-		if(grepl('cseq',select))
-		{
-			thresh.NSEQ		<- as.numeric(substring(select, 10))
-			seq.select		<- subset(df.inds, !is.na(IDCLU))
-			seq.select		<- subset(merge(seq.select, seq.select[, list(CLU_N=-length(which(!is.na(TIME_SEQ)))), by='IDCLU'], by='IDCLU'), CLU_N<=-thresh.NSEQ & !is.na(TIME_SEQ))
-			setkey(seq.select, CLU_N, IDCLU)
-			tmp				<- unique(seq.select)
-			seq.select		<- merge( seq.select, subset(tmp, select=IDCLU), by='IDCLU' )
-			seq.select		<- merge(df.seq, seq.select, by=c('IDCLU','IDPOP'))			
-			cat(paste('\nFound clusters, n=', seq.select[, length(unique(IDCLU))])) 
-			cat(paste('\nFound sequences, n=', seq.select[, length(unique(IDPOP))]))					
-		}
-		#
-		#	read NEWICK trees for each cluster phylogeny, if there
-		#
-		phd		<- NULL
-		tmp		<- list.files(indir, '_DATEDTREE.newick$', full.names=FALSE)
-		tmp		<- tmp[ grepl(substr(infile, 1, regexpr('_SIMULATED',infile)), tmp) ]
-		if(length(tmp))
-		{
-			# select
-			phd					<- read.tree(paste(indir, tmp, sep='/'))
-			
-			tmp2				<- data.table(IDPOP= sapply(phd, function(x) x$tip.label[1]), IDX=seq_along(phd))
-			set( tmp2, NULL, 'IDPOP', tmp2[, as.integer(substring(sapply(strsplit(IDPOP, tree.id.labelsep, fixed=TRUE),'[[',1),7)) ] )
-			tmp2				<- merge(subset(seq.select, select=c(IDPOP, IDCLU)), tmp2, by='IDPOP')			
-			phd					<- lapply(tmp2[,IDX], function(i) phd[[i]] )
-			names(phd)			<- tmp2[, IDCLU]
-			# plot
-			phd.plot			<- eval(parse(text=paste('phd[[',seq_along(phd),']]', sep='',collapse='+')))			
-			#phd.plot			<- drop.tip(phd.plot, which(grepl('NOEXIST', phd.plot$tip.label)), root.edge=1)
-			phd.plot			<- ladderize(phd.plot)
-			tmp					<- paste(indir, '/', gsub('DATEDTREE','BEASTDATEDTREE',tmp), sep='')						
-			pdf(file=gsub('newick','pdf',tmp), w=10, h=Ntip(phd.plot)*0.1)
-			plot(phd.plot, show.tip=TRUE, cex=0.5)
-			dev.off()									
-		}
-		#
-		#	create BEAST XML
-		#		
-		#
-		#	POL
-		#
-		if(1)
-		{
-			cat(paste('\ncreate POL BEAST XML file for seqs=',paste( seq.select[,LABEL], collapse=' ')))
-			pool.infile		<- paste(  substr(infile,1,nchar(infile)-21),'_TEST_pol', sep='' )
-			file.name		<- paste(pool.infile,'_HKY-', select, sep='')
-			seq.select.pol	<- subset(seq.select, select=c("IDCLU", "IDPOP", "LABEL", "POL" ))
-			setnames(seq.select.pol, 'POL', 'SEQ')
-			hivc.beastscript.multilocus.hky( file.name, seq.select.pol, phd, verbose=1 )
-		}				
 	}
 }
 ##--------------------------------------------------------------------------------------------------------
@@ -3444,127 +4573,70 @@ project.PANGEA.TEST.SSApg.CLUSTERBEAST.skygrid.hky<- function()
 ##--------------------------------------------------------------------------------------------------------
 project.PANGEA.TEST.SSApg.CLUSTERBEAST.skygrid.codon.gtr<- function()
 {
-	require(phytools)
-	require(hivclust)
-	require(XML)
-	#	load outgroup sequences
-	file			<- system.file(package="rPANGEAHIVsim", "misc",'PANGEA_SSAfg_HXB2outgroup.R')
-	cat(paste('\nLoading outgroup seq from file', file))
-	load(file)		#expect "outgroup.seq.gag" "outgroup.seq.pol" "outgroup.seq.env"	
+	require(rBEAST)
 	
 	tree.id.labelsep		<- '|'
 	tree.id.label.idx.ctime	<- 4 	
-	select		<- 'grid-mseq500'
+	#select		<- 'grid-mseq500'
 	select		<- 'grid-cseq3'
-	#select		<- 'grid-mseq100'
-	indir		<- '/Users/Oliver/duke/2014_Gates/methods_comparison_pipeline/150402'
+	select		<- 'grid-mseq400'
+	indir		<- '/Users/Oliver/duke/2014_Gates/methods_comparison_pipeline/150414'
 	#indir		<- '/Users/Oliver/git/HPTN071sim/tmp140914/140716_RUN001_INTERNAL'  
 	outdir		<- indir
 	infiles		<- list.files(indir, '.*INTERNAL.R$', full.names=FALSE)
 	#stopifnot(length(infiles)==1)
-	#	read BEAST template files	
-	infile.beast.pol	<- system.file(package="rPANGEAHIVsim", "misc",'BEAST_template_vTESTpol_grid-fixedtree.xml')
-	infile.beast.pol	<- '~/git/HPTN071sim/source/rPANGEAHIVsim/inst/misc/BEAST_template_vTESTpol_grid-fixedtree.xml'
-	bxml.template.pol	<- xmlTreeParse(infile.beast.pol, useInternalNodes=TRUE, addFinalizer = TRUE)
-	infile.beast.gag	<- system.file(package="rPANGEAHIVsim", "misc",'BEAST_template_vTESTgag.xml')
-	bxml.template.gag	<- xmlTreeParse(infile.beast.gag, useInternalNodes=TRUE, addFinalizer = TRUE)
-	infile.beast.env	<- system.file(package="rPANGEAHIVsim", "misc",'BEAST_template_vTESTenv.xml')		
-	bxml.template.env	<- xmlTreeParse(infile.beast.env, useInternalNodes=TRUE, addFinalizer = TRUE)	
 	#
 	#	run  
 	#	
-	for(i in seq_along(infiles))
-	{
-		infile			<- infiles[i]
-		#	load simulated data
-		file			<- paste(indir, '/', infile, sep='')
-		cat(paste('\nLoading file', file))
-		load(file)		#expect "df.epi"    "df.trms"   "df.inds"   "df.sample" "df.seq"
-		set( df.seq, NULL, 'IDCLU', df.seq[, as.integer(IDCLU)] )		
-		pool.infile		<- paste(  substr(infile,1,nchar(infile)-21),'_TEST_pol', sep='' )
-		file.name		<- paste(pool.infile,'_CODON-GTR-', select, sep='')		
-		#			
-		if(grepl('nseq',select))
+	selects		<- c( paste('grid-mseq',seq(600, 1200, 200), sep=''), paste('grid-clsmseq',seq(600, 1200, 200), sep=''), paste('grid-clrndseq',seq(600, 1200, 200), sep=''))
+	selects		<- paste('grid-mseq',seq(600, 1200, 200), sep='')
+	for(select in selects)
+	{		
+		for(i in seq_along(infiles))
 		{
-			thresh.NSEQ		<- as.numeric(substring(select, 5)) 
-			thresh.brl		<- c(seq(0.001, 0.05, 0.001), seq(0.06, 0.5, 0.1))
-			thresh.nseq		<- sapply(thresh.brl, function(x)
-					{
-						clustering		<- hivc.clu.clusterbythresh(seq.ph, thresh.brl=x, dist.brl=tmp, retval="all")
-						which(clustering$size.tips>10)
-						length(which(!is.na(clustering$clu.mem[ seq_len(Ntip(seq.ph))] )))					
-					})
-			thresh.brl		<- thresh.brl[ which(thresh.nseq>=thresh.NSEQ)[1] ]
-			clustering		<- hivc.clu.clusterbythresh(seq.ph, thresh.brl=thresh.brl, dist.brl=tmp, retval="all")		
-			cat(paste('\nFound clusters, n=', length(clustering$clu.idx)))
-			seq.select		<- subset( data.table( PH_NODE_ID=seq_len(Ntip(seq.ph)), CLU_ID=clustering$clu.mem[ seq_len(Ntip(seq.ph))] ), !is.na(CLU_ID) )
-			seq.select[, LABEL:= seq.select[, seq.ph$tip.label[PH_NODE_ID]] ]
-			seq.select		<- merge(df.seq, seq.select, by='LABEL')
+			infile			<- infiles[i]
+			#	load simulated data
+			file			<- paste(indir, '/', infile, sep='')
+			cat(paste('\nLoading file', file))
+			load(file)		#expect "df.epi"    "df.trms"   "df.inds"   "df.sample" "df.seq"
+			file.name		<- paste(indir, gsub('_SIMULATED_INTERNAL.R',paste('_TEST_pol_CODON-GTR_fixedtree_',select,'.xml',sep=''),infile), sep='/')
+			set( df.seq, NULL, 'IDCLU', df.seq[, as.integer(IDCLU)] )
+			setnames(df.seq, c("LABEL", "IDCLU", "IDPOP"), c("TAXON_NAME", "CLU_ID", "TAXON_ID"))
+			#	
+			seq.select		<- beast.choose.seq.by.clusters(df.seq, select, verbose=1)
+			#
+			#	read NEWICK trees for each cluster phylogeny, if there
+			#
+			phd		<- NULL
+			tmp		<- list.files(indir, '_DATEDTREE.newick$', full.names=FALSE)
+			tmp		<- tmp[ grepl(substr(infile, 1, regexpr('_SIMULATED',infile)), tmp) ]
+			if(length(tmp))
+			{
+				# select
+				phd					<- read.tree(paste(indir, tmp, sep='/'))
+				
+				tmp2				<- data.table(TAXON_ID= sapply(phd, function(x) x$tip.label[1]), IDX=seq_along(phd))
+				set( tmp2, NULL, 'TAXON_ID', tmp2[, as.integer(substring(sapply(strsplit(TAXON_ID, tree.id.labelsep, fixed=TRUE),'[[',1),7)) ] )
+				tmp2				<- merge(subset(seq.select, select=c(TAXON_ID, CLU_ID)), tmp2, by='TAXON_ID')			
+				phd					<- lapply(tmp2[,IDX], function(i) phd[[i]] )
+				names(phd)			<- tmp2[, CLU_ID]
+				# plot
+				phd.plot			<- eval(parse(text=paste('phd[[',seq_along(phd),']]', sep='',collapse='+')))			
+				#phd.plot			<- drop.tip(phd.plot, which(grepl('NOEXIST', phd.plot$tip.label)), root.edge=1)
+				phd.plot			<- ladderize(phd.plot)									
+				pdf(file=gsub('.xml','_BEASTDATEDTREE.pdf',file.name), w=10, h=Ntip(phd.plot)*0.1)
+				plot(phd.plot, show.tip=TRUE, cex=0.5)
+				dev.off()									
+			}
+			#
+			#	create BEAST XML POL
+			#
+			seq.select.pol	<- subset(seq.select, select=c("CLU_ID", "TAXON_ID", "TAXON_NAME", "POL" ))
+			setnames(seq.select.pol, 'POL', 'SEQ')							
+			bxml			<- beastscript.multilocus.codon.gtr( file.name, seq.select.pol, phd, verbose=1 )
+			cat(paste("\nwrite xml file to",file.name))
+			saveXML(bxml, file=file.name)		
 		}
-		if(grepl('mseq',select))
-		{
-			thresh.NSEQ		<- as.numeric(substring(select, 10))
-			seq.select		<- subset(df.inds, !is.na(IDCLU))
-			seq.select		<- subset(merge(seq.select, seq.select[, list(CLU_N=-length(which(!is.na(TIME_SEQ)))), by='IDCLU'], by='IDCLU'), CLU_N<0 & !is.na(TIME_SEQ))
-			setkey(seq.select, CLU_N, IDCLU)
-			tmp				<- unique(seq.select)
-			tmp[, CLU_CN:= tmp[,cumsum(-CLU_N)]]
-			tmp				<- tmp[seq_len( tmp[, which(CLU_CN>=thresh.NSEQ)[1]] ), ] 
-			seq.select		<- merge( seq.select, subset(tmp, select=IDCLU), by='IDCLU' )
-			seq.select		<- merge(df.seq, seq.select, by=c('IDCLU','IDPOP'))			
-			cat(paste('\nFound clusters, n=', seq.select[, length(unique(IDCLU))])) 
-			cat(paste('\nFound sequences, n=', seq.select[, length(unique(IDPOP))]))					
-		}
-		if(grepl('cseq',select))
-		{
-			thresh.NSEQ		<- as.numeric(substring(select, 10))
-			seq.select		<- subset(df.inds, !is.na(IDCLU))
-			seq.select		<- subset(merge(seq.select, seq.select[, list(CLU_N=-length(which(!is.na(TIME_SEQ)))), by='IDCLU'], by='IDCLU'), CLU_N<=-thresh.NSEQ & !is.na(TIME_SEQ))
-			setkey(seq.select, CLU_N, IDCLU)
-			tmp				<- unique(seq.select)
-			seq.select		<- merge( seq.select, subset(tmp, select=IDCLU), by='IDCLU' )
-			seq.select		<- merge(df.seq, seq.select, by=c('IDCLU','IDPOP'))			
-			cat(paste('\nFound clusters, n=', seq.select[, length(unique(IDCLU))])) 
-			cat(paste('\nFound sequences, n=', seq.select[, length(unique(IDPOP))]))					
-		}
-		#
-		#	read NEWICK trees for each cluster phylogeny, if there
-		#
-		phd		<- NULL
-		tmp		<- list.files(indir, '_DATEDTREE.newick$', full.names=FALSE)
-		tmp		<- tmp[ grepl(substr(infile, 1, regexpr('_SIMULATED',infile)), tmp) ]
-		if(length(tmp))
-		{
-			# select
-			phd					<- read.tree(paste(indir, tmp, sep='/'))
-			
-			tmp2				<- data.table(IDPOP= sapply(phd, function(x) x$tip.label[1]), IDX=seq_along(phd))
-			set( tmp2, NULL, 'IDPOP', tmp2[, as.integer(substring(sapply(strsplit(IDPOP, tree.id.labelsep, fixed=TRUE),'[[',1),7)) ] )
-			tmp2				<- merge(subset(seq.select, select=c(IDPOP, IDCLU)), tmp2, by='IDPOP')			
-			phd					<- lapply(tmp2[,IDX], function(i) phd[[i]] )
-			names(phd)			<- tmp2[, IDCLU]
-			# plot
-			phd.plot			<- eval(parse(text=paste('phd[[',seq_along(phd),']]', sep='',collapse='+')))			
-			#phd.plot			<- drop.tip(phd.plot, which(grepl('NOEXIST', phd.plot$tip.label)), root.edge=1)
-			phd.plot			<- ladderize(phd.plot)
-			tmp					<- paste(indir, '/', file.name, '_BEASTDATEDTREE.pdf', sep='')						
-			pdf(file=gsub('newick','pdf',tmp), w=10, h=Ntip(phd.plot)*0.1)
-			plot(phd.plot, show.tip=TRUE, cex=0.5)
-			dev.off()									
-		}
-		#
-		#	create BEAST XML
-		#		
-		#
-		#	POL
-		#
-		if(1)
-		{
-			cat(paste('\ncreate POL BEAST XML file for seqs=',paste( seq.select[,LABEL], collapse=' ')))
-			seq.select.pol	<- subset(seq.select, select=c("IDCLU", "IDPOP", "LABEL", "POL" ))
-			setnames(seq.select.pol, 'POL', 'SEQ')			
-			hivc.beastscript.multilocus.codon.gtr( file.name, seq.select.pol, phd, verbose=1 )		
-		}				
 	}
 }
 ##--------------------------------------------------------------------------------------------------------

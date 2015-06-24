@@ -203,7 +203,70 @@ prog.PANGEA.SeqGen.run.WINDOWScompatible<- function()
 	
 	return(1)
 }
-
+######################################################################################
+#	Program to add gaps into sequences  	
+#	olli originally written 23-06-2015
+######################################################################################
+prog.PANGEA.AddGaps.run.v1<- function()
+{	
+	indir.simu		<- '/Users/Oliver/git/HPTN071sim/treec150623/nogaps'
+	indir.gap		<-	'~/git/HPTN071sim/treec150623/PANGEAreal'
+	infile.simu		<- '150227_HPTN071_TRAIN1_SIMULATED'
+	infile.gap		<- '150623_GlobalAlignment_cov1.fasta'
+	outdir			<- '/Users/Oliver/git/HPTN071sim/treec150623/withgaps'
+	outfile.cov		<- regmatches(infile.gap,regexpr('cov[0-9]+',basename(infile.gap)))	
+	gap.country		<- 'ZA'
+	gap.symbol		<- '?'
+	gap.seed		<- 42
+	outfile			<- paste(infile.simu, '_', gap.country, outfile.cov, '.fa', sep='')
+	verbose			<- 1
+	#
+	#	read args
+	#
+	if(exists("argv"))
+	{
+		#	args input
+		tmp<- na.omit(sapply(argv,function(arg)
+						{	switch(substr(arg,2,10),
+									indir.simu= return(substr(arg,12,nchar(arg))),NA)	}))
+		if(length(tmp)>0) indir.simu<- tmp[1]	
+		tmp<- na.omit(sapply(argv,function(arg)
+						{	switch(substr(arg,2,9),
+									indir.gap= return(substr(arg,11,nchar(arg))),NA)	}))
+		if(length(tmp)>0) indir.gap<- tmp[1]	
+		tmp<- na.omit(sapply(argv,function(arg)
+						{	switch(substr(arg,2,11),
+									infile.gap= return(substr(arg,13,nchar(arg))),NA)	}))
+		if(length(tmp)>0) infile.gap<- tmp[1]
+		tmp<- na.omit(sapply(argv,function(arg)
+						{	switch(substr(arg,2,12),
+									infile.simu= return(substr(arg,14,nchar(arg))),NA)	}))
+		if(length(tmp)>0) infile.simu<- tmp[1]
+		tmp<- na.omit(sapply(argv,function(arg)
+						{	switch(substr(arg,2,7),
+									outdir= return(substr(arg,9,nchar(arg))),NA)	}))
+		if(length(tmp)>0) outdir<- tmp[1]
+		tmp<- na.omit(sapply(argv,function(arg)
+						{	switch(substr(arg,2,8),
+									outfile= return(substr(arg,10,nchar(arg))),NA)	}))
+		if(length(tmp)>0) outfile<- tmp[1]
+		
+		tmp<- na.omit(sapply(argv,function(arg)
+						{	switch(substr(arg,2,12),
+									gap.country= return(substr(arg,14,nchar(arg))),NA)	}))
+		if(length(tmp)>0) gap.country<- tmp[1]
+		tmp<- na.omit(sapply(argv,function(arg)
+						{	switch(substr(arg,2,11),
+									gap.symbol= return(substr(arg,13,nchar(arg))),NA)	}))
+		if(length(tmp)>0) gap.symbol<- tmp[1]					
+	}
+	if(verbose)
+	{
+		cat('\ninput args\n',paste(indir.simu, indir.gap, infile.simu, infile.gap, outdir, outfile.cov, outfile, gap.country, gap.symbol, gap.seed	, sep='\n'))
+	}
+	sgp		<- PANGEA.add.gaps(indir.simu, indir.gap, infile.simu, infile.gap, gap.country, gap.symbol, gap.seed, verbose=1)
+	write.dna(sgp, file=paste(outdir, outfile, sep='/'), format='fasta', colsep='', nbcol=-1)	
+}
 ######################################################################################
 #	Program to simulate sequences with Seq-Gen-1.3.3 	
 #	olli originally written 09-09-2014
