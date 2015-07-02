@@ -59,7 +59,7 @@ if(length(args))
 					PR.SEQGEN.FILECREATOR	= "prog.PANGEA.SeqGen.createInputFile",
 					PR.SEQGEN.SIMULATOR		= "prog.PANGEA.SeqGen.run.v4",
 					SKYGRID					= "project.PANGEA.TEST.SSApg.CLUSTERBEAST.skygrid",
-					ADDGAPS					= "project.PANGEA.TEST.pipeline.Feb2015.treecomparison.gaps"
+					SIMGAPS					= "project.PANGEA.treecomparison.gaps.simulate"
 					)
 	}
 	tmp<- na.omit(sapply(args,function(arg)

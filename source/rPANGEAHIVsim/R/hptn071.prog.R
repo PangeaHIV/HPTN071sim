@@ -811,8 +811,11 @@ prog.PANGEA.SeqGen.run.v4<- function()
 	#
 	#	zip simulated tree files
 	#
-	tmp2			<- c( paste(outdir, '/', infile.prefix, 'SIMULATED_metadata.csv', sep=''), paste(indir.epi, '/', gsub('SAVE.R','CROSS_SECTIONAL_SURVEY.csv',infile.epi), sep=''), paste(indir.epi, '/', infile.prefix, 'DATEDTREE.newick', sep='') )
-	zip( paste(outdir, '/', infile.prefix, 'SIMULATED_DATEDTREE.zip', sep=''), tmp2, flags = "-FSr9XTj")
+	tmp2			<- c( paste(outdir, '/', infile.prefix, 'SIMULATED_metadata.csv', sep=''), paste(indir.epi, '/', gsub('SAVE.R','CROSS_SECTIONAL_SURVEY.csv',infile.epi), sep=''), 
+							paste(indir.epi, '/', infile.prefix, 'DATEDTREE.newick', sep=''),
+							paste(indir.epi, '/', infile.prefix, 'DATEDCLUTREES.newick', sep=''),
+							paste(indir.epi, '/', infile.prefix, 'SUBSTTREE.newick', sep=''))
+	zip( paste(outdir, '/', infile.prefix, 'SIMULATED_TREE.zip', sep=''), tmp2, flags = "-FSr9XTj")
 	#
 	tmp				<- unique(c(tmp, tmp2))
 	dummy			<- file.remove(tmp)	
@@ -1401,13 +1404,14 @@ prog.PANGEA.SeqGen.createInputFile<- function()
 	#	
 	infiles				<- list.files(indir.vts)
 	tmp					<- paste('^',infile.prefix,'.*nex$',sep='')
-	infiles				<- infiles[ grepl(tmp, infiles)  ]	
+	infiles				<- sort(infiles[ grepl(tmp, infiles)  ])	
 	if(!length(infiles))	stop('cannot find files matching criteria')
 	#
 	#	read from VirusTreeSimulator and convert branch lengths in time to branch lengths in subst/site
 	#
 	df.ph				<- vector('list', length(infiles))
 	phd					<- vector('list', length(infiles))
+	phs					<- vector('list', length(infiles))
 	phd.plot			<- vector('list', length(infiles))
 	df.nodestat			<- vector('list', length(infiles))
 	cat(paste('\nUsing StartTimeMode',pipeline.args['index.starttime.mode',][,v]))
@@ -1438,7 +1442,7 @@ prog.PANGEA.SeqGen.createInputFile<- function()
 		node.stat[, IDPOP:= as.integer(node.stat[,substr(VALUE, 4, nchar(VALUE))])]
 		node.stat		<- merge(subset(df.inds, select=c(IDPOP, GENDER, DOB, TIME_SEQ, IDCLU)), subset(node.stat, select=c(IDPOP, NODE_ID)), by='IDPOP')
 		#	produce collapsed tree with branch length in units of calendar time
-		phd[[i]]			<- seq.collapse.singles(ph)
+		phd[[i]]		<- seq.collapse.singles(ph)
 		#
 		#	create collapsed Newick tree with expected substitutions / site for each branch 
 		#
@@ -1498,6 +1502,7 @@ prog.PANGEA.SeqGen.createInputFile<- function()
 		ph$tip.label		<- node.stat[seq_len(Ntip(ph)), ][, LABEL]
 		phd[[i]]$tip.label	<- node.stat[seq_len(Ntip(phd[[i]])), ][, LABEL]
 		phd.plot[[i]]		<- seq.singleton2bifurcatingtree( phd[[i]] )
+		phs[[i]]			<- seq.singleton2bifurcatingtree( ph )
 		#phd[[i]]			<- seq.addrootnode( phd[[i]], dummy.label=paste('NOEXIST_IDCLU',node.stat[, unique(IDCLU)],'|NA|DOB_NA|',root.ctime,sep='') )
 		#
 		df.nodestat[[i]]	<- node.stat
@@ -1515,19 +1520,35 @@ prog.PANGEA.SeqGen.createInputFile<- function()
 		df.ph[[i]]		<- data.table(ROOT_CALENDAR_TIME= root.ctime, IDCLU=node.stat[, unique(IDCLU)], NEWICK=tmp)
 		#readline()
 	}
-	#	write phylogenies of each transmission network into a single newick file
+	#	write cluster trees of each transmission network into a single newick file
 	phd			<- sapply(phd,'[[',1)
-	file	<- paste(indir.epi, '/', substr(infile.epi,1,nchar(infile.epi)-6),'DATEDTREE.newick', sep='')
+	file	<- paste(indir.epi, '/', substr(infile.epi,1,nchar(infile.epi)-6),'DATEDCLUTREES.newick', sep='')
 	cat(paste('\nWrite to file=',file))
 	writeLines(phd, con=file)
-	#	get multifurcating cluster tree with brl in units of calendar time
+	#	get multifurcating tree with brl in units of calendar time
 	options(expressions=1e4)
 	phd			<- eval(parse(text=paste('phd.plot[[',seq_along(phd.plot),']]', sep='',collapse='+')))
 	options(expressions=5e3)
 	phd			<- drop.tip(phd, which(grepl('DUMMY', phd$tip.label)), root.edge=1)
 	phd			<- ladderize(phd)
+	#	write multifurcating tree with brl in units of calendar time
+	file	<- paste(indir.epi, '/', substr(infile.epi,1,nchar(infile.epi)-6),'DATEDTREE.newick', sep='')
+	cat(paste('\nWrite to file=',file))
+	write.tree(phd, file=file)
+	#	write multifurcating tree with brl in units of subst/site
+	options(expressions=1e4)
+	phs			<- eval(parse(text=paste('phs[[',seq_along(phs),']]', sep='',collapse='+')))
+	options(expressions=5e3)
+	phs			<- drop.tip(phs, which(grepl('DUMMY', phs$tip.label)), root.edge=1)
+	phs			<- ladderize(phs)
+	file	<- paste(indir.epi, '/', substr(infile.epi,1,nchar(infile.epi)-6),'SUBSTTREE.newick', sep='')
+	cat(paste('\nWrite to file=',file))
+	write.tree(phs, file=file)
+	#
 	df.ph		<- do.call('rbind',df.ph)
 	df.nodestat	<- do.call('rbind',df.nodestat)
+	#	
+	#	
 	#	check that we have exactly one root edge with overall mean between host rate per cluster
 	if(!is.na(root.edge.rate))
 		stopifnot( df.nodestat[, length(unique(IDCLU))]==nrow(subset(df.nodestat, ER==root.edge.rate)) )	
@@ -1789,7 +1810,7 @@ rPANGEAHIVsim.pipeline<- function(indir, infile.ind, infile.trm, outdir, pipelin
 	outdir.VTS		<- paste(outdir,'/VirusTreeSimulator',sep='')
 	cmd				<- paste(cmd, 'mkdir -p ', outdir.VTS,sep='')
 	outfile			<- substr(infile.ind, 1, nchar(infile.ind)-7)
-	prog.args		<- paste('-demoModel Logistic -N0 ',pipeline.args['v.N0tau',][,v] ,' -growthRate ', pipeline.args['v.r',][,v],' -t50 ',pipeline.args['v.T50',][,v], sep='')	
+	prog.args		<- paste('-seed ',pipeline.args['s.seed',][, v],' -demoModel Logistic -N0 ',pipeline.args['v.N0tau',][,v] ,' -growthRate ', pipeline.args['v.r',][,v],' -t50 ',pipeline.args['v.T50',][,v], sep='')	
 	cmd				<- paste(cmd, cmd.VirusTreeSimulator(outdir.TrChain, infile.trm, infile.ind, outdir.VTS, outfile, prog.args=prog.args), sep='\n')	
 	##	create seq gen input files 
 	outdir.SG		<- paste(outdir,'/SeqGen',sep='')

@@ -2178,7 +2178,11 @@ PANGEA.add.gaps<- function(indir.simu, indir.gap, infile.simu, infile.gap, gap.c
 	cmd			<- paste('mafft --thread 4 --treeout --reorder --keeplength --mapout --ep 0.0 --add ',infile.new,' ',infile.old,' > ',file, sep='')
 	cat('\ncalling')
 	cat(cmd)
-	system(cmd)				
+	system(cmd)	
+	#	remove missing taxa from PANGEA alignment
+	ps			<- as.character(ps)
+	tmp			<- apply(ps, 1, function(x) !all(x%in%c('-','?','n'))	)
+	ps			<- as.DNAbin( ps[tmp, ] )
 	#	merge all
 	file		<- list.files(indir.simu, pattern='mergedpartial')
 	stopifnot(length(file)==1)
@@ -2186,10 +2190,10 @@ PANGEA.add.gaps<- function(indir.simu, indir.gap, infile.simu, infile.gap, gap.c
 	tmp	<- tmp[grepl('IDPOP|HOUSE', rownames(tmp)),]
 	psm	<- rbind(ps, tmp)
 	#
-	#	randomly select gaps from sequences in infile.gap
+	#	randomly select gaps from sequences in infile.gap from non-missing sequences
 	#
 	set.seed(gap.seed)
-	x			<- as.character(psm)
+	x			<- as.character(psm)	
 	tmp			<- which(grepl(gap.country,rownames(x)))
 	gp.df		<- data.table(IDXSIM=which(grepl('IDPOP|HOUSE',rownames(x))))
 	gp.df[, IDXGAP:=sample(tmp, nrow(gp.df), replace=TRUE)]
@@ -2199,17 +2203,133 @@ PANGEA.add.gaps<- function(indir.simu, indir.gap, infile.simu, infile.gap, gap.c
 		x[gp.df[i, IDXSIM],z]	<- gap.symbol
 	}
 	x			<- x[ grepl('IDPOP|HOUSE', rownames(x)), ]
-	#x			<- seq.rmgaps(x, rm.only.col.gaps=1, rm.char=c('-'), verbose=0)
-	#cat(paste('\nSeq length without common gaps ("-")', ncol(x)))	
-	#x			<- seq.rmgaps(as.character(x), rm.only.col.gaps=1, rm.char=c('?'), verbose=0)
-	#cat(paste('\nSeq length with seq coverage (no common "?")', ncol(x)))	
-	sgp			<- seq.rmgaps(x, rm.only.col.gaps=1, rm.char=c('-','?'), verbose=0)
-	cat(paste('\nSeq length without common gaps and with seq coverage (no common "?","-"), n=', ncol(sgp)))
+	#	remove leading and trailing gap rows
+	tmp			<- which(apply(x, 2, function(z) !all(z%in%c('-','?','n'))))
+	sgp			<- as.DNAbin(x[, seq.int(tmp[1], tmp[length(tmp)])])
+	cat(paste('\nSeq length without leading/trailing gaps and with seq coverage (no first/last common "?","-"), n=', ncol(sgp)))
 	#	clean up
 	tmp			<- list.files(indir.simu, pattern='^TMP', full.names=TRUE)
 	file.remove(tmp)
 	
 	sgp	
+}
+##--------------------------------------------------------------------------------------------------------
+#	Function to add gaps into sequences  	
+#	olli originally written 01-07-2015
+##--------------------------------------------------------------------------------------------------------
+PANGEA.add.gaps.maintain.triplets<- function(indir.simu, indir.gap, infile.simu, infile.gap, gap.country, gap.symbol, gap.seed, outfile=NA, verbose=1)
+{			
+	#	find files 		
+	files			<- data.table(FILE=list.files(indir.simu, pattern='\\.fa.*$'))
+	files			<- subset(files, !grepl('RMGPS',FILE) & !grepl('map$',FILE) & !grepl('^TMP',FILE) & grepl(infile.simu, FILE, fixed=1))
+	if(files[, any(grepl('gag', FILE))])
+	{
+		files[, SIMU:=files[, regmatches(FILE,regexpr('TRAIN[0-9]', FILE))]]
+		files[, GENE:=files[, sapply(strsplit(FILE,'_'), '[[', 5)]]
+		set(files, NULL, 'GENE', toupper(files[, substr(GENE,1,nchar(GENE)-3)]))
+		set(files, NULL, 'GENE', files[, factor(GENE, levels=c('GAG','POL','ENV'), labels=c('GAG','POL','ENV'))])
+		setkey(files, SIMU, GENE)
+		files			<- subset(files, grepl(infile.simu, FILE, fixed=1) & !is.na(GENE))
+		#	concatenate simu seqs
+		files[, {
+					gag	<- read.dna( paste(indir.simu, FILE[1], sep='/'), format='fasta' )
+					pol	<- read.dna( paste(indir.simu, FILE[2], sep='/'), format='fasta' )
+					env	<- read.dna( paste(indir.simu, FILE[3], sep='/'), format='fasta' )
+					tmp	<- cbind(gag, pol, env)
+					write.dna( tmp, file=paste(indir.simu, '/', 'TMP', gsub('gag','conc',FILE[1]), sep=''), format='fasta', colsep='', nbcol=-1)
+					NULL
+				}, by='SIMU']
+		infile.simu	<- paste('TMP', gsub('gag','conc',files[1,FILE]), sep='')
+	}
+	else
+		infile.simu	<- files[1,FILE]
+	#
+	#	add to fixed PANGEA alignment
+	#
+	ps				<- read.dna(paste(indir.gap,'/',infile.gap,sep=''), format='fasta')
+	tmp				<- ps[(nrow(ps)-20):nrow(ps),]
+	tmp				<- as.character(tmp)
+	tmp[tmp=='?']	<- 'n'	#need this for MAFFT
+	tmp				<- as.DNAbin(tmp)
+	infile.old		<- paste('TMP',gsub('\\.','_last20\\.',infile.gap),sep='')
+	write.dna(tmp, file=paste(indir.simu, infile.old, sep='/'), format='fasta', colsep='', nbcol=-1)	
+	infile.old	<- paste(indir.simu, infile.old, sep='/')	
+	#	mafft --thread 1 --treeout --reorder --keeplength --mapout --ep 0.0 --add new_sequences input > output
+	infile.new	<- paste(indir.simu,'/',infile.simu, sep='')	
+	file		<- paste(indir.simu,'/','TMP', gsub('\\.','mergedpartial\\.',infile.simu), sep='')
+	cmd			<- paste('mafft --thread 4 --treeout --reorder --keeplength --mapout --ep 0.0 --add ',infile.new,' ',infile.old,' > ',file, sep='')
+	cat('\ncalling')
+	cat(cmd)
+	system(cmd)	
+	#	remove missing taxa from PANGEA alignment
+	ps			<- as.character(ps)
+	tmp			<- apply(ps, 1, function(x) !all(x%in%c('-','?','n'))	)
+	ps			<- as.DNAbin( ps[tmp, ] )
+	#	merge all
+	file		<- list.files(indir.simu, pattern='mergedpartial')
+	stopifnot(length(file)==1)
+	tmp	<- read.dna(paste(indir.simu, file, sep='/'), format='fasta')
+	tmp	<- tmp[grepl('IDPOP|HOUSE', rownames(tmp)),]
+	psm	<- rbind(ps, tmp)
+	x	<- as.character(psm)
+	#	remove leading and trailing gap rows
+	tmp			<- which(apply(x[ grepl('IDPOP|HOUSE', rownames(x)), ], 2, function(z) !all(z%in%c('-','?','n'))))
+	cat(paste('\nfirst non-gap',tmp[1],'last non-gap',tmp[length(tmp)]))
+	x			<- x[, seq.int(tmp[1], tmp[length(tmp)])]
+	#	rm gap columns that are in the PANGEA alignment and in the simulations
+	#	(should not be in PANGEA alignment)
+	tmp			<- which(apply(x, 2, function(z) all(z%in%c('-','?','n'))))
+	cat(paste('\nrm common gap columns, n=',length(tmp)))
+	x			<- x[,-tmp]		 
+	#	check that gaps are only added in triples of 3
+	#	not true. curating alignment manually: can explain all 0110 discrepancies. 
+	#	remove columns that break the codon structure
+	#exp.nontriplegaps<- c(388, 1476)
+	#tmp			<- paste(as.numeric(x[nrow(x),]=='-'),collapse='')
+	#tmp			<- gregexpr('0110',tmp)[[1]] + 1
+	#cat(paste('\nstarting positions of non-triplet gaps',paste(tmp, collapse=', ')))
+	#cat(paste('\nexpect starting positions of non-triplet gaps',paste(exp.nontriplegaps, collapse=', ')))
+	#stopifnot( all(tmp==exp.nontriplegaps) )
+	#x			<- x[,-c(tmp, tmp+1)]
+	#	check that gaps are only added in triples of 3 
+	xx			<- paste(as.numeric(x[nrow(x),]=='-'),collapse='')
+	dfg			<- data.table(STRT=gregexpr('01',xx)[[1]] + 1)	#gap start positions
+	tmp			<- strsplit(xx,'0')[[1]]
+	dfg[, LEN:=sapply( tmp[tmp!=""], nchar )]
+	dfg[, CUT:= LEN%%3]
+	dfg			<- subset(dfg, CUT>0)
+	if(nrow(dfg))
+	{
+		tmp		<- unlist(lapply( seq_len(nrow(dfg)), function(i)	seq.int(from=dfg[i,STRT], length.out=dfg[i,CUT])))
+		cat(paste('\npositions of large non-triplet gaps that are removed',paste(tmp, collapse=', ')))
+		x		<- x[,-tmp]
+	}
+	if(!is.na(outfile))		
+	{
+		#	keep merged alignment for back-compatibility
+		write.dna(as.DNAbin(x),file=paste(indir.simu,'/',gsub('\\.fa','_RMGPS\\.fa',outfile),sep=''),format='fasta', colsep='', nbcol=-1)	
+	}
+	#	check that total no of gaps is now divisible by 3
+	tmp			<- apply( x[ grepl('IDPOP|HOUSE', rownames(x)), ], 1, function(z)	sum(z=='-')	)
+	stopifnot( all(tmp%%3==0) )
+	#
+	#	randomly select gaps from sequences in infile.gap from non-missing sequences
+	#
+	set.seed(gap.seed)
+	tmp			<- which(grepl(gap.country,rownames(x)))
+	dfg		<- data.table(IDXSIM=which(grepl('IDPOP|HOUSE',rownames(x))))
+	dfg[, IDXGAP:=sample(tmp, nrow(dfg), replace=TRUE)]
+	for(i in seq_len(nrow(dfg)))
+	{
+		z						<- which(x[ dfg[i, IDXGAP], ]==gap.symbol)
+		x[dfg[i, IDXSIM],z]	<- gap.symbol
+	}
+	x			<- x[ grepl('IDPOP|HOUSE', rownames(x)), ]
+	sgp			<- as.DNAbin(x)	
+	#	clean up
+	tmp			<- list.files(indir.simu, pattern='^TMP', full.names=TRUE)
+	file.remove(tmp)	
+	sgp		
 }
 ##--------------------------------------------------------------------------------------------------------
 #	return evolutionary rate modifier sampler for transmission edges	
