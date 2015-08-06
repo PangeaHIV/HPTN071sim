@@ -58,7 +58,7 @@ cmd.hpcwrapper<- function(cmd, hpcsys= cmd.hpcsys(), hpc.walltime=24, hpc.mem="1
 		wrap<- paste(wrap, "#PBS -j oe", sep='\n')
 		if(!is.na(hpc.q))
 			wrap<- paste(wrap, paste("#PBS -q",hpc.q), sep='\n\n')
-		wrap<- paste(wrap, HPC.LOAD, sep='\n')
+		wrap<- paste(wrap, HPC.CX1.IMPERIAL.LOAD, sep='\n')
 	}
 	else if(hpcsys=='debug')
 		cat(paste("\ndetected no HPC system and no hpcwrapper generated, domain name is",hpcsys))
