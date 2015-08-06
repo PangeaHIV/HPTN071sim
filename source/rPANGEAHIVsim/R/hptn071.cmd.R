@@ -1,6 +1,7 @@
 PR.PACKAGE					<- "rPANGEAHIVsim"
 #PR.STARTME					<- system.file(package=PR.PACKAGE, "misc", "rPANGEAHIV.startme.R")
 PR.STARTME					<- '/Users/Oliver/git/HPTN071sim/source/rPANGEAHIVsim/misc/rPANGEAHIV.startme.R'
+#PR.STARTME					<- '/Users/Oliver/git/HPTN071sim/source/rPANGEAHIVsim/misc/rPANGEAHIV.startme.R'
 PR.HPTN071.INPUT.PARSER1	<- paste(PR.STARTME,"-exe=HPTN071.INPUT.PARSER1",sep=' ')
 PR.HPTN071.INPUT.PARSER2	<- paste(PR.STARTME,"-exe=HPTN071.INPUT.PARSER2",sep=' ')
 PR.HPTN071.INPUT.PARSER3	<- paste(PR.STARTME,"-exe=HPTN071.INPUT.PARSER3",sep=' ')
@@ -10,11 +11,12 @@ PR.SEQGEN.FILECREATOR		<- paste(PR.STARTME,"-exe=PR.SEQGEN.FILECREATOR",sep=' ')
 PR.SEQGEN.SIMULATOR			<- paste(PR.STARTME,"-exe=PR.SEQGEN.SIMULATOR",sep=' ')
 PR.VIRUSTREESIMULATOR		<- system.file(package=PR.PACKAGE, "ext", "VirusTreeSimulator.jar")
 PR.SEQGEN					<- system.file(package=PR.PACKAGE, "ext", "seq-gen")
+PR.VARIOUS					<- paste(PR.STARTME," -exe=VARIOUS",sep='')
 
 HPC.MPIRUN					<- {tmp<- c("mpirun","mpiexec"); names(tmp)<- c("debug","cx1.hpc.ic.ac.uk"); tmp}
 HPC.CX1.IMPERIAL			<- "cx1.hpc.ic.ac.uk"		#this is set to system('domainname',intern=T) for the hpc cluster of choice
 HPC.MEM						<- "1750mb"
-HPC.CX1.IMPERIAL.LOAD		<- "module load intel-suite mpi R/2.15"
+HPC.CX1.IMPERIAL.LOAD		<- "module load intel-suite mpi mafft/7 R/3.2"
 
 
 ######################################################################################
@@ -23,6 +25,21 @@ cmd.hpcsys<- function()
 	tmp<- system('domainname',intern=T)
 	if(!nchar(tmp))	tmp<- "debug"
 	tmp
+}
+##--------------------------------------------------------------------------------------------------------
+##	call to various 
+##	olli originally written 06-08-2015
+##--------------------------------------------------------------------------------------------------------
+cmd.various<- function(prog= PR.VARIOUS)
+{
+	cmd		<- "#######################################################
+# start: run VARIOUS
+#######################################################"
+	cmd		<- paste(cmd, '\n', prog, '\n', sep='')
+	cmd		<- paste(cmd,"#######################################################
+# end: run VARIOUS
+#######################################################\n",sep='')
+	cmd
 }
 ##--------------------------------------------------------------------------------------------------------
 ##	batch file wrapper

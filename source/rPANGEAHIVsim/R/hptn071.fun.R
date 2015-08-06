@@ -2257,6 +2257,7 @@ PANGEA.add.gaps.maintain.triplets<- function(indir.simu, indir.gap, infile.simu,
 	#	mafft --thread 1 --treeout --reorder --keeplength --mapout --ep 0.0 --add new_sequences input > output
 	infile.new	<- paste(indir.simu,'/',infile.simu, sep='')	
 	file		<- paste(indir.simu,'/','TMP', gsub('\\.','mergedpartial\\.',infile.simu), sep='')
+	#	do not force length: mafft --reorder --anysymbol --add new_sequences --auto input
 	cmd			<- paste('mafft --thread 4 --treeout --reorder --keeplength --mapout --ep 0.0 --add ',infile.new,' ',infile.old,' > ',file, sep='')
 	cat('\ncalling')
 	cat(cmd)
@@ -2310,8 +2311,8 @@ PANGEA.add.gaps.maintain.triplets<- function(indir.simu, indir.gap, infile.simu,
 		write.dna(as.DNAbin(x),file=paste(indir.simu,'/',gsub('\\.fa','_RMGPS\\.fa',outfile),sep=''),format='fasta', colsep='', nbcol=-1)	
 	}
 	#	check that total no of gaps is now divisible by 3
-	tmp			<- apply( x[ grepl('IDPOP|HOUSE', rownames(x)), ], 1, function(z)	sum(z=='-')	)
-	stopifnot( all(tmp%%3==0) )
+	tmp			<- apply( x[ grepl('IDPOP|HOUSE', rownames(x)), ], 1, function(z)	sum(z=='-')	)	
+	#stopifnot( all(tmp%%3==0) )
 	#
 	#	randomly select gaps from sequences in infile.gap from non-missing sequences
 	#

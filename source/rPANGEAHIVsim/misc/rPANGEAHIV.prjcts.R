@@ -1994,7 +1994,7 @@ project.PANGEA.treecomparison.gaps<- function()
 				{
 					load( paste(indir.wgaps,'/',file,sep='') )		
 					dc		<- data.table(LABEL=rownames(seq), CVG=seq.length(seq, exclude=c('-','?')) / seq.length(seq, exclude=c('-')))
-					#	exclude <10%, <30%, <60%, <80%
+					#	keep taxa with ACGT >10%, >30%, >60%, >80%
 					dc		<- do.call('rbind',lapply(c(0.1,0.3,0.6,0.8), function(cut)
 									{
 										tmp	<- subset(dc, CVG>=cut)
@@ -2069,8 +2069,8 @@ project.PANGEA.treecomparison.gaps.RobinsonFould.ByMajorityCoverageThreshold<- f
 	if(1)
 	{
 		require(phangorn)
-		indir.wgaps		<- '/Users/Oliver/git/HPTN071sim/treecomparison/withgapstrees'
-		indir.nogaps	<- '/Users/Oliver/git/HPTN071sim/treecomparison/nogaps'
+		indir.wgaps		<- '/Users/Oliver/git/HPTN071sim/treecomparison/withgapstrees_150630'
+		indir.nogaps	<- '/Users/Oliver/git/HPTN071sim/treecomparison/nogaps_150630'
 		files			<- data.table(SIMFILE=list.files(indir.wgaps, pattern='ExaML_result.*finaltree\\.[0-9]+', recursive=TRUE))
 		files[, TRUEFILE:= gsub('SIMULATED.*','DATEDTREE_lrgstclu.newick',gsub('ExaML_result\\.','',basename(SIMFILE)))]
 		set(files, NULL, 'TRUEFILE', files[, gsub('Vill_99_Apr15.*','Vill_99_Apr15.newick',TRUEFILE)])
@@ -2134,7 +2134,7 @@ project.PANGEA.treecomparison.gaps.RobinsonFould.ByMajorityCoverageThreshold<- f
 				labs(x='majority coverage\n(minimum number of aligned short read calls that agree)', y='normalized RF distance btw est and true trees\n(RF/(2*taxa-6)') +
 				facet_grid(~DT) + 
 				theme_bw() + theme(panel.margin.x = unit(0.8, "lines"))
-		ggsave(file= paste(indir.wgaps,'/150623_ExaML_Codon_RF_box.pdf',sep=''), w=9, h=4)
+		ggsave(file= paste(indir.wgaps,'/150630_ExaML_Codon_RF_box.pdf',sep=''), w=12, h=4)
 		
 	}
 }
@@ -2198,7 +2198,7 @@ project.PANGEA.treecomparison.gaps.simulate<- function()
 	gap.symbol		<- '?'
 	gap.seed		<- 42
 	
-	if(1)
+	if(0)
 	{
 		gap.country		<- 'BW'
 		infile.gaps		<- sapply(c(5),function(x) paste('150623_PANGEAGlobal2681_C',x,'.fa',sep=''))
@@ -2217,7 +2217,10 @@ project.PANGEA.treecomparison.gaps.simulate<- function()
 							outfile			<- paste(infile.simu, '_', gap.country, outfile.cov, '.fa', sep='')
 							ans				<- PANGEA.add.gaps.maintain.triplets(indir.simu, indir.gap, infile.simu, infile.gap, gap.country, gap.symbol, gap.seed, outfile=outfile, verbose=1)
 							write.dna(ans, file=paste(outdir, outfile, sep='/'), format='fasta', colsep='', nbcol=-1)					
-						}))						
+						}))	
+	}
+	if(0)
+	{
 		gap.country		<- 'UG'
 		infile.gaps		<- sapply(c(5),function(x) paste('150623_PANGEAGlobal2681_C',x,'.fa',sep=''))
 		invisible(lapply(infile.gaps, function(infile.gap)
@@ -2259,6 +2262,9 @@ project.PANGEA.treecomparison.gaps.simulate<- function()
 							ans				<- PANGEA.add.gaps.maintain.triplets(indir.simu, indir.gap, infile.simu, infile.gap, gap.country, gap.symbol, gap.seed, outfile=outfile, verbose=1)
 							write.dna(ans, file=paste(outdir, outfile, sep='/'), format='fasta', colsep='', nbcol=-1)																		
 						}))		
+	}
+	if(1)
+	{	
 		gap.country		<- 'BW'
 		infile.gaps		<- sapply(c(5),function(x) paste('150623_PANGEAGlobal2681_C',x,'.fa',sep=''))
 		invisible(lapply(infile.gaps, function(infile.gap)
@@ -2301,6 +2307,149 @@ project.PANGEA.treecomparison.gaps.simulate<- function()
 	}
 }	
 ##--------------------------------------------------------------------------------------------------------
+##	olli 03.07.15
+##--------------------------------------------------------------------------------------------------------
+project.PANGEA.treecomparison.gaps.Cut.150703<- function()
+{
+	#
+	#	cut regional data sets to 950 sequences
+	#
+	indir.nogaps	<- '/Users/Oliver/git/HPTN071sim/treecomparison/nogaps'	
+	indir.wgaps		<- '/Users/Oliver/git/HPTN071sim/treecomparison/withgaps_150701'			
+	infiles.nogapsR	<- list.files(indir.nogaps, pattern='DATEDTREE|SUBSTTREE\\.newick')
+	infiles.nogapsR	<- infiles.nogapsR[grepl('TRAIN',infiles.nogapsR)]
+	for(infile.nogapsR in infiles.nogapsR)
+	{
+		#infile.nogapsR	<- infiles.nogapsR[1]		
+		#	create tree for 980 taxa
+		ph				<- read.tree(paste(indir.nogaps,'/',infile.nogapsR,sep=''))
+		load(paste(indir.nogaps, '/', gsub('DATEDTREE.*|SUBSTTREE.*','SIMULATED_INTERNAL.R',infile.nogapsR), sep=''))
+		df.clu			<- subset(df.inds, !is.na(TIME_SEQ))[, list(IDPOP=IDPOP, CLUN=length(IDPOP)), by='IDCLU']
+		setkey(df.clu, IDCLU, CLUN)
+		tmp				<- subset(unique(df.clu), cumsum(CLUN)<980)
+		df.clu			<- merge(df.clu, subset(tmp, select=c(IDCLU)), by='IDCLU')
+		dfl				<- data.table(LABEL= ph$tip.label)
+		dfl[, ID:= seq_len(nrow(dfl))]
+		dfl[, IDPOP:= dfl[, as.integer(substring(sapply(strsplit(LABEL, '|', fixed=1),'[[',1),7))]]
+		df.clu			<- merge(dfl, df.clu, by='IDPOP')		
+		ph				<- drop.tip(ph, setdiff(ph$tip.label,df.clu[, LABEL]))		
+		write.tree(ph,paste(indir.nogaps,'/',gsub('\\.newick','_TAXA980\\.newick',infile.nogapsR),sep=''))
+		#	create alignment of 980 taxa 		
+		seq				<- read.dna(paste(indir.wgaps, '/', gsub('DATEDTREE.*|SUBSTTREE.*','SIMULATED_BWC5.fa',infile.nogapsR), sep=''), format='fasta')
+		seq				<- seq[df.clu[,LABEL],]
+		write.dna(seq, file=paste(indir.wgaps, '/', gsub('DATEDTREE.*|SUBSTTREE.*','SIMULATED_BWC5_TAXA980.fa',infile.nogapsR), sep=''), format='fasta', colsep='', nbcol=-1)
+		seq				<- read.dna(paste(indir.wgaps, '/', gsub('DATEDTREE.*|SUBSTTREE.*','SIMULATED_UGC5.fa',infile.nogapsR), sep=''), format='fasta')
+		seq				<- seq[df.clu[,LABEL],]
+		write.dna(seq, file=paste(indir.wgaps, '/', gsub('DATEDTREE.*|SUBSTTREE.*','SIMULATED_UGC5_TAXA980.fa',infile.nogapsR), sep=''), format='fasta', colsep='', nbcol=-1)
+		
+		#	copy partition files
+		file.copy( 	paste(indir.wgaps, '/', gsub('DATEDTREE.*|SUBSTTREE.*','SIMULATED_BWC5_gene.txt',infile.nogapsR), sep=''),
+					paste(indir.wgaps, '/', gsub('DATEDTREE.*|SUBSTTREE.*','SIMULATED_BWC5_TAXA980_gene.txt',infile.nogapsR), sep='')	)
+		file.copy( 	paste(indir.wgaps, '/', gsub('DATEDTREE.*|SUBSTTREE.*','SIMULATED_BWC5_codon.txt',infile.nogapsR), sep=''),
+					paste(indir.wgaps, '/', gsub('DATEDTREE.*|SUBSTTREE.*','SIMULATED_BWC5_TAXA980_codon.txt',infile.nogapsR), sep='')	)
+		file.copy( 	paste(indir.wgaps, '/', gsub('DATEDTREE.*|SUBSTTREE.*','SIMULATED_UGC5_gene.txt',infile.nogapsR), sep=''),
+					paste(indir.wgaps, '/', gsub('DATEDTREE.*|SUBSTTREE.*','SIMULATED_UGC5_TAXA980_gene.txt',infile.nogapsR), sep='')	)
+		file.copy( 	paste(indir.wgaps, '/', gsub('DATEDTREE.*|SUBSTTREE.*','SIMULATED_UGC5_codon.txt',infile.nogapsR), sep=''),
+					paste(indir.wgaps, '/', gsub('DATEDTREE.*|SUBSTTREE.*','SIMULATED_UGC5_TAXA980_codon.txt',infile.nogapsR), sep='')	)
+	}
+	#
+	#	create CUTs
+	#
+	indir.wgaps	<- '/Users/Oliver/git/HPTN071sim/treecomparison/withgapstrees_150703'
+	infiles		<- data.table(FILE=list.files(indir.wgaps, pattern='\\.fa$'))		
+	infiles		<- subset(infiles, grepl('BWC5|UGC5',FILE))		
+	invisible(lapply(infiles[, FILE],function(file)
+					{
+						print(file)
+						seq		<- read.dna( paste(indir.wgaps,'/',file,sep=''), format='fasta' )		
+						dc		<- data.table(LABEL=rownames(seq), CVG=seq.length(seq, exclude=c('-','?')) / seq.length(seq, exclude=c('-')))
+						#	keep taxa with ACGT >x%
+						dc		<- do.call('rbind',lapply(c(0.05, 0.1, 0.2, 0.3, 0.6), function(cut)
+										{
+											tmp	<- subset(dc, CVG>=cut)
+											tmp[, CUT:=cut]
+											tmp
+										}))
+						#	for each cut, create extra data set
+						seqc	<- copy(seq)
+						invisible(dc[,{
+											seq	<- seqc[LABEL,]	
+											cat(paste('\nNumber of taxa in reduced alignment n=',nrow(seq)))
+											save(seq, file=paste(indir.wgaps,'/',gsub('\\.fa',paste('_CUT',CUT*100,'\\.R',sep=''),file),sep='') )
+										}, by='CUT'])
+						NULL
+					}))
+	infiles		<- data.table(FILE=list.files(indir.wgaps, pattern='\\.R$'))		
+	infiles		<- subset(infiles, grepl('CUT',FILE))
+	infiles[, PARTITION:= gsub('\\.R','_gene.txt',FILE)]
+	infiles[, {
+				file.copy( paste(indir.wgaps,'/',gsub('_CUT[0-9]+','',PARTITION),sep=''), paste(indir.wgaps,'/',PARTITION,sep=''))					
+			}, by='FILE']
+}
+##--------------------------------------------------------------------------------------------------------
+##	olli 02.07.15
+##--------------------------------------------------------------------------------------------------------
+project.PANGEA.treecomparison.gaps.PartitionRegional<- function()
+{
+	indir.nogaps	<- '/Users/Oliver/git/HPTN071sim/treecomparison/nogaps'
+	indir.wgaps		<- '/Users/Oliver/git/HPTN071sim/treecomparison/withgaps_150701'
+	infiles.wgaps	<- list.files(indir.wgaps, pattern='^150701_Regional_TRAIN.*[0-9]\\.fa$')
+		
+	#	create partition files 
+	for(infile.wgaps in infiles.wgaps)
+	{			
+		seq				<- read.dna(file=paste(indir.wgaps, '/', infile.wgaps, sep=''), format='fasta')
+		#	determine partition lengths
+		#	pol start
+		infile.nogaps	<- list.files(indir.nogaps, pattern='pol\\.fa$')
+		infile.nogaps	<- infile.nogaps[ grepl(gsub('_SIMULATED.*','',infile.wgaps),infile.nogaps) ]
+		stopifnot(length(infile.nogaps)==1)				
+		tmp				<- read.dna(paste(indir.nogaps, '/', infile.nogaps, sep=''), format='fasta')[rownames(seq)[1],]
+		stopifnot(nrow(tmp)==1)
+		key				<- paste(as.character(tmp)[1,1:15], collapse='')
+		for(i in seq_len(nrow(seq)))
+		{			
+			pol.start	<- regexpr(key, paste(as.character(seq[i,]), collapse=''))
+			if(pol.start>1)
+				break
+		}
+		stopifnot(pol.start>1)
+		#	env start
+		infile.nogaps	<- list.files(indir.nogaps, pattern='env\\.fa$')
+		infile.nogaps	<- infile.nogaps[ grepl(gsub('_SIMULATED.*','',infile.wgaps),infile.nogaps) ]
+		stopifnot(length(infile.nogaps)==1)				
+		tmp				<- read.dna(paste(indir.nogaps, '/', infile.nogaps, sep=''), format='fasta')[rownames(seq)[1],]
+		stopifnot(nrow(tmp)==1)
+		key				<- paste(as.character(tmp)[1,1:15], collapse='')
+		for(i in seq_len(nrow(seq)))
+		{			
+			env.start	<- regexpr(key, paste(as.character(seq[i,]), collapse=''))
+			if(env.start>1)
+				break
+		}
+		stopifnot(env.start>1)
+		print(c(pol.start, env.start))
+		#	write gene partition file
+		tmp				<- paste(c(	'DNA, gag = 1-',pol.start-1,'\n',
+									'DNA, pol = ',pol.start,'-',env.start-1,'\n',
+									'DNA, env = ',env.start,'-',ncol(seq),'\n'), collapse='' )
+		infile.partition	<- gsub('\\.fa.*','_gene\\.txt',infile.wgaps)
+		cat(file=paste(indir.wgaps,'/',infile.partition,sep=''), tmp)
+		#	write codon partition file
+		tmp				<- paste(c(	'DNA, gagcodon1 = 1-',pol.start-1,'\\3\n',
+									'DNA, gagcodon2 = 2-',pol.start-1,'\\3\n',
+									'DNA, gagcodon3 = 3-',pol.start-1,'\\3\n',
+									'DNA, polcodon1 = ',pol.start,'-',env.start-1,'\\3\n',
+									'DNA, polcodon2 = ',pol.start+1,'-',env.start-1,'\\3\n',
+									'DNA, polcodon3 = ',pol.start+2,'-',env.start-1,'\\3\n',
+									'DNA, envcodon1 = ',env.start,'-',ncol(seq),'\\3\n',
+									'DNA, envcodon2 = ',env.start+1,'-',ncol(seq),'\\3\n',
+									'DNA, envcodon3 = ',env.start+2,'-',ncol(seq),'\\3\n'), collapse='' )
+		infile.partition	<- gsub('\\.fa.*','_codon\\.txt',infile.wgaps)
+		cat(file=paste(indir.wgaps,'/',infile.partition,sep=''), tmp)
+	}	
+}
+##--------------------------------------------------------------------------------------------------------
 ##	olli 01.07.15
 ##--------------------------------------------------------------------------------------------------------
 project.PANGEA.treecomparison.gaps.PartitionVillage<- function()
@@ -2320,7 +2469,7 @@ project.PANGEA.treecomparison.gaps.PartitionVillage<- function()
 		}
 		if(grepl('98_Jul15',infile.wgaps))
 		{
-			pol.key			<- "ttttttagggaaaattt"
+			pol.key			<- "ttttttagggaaaatttagcc"#
 			env.key			<- "atgagtgtgagaaggat"			
 		}		
 		seq				<- read.dna(paste(indir.wgaps, '/', infile.wgaps, sep=''), format='fasta')
@@ -2363,7 +2512,59 @@ project.PANGEA.treecomparison.gaps.PartitionVillage<- function()
 		infile.partition	<- gsub('\\.fa.*','_codon\\.txt',infile.wgaps)
 		cat(file=paste(indir.wgaps,'/',infile.partition,sep=''), tmp)
 	}
-}	
+}
+##--------------------------------------------------------------------------------------------------------
+##	olli 03.07.15
+##--------------------------------------------------------------------------------------------------------
+project.PANGEA.treecomparison.gaps.RobinsonFould.ExaML3014.byMajorityCoverageThreshold<- function()
+{		
+	#
+	#	compare ExaML trees to true topology
+	#
+	require(phangorn)
+	indir.wgaps		<- '/Users/Oliver/git/HPTN071sim/treecomparison/withgapstrees_150701'
+	indir.nogaps	<- '/Users/Oliver/git/HPTN071sim/treecomparison/nogaps_150630'
+	files			<- data.table(SIMFILE=list.files(indir.wgaps, pattern='ExaML_result.*finaltree\\.[0-9]+', recursive=TRUE))
+	files[, TRUEFILE:= gsub('SIMULATED.*','DATEDTREE_lrgstclu.newick',gsub('ExaML_result\\.','',basename(SIMFILE)))]
+	set(files, NULL, 'TRUEFILE', files[, gsub('Vill_99_Apr15.*','Vill_99_Apr15.newick',TRUEFILE)])
+	files[, CNFG:= regmatches(basename(SIMFILE), regexpr('BWC[0-9]+|UGC[0-9]+',basename(SIMFILE)))]
+	files[, PARTITION:= 'None']
+	set(files, files[, which(!grepl('NOQ', basename(SIMFILE)))], 'PARTITION', '9ByGeneCodon')
+	files[, EXCLSEQ:= 'None']		
+	tmp				<- files[, which(grepl('CUT[0-9]+', basename(SIMFILE)))]
+	set(files, tmp, 'EXCLSEQ', files[tmp, regmatches(basename(SIMFILE), regexpr('CUT[0-9]+',basename(SIMFILE)))])
+	set(files, tmp, 'EXCLSEQ', files[tmp, substr(EXCLSEQ,4,nchar(EXCLSEQ))])
+	files[, DT:= regmatches(basename(SIMFILE), regexpr('TRAIN[0-9]+|Vill_99',basename(SIMFILE)))]
+	files[, REP:= as.numeric(regmatches(basename(SIMFILE), regexpr('[0-9]+$',basename(SIMFILE))))]
+	files[, CVRG:= as.numeric(regmatches(CNFG, regexpr('[0-9]+',CNFG)))]
+	files[, SITE:= regmatches(CNFG, regexpr('BW|UG',CNFG))]
+	#filess			<- subset(files, EXCLSEQ!='None')	 						
+	#robinson fould distance
+	#SIMFILE		<- subset(filess, 'BWC5'==CNFG & EXCLSEQ=='80')[, SIMFILE][1]
+	#TRUEFILE	<- subset(filess, 'BWC5'==CNFG & EXCLSEQ=='80')[, TRUEFILE][1]
+	drf				<- files[,{
+				#print(SIMFILE)
+				stree		<- unroot(read.tree(paste(indir.wgaps,'/',SIMFILE,sep='')))
+				otree		<- unroot(read.tree(paste(indir.nogaps,'/',TRUEFILE,sep='')))					
+				if(!is.binary.tree(stree))
+					stree	<- multi2di(stree)
+				z			<- setdiff(otree$tip.label, stree$tip.label)
+				if(length(z))
+					otree	<- unroot(drop.tip(otree, z))				
+				rf			<- RF.dist(otree, stree, check.labels = TRUE)
+				list(RF=rf, NRF=rf/(2*Ntip(otree)-6))					
+			}, by='SIMFILE']
+	drf				<- merge(files, drf, by='SIMFILE')	
+	#plot RF distance	
+	ggplot(drf, aes(x=factor(CVRG), y=NRF*100, colour=SITE)) + 
+			geom_point(colour='grey50') +	geom_boxplot() +
+			scale_x_discrete(expand=c(0.01,0.01)) +
+			scale_y_continuous(breaks=seq(0,100,20),limits=c(0,100),expand=c(0,0)) +
+			labs(x='majority coverage\n(minimum number of aligned short read calls that agree)', y='normalized RF distance btw est and true trees\n(RF/(2*taxa-6)') +			
+			facet_grid(~DT) + 
+			theme_bw() + theme(panel.margin.x = unit(0.8, "lines"))
+	ggsave(file= paste(indir.wgaps,'/150630_ExaML_ExaML3014_MJCT_box.pdf',sep=''), w=5, h=4)			
+}
 ##--------------------------------------------------------------------------------------------------------
 ##	olli 30.06.15
 ##--------------------------------------------------------------------------------------------------------

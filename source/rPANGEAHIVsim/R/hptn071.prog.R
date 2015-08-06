@@ -1759,6 +1759,22 @@ rPANGEAHIVsim.pipeline.args<- function(	yr.start=1980, yr.end=2020, seed=42,
 	pipeline.args
 }
 ##--------------------------------------------------------------------------------------------------------
+##	olli originally written 06-08-2015
+##--------------------------------------------------------------------------------------------------------
+pipeline.various<- function()
+{
+	if(1)	#align sequences in fasta file with Clustalo
+	{
+		cmd			<- cmd.various()
+		cmd			<- cmd.hpcwrapper(cmd, hpc.nproc= 1, hpc.q='pqeelab', hpc.walltime=71, hpc.mem="5000mb")
+		cat(cmd)		
+		outdir		<- paste(HOME,"tmp",sep='/')
+		outfile		<- paste("vrs",paste(strsplit(date(),split=' ')[[1]],collapse='_',sep=''),sep='.')
+		hivc.cmd.hpccaller(outdir, outfile, cmd)
+		quit("no")		
+	}	
+}
+##--------------------------------------------------------------------------------------------------------
 ##	olli originally written 08-09-2014
 ##--------------------------------------------------------------------------------------------------------
 #' @title rPANGEAHIV simulation pipeline

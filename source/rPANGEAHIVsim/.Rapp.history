@@ -1,444 +1,3 @@
-df		<- merge(df, tmp, by='variable' & MNTH>=1985)#
-	tmp		<- df[, which(!variable%in%c('POP','PREV','INC'))]#
-	set(df, tmp,'value', df[tmp, value*100])#
-	ggplot(df, aes(x=MNTH, y=value, group=SC, colour=SC)) + geom_line() +#
-			scale_colour_brewer(palette='Set1') +#
-			facet_wrap(~legend, scales='free',ncol=3) +#
-			theme_bw() + labs(x='', y='',colour='epidemic scenario') +#
-			theme(legend.position='bottom')
-df		<- subset(df.epi, variable%in%c('POP','PREV','INC','PREVp','INCp','SEQp','ARTcov','UNDIAGp','ACUTEp','IMPORTp') & MNTH>=1985)#
-	tmp		<- data.table(	variable=c('POP','PREV','INC','PREVp','INCp','SEQp','ARTcov','UNDIAGp','ACUTEp','IMPORTp'),#
-							legend=c('adult\npopulation', 'HIV infected', 'new cases\n(month)','Prevalence\n(%)','%Incidence\n(year)','Sequence\ncoverage\n(%)','ART\ncoverage\n(%)','Undiagnosed\n(%)','% transm\nfrom < 3m\n(yr)','% transm\nfrom outside\n(yr)'))#
-	set(tmp, NULL, 'legend', tmp[, factor(legend, levels=tmp$legend, labels=tmp$legend)])									#
-	df		<- merge(df, tmp, by='variable')#
-	tmp		<- df[, which(!variable%in%c('POP','PREV','INC'))]#
-	set(df, tmp,'value', df[tmp, value*100])#
-	ggplot(df, aes(x=MNTH, y=value, group=SC, colour=SC)) + geom_line() +#
-			scale_colour_brewer(palette='Set1') +#
-			facet_wrap(~legend, scales='free',ncol=3) +#
-			theme_bw() + labs(x='', y='',colour='epidemic scenario') +#
-			theme(legend.position='bottom')
-ggplot(df, aes(x=MNTH, y=value, group=SC, colour=SC)) + geom_line() +#
-			scale_colour_brewer(palette='Set1') +#
-			facet_wrap(~legend, scales='free',ncol=3) +#
-			theme_bw() + labs(x='', y='',colour='epidemic scenario', title='Regional') +#
-			theme(legend.position='bottom')
-outdir	<- '~/Dropbox (Infectious Disease)/PANGEAHIVsim_internal/documents/external/2015_05_results/results'#
-	ggsave(file=paste(outdir,'/regional_sincestart.pdf',sep=''), w=10, h=10)
-ggplot(df, aes(x=MNTH, y=value, group=SC, colour=SC)) + geom_line() +#
-			scale_colour_brewer(palette='Set1') +#
-			facet_wrap(~legend, scales='free',ncol=3) +#
-			theme_bw() + labs(x='', y='',colour='epidemic scenario', title='Regional\n(since 1985)\n') +#
-			theme(legend.position='bottom')#
-	outdir	<- '~/Dropbox (Infectious Disease)/PANGEAHIVsim_internal/documents/external/2015_05_results/results'#
-	ggsave(file=paste(outdir,'/regional_sincestart.pdf',sep=''), w=10, h=10)
-ggsave(file=paste(outdir,'/regional_sincestart.pdf',sep=''), w=10, h=10)
-df		<- subset(df.epi, variable%in%c('POP','PREV','INC','PREVp','INCp','SEQp','ARTcov','UNDIAGp','ACUTEp','IMPORTp') & MNTH>=2010)#
-	tmp		<- data.table(	variable=c('POP','PREV','INC','PREVp','INCp','SEQp','ARTcov','UNDIAGp','ACUTEp','IMPORTp'),#
-			legend=c('adult\npopulation', 'HIV infected', 'new cases\n(month)','Prevalence\n(%)','%Incidence\n(year)','Sequence\ncoverage\n(%)','ART\ncoverage\n(%)','Undiagnosed\n(%)','% transm\nfrom < 3m\n(yr)','% transm\nfrom outside\n(yr)'))#
-	set(tmp, NULL, 'legend', tmp[, factor(legend, levels=tmp$legend, labels=tmp$legend)])									#
-	df		<- merge(df, tmp, by='variable')#
-	tmp		<- df[, which(!variable%in%c('POP','PREV','INC'))]#
-	set(df, tmp,'value', df[tmp, value*100])
-?geom_ribbon
-ggplot(df, aes(x=MNTH, y=value, group=SC, colour=SC)) +#
-			geom_ribbon(x=c(2015, 2018), ymax=1e5, ymin=0, fill='red', alpha=0.2) +#
-			geom_line() +#
-			scale_colour_brewer(palette='Set1') +#
-			facet_wrap(~legend, scales='free',ncol=3) +#
-			theme_bw() + labs(x='', y='',colour='epidemic scenario', title='Regional\n(since 2010)\n') +#
-			theme(legend.position='bottom')
-ggplot(df, aes(x=MNTH, y=value, group=SC, colour=SC)) +#
-			geom_ribbon(aes(x=c(2015, 2018), ymin=0, ymax=1e5), fill='red', alpha=0.2) +#
-			geom_line() +#
-			scale_colour_brewer(palette='Set1') +#
-			facet_wrap(~legend, scales='free',ncol=3) +#
-			theme_bw() + labs(x='', y='',colour='epidemic scenario', title='Regional\n(since 2010)\n') +#
-			theme(legend.position='bottom')
-ggplot(df, aes(x=MNTH, group=SC, colour=SC)) +#
-			geom_ribbon(aes(x=c(2015, 2018), ymin=0, ymax=1e5), fill='red', alpha=0.2) +#
-			geom_line(aes(y=value)) +#
-			scale_colour_brewer(palette='Set1') +#
-			facet_wrap(~legend, scales='free',ncol=3) +#
-			theme_bw() + labs(x='', y='',colour='epidemic scenario', title='Regional\n(since 2010)\n') +#
-			theme(legend.position='bottom')
-ggplot(df, aes(group=SC, colour=SC)) +#
-			geom_ribbon(aes(x=c(2015, 2018), ymin=0, ymax=1e5), fill='red', alpha=0.2) +#
-			geom_line(aes(x=MNTH, y=value)) +#
-			scale_colour_brewer(palette='Set1') +#
-			facet_wrap(~legend, scales='free',ncol=3) +#
-			theme_bw() + labs(x='', y='',colour='epidemic scenario', title='Regional\n(since 2010)\n') +#
-			theme(legend.position='bottom')
-ggplot(df, aes(group=SC, colour=SC)) +#
-			geom_ribbon(aes(x=c(2015, 2018), ymin=c(0,0), ymax=c(1e5,1e5)), fill='red', alpha=0.2) +#
-			geom_line(aes(x=MNTH, y=value)) +#
-			scale_colour_brewer(palette='Set1') +#
-			facet_wrap(~legend, scales='free',ncol=3) +#
-			theme_bw() + labs(x='', y='',colour='epidemic scenario', title='Regional\n(since 2010)\n') +#
-			theme(legend.position='bottom')
-ggplot( aes(group=SC, colour=SC)) +#
-			geom_ribbon(aes(x=c(2015, 2018), ymin=0, ymax=1e5), fill='red', alpha=0.2) +#
-			geom_line(data=df, aes(x=MNTH, y=value)) +#
-			scale_colour_brewer(palette='Set1') +#
-			facet_wrap(~legend, scales='free',ncol=3) +#
-			theme_bw() + labs(x='', y='',colour='epidemic scenario', title='Regional\n(since 2010)\n') +#
-			theme(legend.position='bottom')
-ggplot(df, aes(group=SC, colour=SC)) +#
-			geom_rect(data=NULL, aes(xmin=2015, xmax=2018, ymin=-Inf, ymax=Inf), fill='red', alpha=0.2) +#
-			geom_line(aes(x=MNTH, y=value)) +#
-			scale_colour_brewer(palette='Set1') +#
-			facet_wrap(~legend, scales='free',ncol=3) +#
-			theme_bw() + labs(x='', y='',colour='epidemic scenario', title='Regional\n(since 2010)\n') +#
-			theme(legend.position='bottom')
-ggplot(df, aes(group=SC, colour=SC)) +#
-			geom_rect(data=NULL, aes(xmin=2015, xmax=2018, ymin=-Inf, ymax=Inf), fill='red', colour='transparent', alpha=0.02) +#
-			geom_line(aes(x=MNTH, y=value)) +#
-			scale_colour_brewer(palette='Set1') +#
-			facet_wrap(~legend, scales='free',ncol=3) +#
-			theme_bw() + labs(x='', y='',colour='epidemic scenario', title='Regional\n(since 2010)\n') +#
-			theme(legend.position='bottom')
-ggplot(df, aes(group=SC, colour=SC)) +#
-			geom_rect(data=NULL, aes(xmin=2015, xmax=2018, ymin=-Inf, ymax=Inf), fill='red', colour='transparent', alpha=0.002) +#
-			geom_line(aes(x=MNTH, y=value)) +#
-			scale_colour_brewer(palette='Set1') +#
-			facet_wrap(~legend, scales='free',ncol=3) +#
-			theme_bw() + labs(x='', y='',colour='epidemic scenario', title='Regional\n(since 2010)\n') +#
-			theme(legend.position='bottom')
-ggplot(df, aes(group=SC, colour=SC)) +#
-			geom_rect(data=NULL, aes(xmin=2015, xmax=2018, ymin=-Inf, ymax=Inf), fill='red', colour='grey80', alpha=0.2) +#
-			geom_line(aes(x=MNTH, y=value)) +#
-			scale_colour_brewer(palette='Set1') +#
-			facet_wrap(~legend, scales='free',ncol=3) +#
-			theme_bw() + labs(x='', y='',colour='epidemic scenario', title='Regional\n(since 2010)\n') +#
-			theme(legend.position='bottom')
-ggplot(df, aes(group=SC, colour=SC)) +#
-			geom_rect(data=NULL, aes(xmin=2015, xmax=2018, ymin=-Inf, ymax=Inf), fill='grey80', colour='transparent', alpha=0.2) +#
-			geom_line(aes(x=MNTH, y=value)) +#
-			scale_colour_brewer(palette='Set1') +#
-			facet_wrap(~legend, scales='free',ncol=3) +#
-			theme_bw() + labs(x='', y='',colour='epidemic scenario', title='Regional\n(since 2010)\n') +#
-			theme(legend.position='bottom')
-df		<- subset(df.epi, variable%in%c('POP','PREV','INC','PREVp','INCp','SEQp','ARTcov','UNDIAGp','ACUTEp','IMPORTp') & MNTH>=2014.5)#
-	tmp		<- data.table(	variable=c('POP','PREV','INC','PREVp','INCp','SEQp','ARTcov','UNDIAGp','ACUTEp','IMPORTp'),#
-			legend=c('adult\npopulation', 'HIV infected', 'new cases\n(month)','Prevalence\n(%)','%Incidence\n(year)','Sequence\ncoverage\n(%)','ART\ncoverage\n(%)','Undiagnosed\n(%)','% transm\nfrom < 3m\n(yr)','% transm\nfrom outside\n(yr)'))#
-	set(tmp, NULL, 'legend', tmp[, factor(legend, levels=tmp$legend, labels=tmp$legend)])									#
-	df		<- merge(df, tmp, by='variable')#
-	tmp		<- df[, which(!variable%in%c('POP','PREV','INC'))]#
-	set(df, tmp,'value', df[tmp, value*100])#
-	ggplot(df, aes(group=SC, colour=SC)) +#
-			geom_rect(data=NULL, aes(xmin=2015, xmax=2018, ymin=-Inf, ymax=Inf), fill='grey80', colour='transparent', alpha=0.2) +#
-			geom_line(aes(x=MNTH, y=value)) +#
-			scale_colour_brewer(palette='Set1') +#
-			facet_wrap(~legend, scales='free',ncol=3) +#
-			theme_bw() + labs(x='', y='',colour='epidemic scenario', title='Regional\n(since 2010)\n') +#
-			theme(legend.position='bottom')
-outdir	<- '~/Dropbox (Infectious Disease)/PANGEAHIVsim_internal/documents/external/2015_05_results/results'#
-	ggsave(file=paste(outdir,'/regional_sinceintervention.pdf',sep=''), w=10, h=10)
-tmp		<- subset(dfa, TEAM!='True' & !grepl('(', TEAM, fixed=1))#
-	tmp		<- tmp[, list(	Village=length(which(grepl('Vill',SIM_SCENARIO))), Regional=length(which(grepl('Regional',SIM_SCENARIO)))), by=c('TEAM','OBJ_L','USED_GENES_L')]	#
-	tmp		<- melt(tmp, measure.vars=c('Village','Regional'))	#
-	ggplot(tmp, aes(x=OBJ_L, y=value, fill=TEAM)) + geom_bar(stat='identity') +#
-			facet_grid(USED_GENES_L~variable) +			#
-			guides(fill=guide_legend(ncol=2)) +#
-			scale_fill_manual(values=TEAM_CL) +#
-			labs(x='', y='scenarios evaluated', title='Total scenarios submitted\n(using sequence data or true trees)\n') +#
-			theme_bw()+ theme(legend.position='bottom') + coord_flip()
-tmp		<- subset(dfa, TEAM!='True' & !grepl('(', TEAM, fixed=1))#
-	tmp		<- tmp[, list(	Village=length(which(grepl('Vill',SIM_SCENARIO))), Regional=length(which(grepl('Regional',SIM_SCENARIO)))), by=c('TEAM','OBJ_L','USED_GENES_L')]	#
-	tmp		<- melt(tmp, measure.vars=c('Village','Regional'))	#
-	ggplot(tmp, aes(x=OBJ_L, y=value, fill=TEAM)) + geom_bar(stat='identity') +#
-			facet_grid(USED_GENES_L~variable) +			#
-			guides(fill=guide_legend(ncol=2)) +#
-			scale_fill_manual(values=TEAM_CL) +#
-			labs(x='', y='submissions\n(#)', title='Total scenarios submitted\n(using sequence data or true trees)\n') +#
-			theme_bw()+ theme(legend.position='bottom') + coord_flip()	#
-	ggsave(file=paste(outdir,'/res_scenarios_total.pdf',sep=''), w=10, h=8)
-tmp		<- subset(dfa, TEAM!='True' & !grepl('(', TEAM, fixed=1) & DATA_T=='seq')#
-	tmp		<- tmp[, list(	Village=length(which(grepl('Vill',SIM_SCENARIO))), Regional=length(which(grepl('Regional',SIM_SCENARIO)))), by=c('TEAM','OBJ_L')]	#
-	tmp		<- melt(tmp, measure.vars=c('Village','Regional'))	#
-	ggplot(tmp, aes(x=OBJ_L, y=value, fill=TEAM)) + geom_bar(stat='identity') +#
-			facet_grid(~variable) +#
-			labs(x='', y='submissions\n(#)', title='Total scenarios submitted\n(using sequence data)\n') +#
-			scale_fill_manual(values=TEAM_CL) +#
-			guides(fill=guide_legend(ncol=2)) +#
-			theme_bw() + theme(legend.position='bottom') + coord_flip()#
-	ggsave(file=paste(outdir,'/res_scenarios_total_seqonly.pdf',sep=''), w=10, h=5)#
-	#	count complete submissions for primary objectives#
-	tmp		<- subset(dfa, TEAM!='True' & !grepl('(', TEAM, fixed=1) & DATA_T=='seq')#
-	tmp		<- tmp[, list(	Village=as.numeric(length(setdiff(c('01','02','03','04'),SC_RND))==0), Regional=as.numeric(length(setdiff(c('A','B','C','D'),SC))==0)), by=c('TEAM','OBJ_L','USED_GENES_L')]	#
-	tmp		<- melt(tmp, measure.vars=c('Village','Regional'))	#
-	ggplot(tmp, aes(x=OBJ_L, y=value, fill=TEAM)) + geom_bar(stat='identity') +#
-			facet_grid(USED_GENES_L~variable) +#
-			scale_y_continuous(breaks=seq(1,10,1), minor_breaks=NULL) +#
-			scale_fill_manual(values=TEAM_CL) +#
-			labs(x='', y='submissions\n(#)', title='Complete submissions\nto evalute primary objectives\n(either village or regional)') +#
-			guides(fill=guide_legend(ncol=2)) +#
-			theme_bw() + theme(legend.position='bottom') + coord_flip()#
-	ggsave(file=paste(outdir,'/res_scenarios_total_seqonlycomplete.pdf',sep=''), w=10, h=7)
-ggplot(tmp, aes(x=OBJ_L, y=value, fill=TEAM)) + geom_bar(stat='identity') +#
-			facet_grid(USED_GENES_L~variable) +#
-			scale_y_continuous(breaks=seq(1,10,1), minor_breaks=NULL) +#
-			scale_fill_manual(values=TEAM_CL) +#
-			labs(x='', y='submissions\n(#)', title='Complete submissions to evalute primary objectives\n(either village or regional)') +#
-			guides(fill=guide_legend(ncol=2)) +#
-			theme_bw() + theme(legend.position='bottom') + coord_flip()#
-	ggsave(file=paste(outdir,'/res_scenarios_total_seqonlycomplete.pdf',sep=''), w=10, h=7)
-ggplot(tmp, aes(x=OBJ_L, y=value, fill=TEAM)) + geom_bar(stat='identity') +#
-			facet_grid(USED_GENES_L~variable) +#
-			scale_y_continuous(breaks=seq(1,10,1), minor_breaks=NULL) +#
-			scale_fill_manual(values=TEAM_CL) +#
-			labs(x='', y='complete set of 4 submissions\n(#)', title='Complete submissions to evalute primary objectives\n(either village or regional)') +#
-			guides(fill=guide_legend(ncol=2)) +#
-			theme_bw() + theme(legend.position='bottom') + coord_flip()#
-	ggsave(file=paste(outdir,'/res_scenarios_total_seqonlycomplete.pdf',sep=''), w=10, h=7)
-require("grid")#
-	#	compare objectives with / without seq data, village + regional#
-	df	<- subset(dfa, DATA_T=='seq')	#
-	#	regional, trees corresponding to seq data sets#
-	tmp	<- subset(dfa, DATA_T=='phy' & SMPL_D=='5' & SMPL_M=='much' & SMPL_C=='8%' & SMPL_N==1600 & IMPRT=='5%')#
-	df	<- rbind(df, tmp)#
-	#	village, trees corresponding to seq data sets#
-	tmp	<- subset(dfa, SC_RND%in%c('11','09','12','10','00'))#
-	df	<- rbind(df, tmp)#
-	tmp	<- subset(df, OBJ%in%c('OBJ_ii','OBJ_iii','OBJ_v','OBJ_vi') & !grepl('(',TEAM,fixed=1) & DATAT_L=='Regional' & USED_GENES=='all')#
-	ggplot(subset(tmp, TEAM!='True'), aes(y=DATA_T2, x=central, xmin=lower95, xmax=upper95, colour=TEAM)) +#
-			geom_errorbarh(height=0.3) + geom_point(size=3, pch=13) +#
-			geom_point(data=subset(tmp, TEAM=='True'), size=3, colour='black', pch=18) +#
-			scale_colour_manual(values=TEAM_CL) +#
-			facet_grid(INT_L~OBJ_L2+AC_L, scales='free', space='free_y') +#
-			theme_bw() + theme(panel.margin.x= unit(0.5, "lines"), legend.position='bottom') +#
-			guides(colour=guide_legend(ncol=2)) +#
-			labs(x= 'Estimates', y='', title='Primary objectives: quantitative\n(Regional)\n')	#
-	ggsave(file=paste(outdir,'/res_acrossTEAM_primaryregional_nmbrs','.pdf',sep=''), w=13, h=6)#
-	#	qualitative#
-	tmp		<- subset(df, OBJ%in%c('OBJ_i','OBJ_iv') & !grepl('(',TEAM,fixed=1) & DATAT_L=='Regional' & USED_GENES=='all')#
-	set(tmp, NULL, 'central', tmp[, as.character(central)])#
-	set(tmp, tmp[, which(OBJ=='OBJ_i' & central=='-1')], 'central', 'declining')#
-	set(tmp, tmp[, which(OBJ=='OBJ_i' & central=='0')], 'central', 'stable')#
-	set(tmp, tmp[, which(OBJ=='OBJ_i' & central=='1')], 'central', 'increasing')#
-	set(tmp, tmp[, which(OBJ=='OBJ_iv' & central=='-1')], 'central', '<15%')#
-	set(tmp, tmp[, which(OBJ=='OBJ_iv' & central=='0')], 'central', '15%-30%')#
-	set(tmp, tmp[, which(OBJ=='OBJ_iv' & central=='1')], 'central', '>30%')#
-	tmp2	<- c('declining','stable','increasing','<15%','15%-30%','>30%')#
-	set(tmp, NULL, 'central', tmp[, factor(central, levels=tmp2, labels=tmp2)])	#
-	tmp2	<- as.data.table(expand.grid(central=tmp2, AC_T=c('low','high'), INT_L=c('ART scale up\nfast','ART scale up\nslow','ART scale up\nnone'), TEAM='dummy', DATA_T2='using\ntrue tree', OBJ_L2='Incidence\nTrend'))#
-	set(tmp2, tmp2[, which(grepl('%', central))], 'OBJ_L2', '%Acute Ctgr\n(baseline)')#
-	set(tmp2, NULL, 'INT_L', tmp2[, factor(INT_L, levels=c('ART scale up\nfast','ART scale up\nslow','ART scale up\nnone'), labels=c('ART scale up\nfast','ART scale up\nslow','ART scale up\nnone'))])	#
-	setkey(tmp2, central)#
-	ggplot(tmp2, aes(y=INT_L, x=central, colour=TEAM)) +#
-			#geom_errorbarh(height=0.3) + #
-			geom_point(data=tmp2, size=1, colour='transparent') +#
-			geom_jitter(data=subset(tmp, TEAM!='True'), size=3, pch=13, position = position_jitter(width=0, height=.15)) +#
-			geom_point(data=subset(tmp, TEAM=='True'), size=3, colour='black', pch=18) +			#
-			scale_colour_manual(values=TEAM_CL) +#
-			facet_grid(DATA_T2~OBJ_L2+AC_L, scales='free', space='free_y') +#
-			theme_bw() + theme(panel.margin.x= unit(0.5, "lines"), legend.position='bottom', panel.grid.minor= element_blank(), panel.grid.major= element_blank()) +#
-			guides(colour=guide_legend(ncol=2)) +#
-			labs(x= '\nEstimates', y='', title='Primary objectives: qualitatitve\n(Regional)\n')	#
-	ggsave(file=paste(outdir,'/res_acrossTEAM_primaryregional_qultv','.pdf',sep=''), w=13, h=6)#
-	#invisible(lapply(c('OBJ_ii','OBJ_iii','OBJ_v','OBJ_vi'), function(x)#
-	#		{				#
-	#			#x	<- 'OBJ_ii'#
-	#			tmp	<- subset(df, OBJ==x & !grepl('(',TEAM,fixed=1) & DATAT_L=='Regional' & USED_GENES=='all')#
-	#			if(x=='OBJ_i')#
-	#				set(tmp, NULL, 'central', tmp[, factor(central, levels=c(1,0,-1), labels=c('increasing','stable','decreasing'))])#
-	#			if(x=='OBJ_iv')#
-	#				set(tmp, NULL, 'central', tmp[, factor(central, levels=c(1,0,-1), labels=c('>30%','15%-30%','<15%'))])	#
-	#			ggplot(subset(tmp, TEAM!='True'), aes(y=DATA_T, x=central, xmin=lower95, xmax=upper95, colour=TEAM)) +#
-	#					geom_errorbarh(height=0.3) + geom_point(size=3, pch=13) +#
-	#					geom_point(data=subset(tmp, TEAM=='True'), size=3, colour='black', pch=18) +#
-	#					scale_colour_manual(values=TEAM_CL) +#
-	#					facet_grid(AC_L~INT_L, scales='free', space='free_y') +#
-	#					theme_bw() + theme(panel.margin.x= unit(2, "lines")) + #
-	#					labs(x= paste('\n',gsub('\n',' ',tmp[1, OBJ_L]),sep=''), y='')#
-	#			ggsave(file=paste(outdir,'/res_acrossTEAM_primaryregional_',x,'.pdf',sep=''), w=10, h=3)#
-	#		}))#
-	tmp	<- subset(df, OBJ%in%c('OBJ_ii','OBJ_iii','OBJ_v','OBJ_vi') & !grepl('(',TEAM,fixed=1) & DATAT_L=='Village' & USED_GENES=='all')#
-	ggplot(subset(tmp, TEAM!='True'), aes(y=DATA_T2, x=central, xmin=lower95, xmax=upper95, colour=TEAM)) +#
-			geom_errorbarh(height=0.3) + geom_point(size=3, pch=13) +#
-			geom_point(data=subset(tmp, TEAM=='True'), size=3, colour='black', pch=18) +#
-			scale_colour_manual(values=TEAM_CL) +#
-			facet_grid(INT_L~OBJ_L2+AC_L, scales='free', space='free_y') +#
-			theme_bw() + theme(panel.margin.x= unit(0.5, "lines"), legend.position='bottom') +#
-			guides(colour=guide_legend(ncol=2)) +#
-			labs(x= 'Estimates', y='', title='Primary objectives: quantitative\n(Village)\n')	#
-	ggsave(file=paste(outdir,'/res_acrossTEAM_primaryvillage_nmbrs','.pdf',sep=''), w=13, h=6)#
-	#	qualitative#
-	tmp		<- subset(df, OBJ%in%c('OBJ_i','OBJ_iv') & !grepl('(',TEAM,fixed=1) & DATAT_L=='Village' & USED_GENES=='all')#
-	set(tmp, NULL, 'central', tmp[, as.character(central)])#
-	set(tmp, tmp[, which(OBJ=='OBJ_i' & central=='-1')], 'central', 'declining')#
-	set(tmp, tmp[, which(OBJ=='OBJ_i' & central=='0')], 'central', 'stable')#
-	set(tmp, tmp[, which(OBJ=='OBJ_i' & central=='1')], 'central', 'increasing')#
-	set(tmp, tmp[, which(OBJ=='OBJ_iv' & central=='-1')], 'central', '<15%')#
-	set(tmp, tmp[, which(OBJ=='OBJ_iv' & central=='0')], 'central', '15%-30%')#
-	set(tmp, tmp[, which(OBJ=='OBJ_iv' & central=='1')], 'central', '>30%')#
-	tmp2	<- c('declining','stable','increasing','<15%','15%-30%','>30%')#
-	set(tmp, NULL, 'central', tmp[, factor(central, levels=tmp2, labels=tmp2)])	#
-	tmp2	<- as.data.table(expand.grid(central=tmp2, AC_T=c('low','high'), INT_L=c('ART scale up\nfast','ART scale up\nslow','ART scale up\nnone'), TEAM='dummy', DATA_T2='using\ntrue tree', OBJ_L2='Incidence\nTrend'))#
-	set(tmp2, tmp2[, which(grepl('%', central))], 'OBJ_L2', '%Acute Ctgr\n(baseline)')#
-	set(tmp2, NULL, 'INT_L', tmp2[, factor(INT_L, levels=c('ART scale up\nfast','ART scale up\nslow','ART scale up\nnone'), labels=c('ART scale up\nfast','ART scale up\nslow','ART scale up\nnone'))])	#
-	setkey(tmp2, central)#
-	ggplot(tmp2, aes(y=INT_L, x=central, colour=TEAM)) +#
-			#geom_errorbarh(height=0.3) + #
-			geom_point(data=tmp2, size=1, colour='transparent') +#
-			geom_jitter(data=subset(tmp, TEAM!='True'), size=3, pch=13, position = position_jitter(width=0, height=.15)) +#
-			geom_point(data=subset(tmp, TEAM=='True'), size=3, colour='black', pch=18) +			#
-			scale_colour_manual(values=TEAM_CL) +#
-			facet_grid(DATA_T2~OBJ_L2+AC_L, scales='free', space='free_y') +#
-			theme_bw() + theme(panel.margin.x= unit(0.5, "lines"), legend.position='bottom', panel.grid.minor= element_blank(), panel.grid.major= element_blank()) +#
-			guides(colour=guide_legend(ncol=2)) +#
-			labs(x= '\nEstimates', y='', title='Primary objectives: qualitative\n(Village)\n')	#
-	ggsave(file=paste(outdir,'/res_acrossTEAM_primaryvillage_qultv','.pdf',sep=''), w=13, h=6)	#
-	#invisible(lapply(c('OBJ_ii','OBJ_iii','OBJ_v','OBJ_vi'), function(x)#
-	#				{				#
-	#					tmp	<- subset(df, OBJ==x & !grepl('(',TEAM,fixed=1) & DATAT_L=='Village' & USED_GENES=='all')#
-	#					if(x=='OBJ_i')#
-	#						set(tmp, NULL, 'central', tmp[, factor(central, levels=c(1,0,-1), labels=c('increasing','stable','decreasing'))])#
-	#					if(x=='OBJ_iv')#
-	#						set(tmp, NULL, 'central', tmp[, factor(central, levels=c(1,0,-1), labels=c('>30%','15%-30%','<15%'))])	#
-	#					ggplot(subset(tmp, TEAM!='True'), aes(y=DATA_T, x=central, xmin=lower95, xmax=upper95, colour=TEAM)) +#
-	#							geom_errorbarh(height=0.3) + geom_point(size=3, pch=13) +#
-	#							geom_point(data=subset(tmp, TEAM=='True'), size=3, colour='black', pch=18) +#
-	#							scale_colour_manual(values=TEAM_CL) +#
-	#							facet_grid(AC_L~INT_L, scales='free', space='free_y') +#
-	#							theme_bw() + theme(panel.margin.x= unit(2, "lines")) + #
-	#							labs(x= paste('\n',gsub('\n',' ',tmp[1, OBJ_L]),sep=''), y='')#
-	#					ggsave(file=paste(outdir,'/res_acrossTEAM_primaryvillage_',x,'.pdf',sep=''), w=10, h=3)#
-	#				}))#
-	#	SECONDARY: compare oversampling during intervention on regional#
-	df	<- subset(dfa, DATA_T=='phy' & SMPL_M=='extreme' & DATAT_L=='Regional')	#
-	tmp	<- subset(dfa, DATA_T=='phy' & SMPL_M=='much' & SMPL_C=='8%' & SMPL_N==1600 & IMPRT=='5%' & AC_T=='low' & INT_T!='none')#
-	df	<- rbind(tmp, df)#
-	tmp	<- subset(df, OBJ%in%c('OBJ_ii','OBJ_iii','OBJ_v','OBJ_vi') & !grepl('(',TEAM,fixed=1) & DATAT_L=='Regional' & USED_GENES=='all')#
-	tmp[, SMPL_L:= NA_character_]#
-	set(tmp, tmp[, which(SMPL_M=='much')], 'SMPL_L', 'sampling\n50% during intervention')#
-	set(tmp, tmp[, which(SMPL_M=='extreme')], 'SMPL_L', 'sampling\n85% during intervention')#
-	set(tmp, NULL, 'SMPL_L', tmp[, factor(SMPL_L, levels=c('sampling\n85% during intervention','sampling\n50% during intervention'), labels=c('sampling\n85% during intervention','sampling\n50% during intervention'))])#
-	ggplot(subset(tmp, TEAM!='True'), aes(y=SMPL_L, x=central, xmin=lower95, xmax=upper95, colour=TEAM)) +#
-			geom_errorbarh(height=0.3) + geom_point(size=3, pch=13) +#
-			geom_point(data=subset(tmp, TEAM=='True'), size=3, colour='black', pch=18) +#
-			scale_colour_manual(values=TEAM_CL) +#
-			facet_grid(INT_L~OBJ_L2+AC_L, scales='free', space='free_y') +#
-			theme_bw() + theme(panel.margin.x= unit(0.5, "lines"), legend.position='bottom') +#
-			guides(colour=guide_legend(ncol=2)) +#
-			labs(x= 'Estimates', y='', title='Secondary objective: oversampling during intervention\n(Regional, using true tree)\n')	#
-	ggsave(file=paste(outdir,'/res_acrossTEAM_secondary_oversmplintrvntnregional','.pdf',sep=''), w=13, h=5.5)#
-	#	SECONDARY: compare imports high / low #
-	df	<- subset(dfa, SC_RND%in%c('P','E','L','H','12','10'))#
-	tmp	<- subset(df, OBJ%in%c('OBJ_ii','OBJ_iii','OBJ_v','OBJ_vi') & !grepl('(',TEAM,fixed=1) & USED_GENES=='all')#
-	tmp[, IMPRT_L:= NA_character_]#
-	set(tmp, tmp[, which(IMPRT=='0%')], 'IMPRT_L', '0% trns/year from outside\n(Village)')#
-	set(tmp, tmp[, which(IMPRT=='5%')], 'IMPRT_L', '5% trns/year from outside\n(Regional)')#
-	set(tmp, tmp[, which(IMPRT=='20%')], 'IMPRT_L', '20% trns/year from outside\n(Regional)')		#
-	set(tmp, NULL, 'IMPRT_L', tmp[, factor(IMPRT_L, levels=rev(c('0% trns/year from outside\n(Village)','5% trns/year from outside\n(Regional)','20% trns/year from outside\n(Regional)')), labels=rev(c('0% trns/year from outside\n(Village)','5% trns/year from outside\n(Regional)','20% trns/year from outside\n(Regional)')))])#
-	ggplot(subset(tmp, TEAM!='True'), aes(y=IMPRT_L, x=central, xmin=lower95, xmax=upper95, colour=TEAM)) +#
-			geom_errorbarh(height=0.3) + geom_point(size=3, pch=13) +#
-			geom_point(data=subset(tmp, TEAM=='True'), size=3, colour='black', pch=18) +#
-			scale_colour_manual(values=TEAM_CL) +#
-			facet_grid(INT_L~OBJ_L2+AC_L, scales='free', space='free_y') +#
-			theme_bw() + theme(panel.margin.x= unit(0.5, "lines"), legend.position='bottom') +#
-			guides(colour=guide_legend(ncol=2)) +#
-			labs(x= 'Estimates', y='', title='Secondary objective: transmissions from outside\n(using true tree)\n')	#
-	ggsave(file=paste(outdir,'/res_acrossTEAM_secondary_cntm','.pdf',sep=''), w=13, h=6)#
-	# 	SECONDARY: compare duration sampling#
-	df	<- subset(dfa, SC_RND%in%c('O','F','T','L'))#
-	tmp	<- subset(df, OBJ%in%c('OBJ_ii','OBJ_iii','OBJ_v','OBJ_vi') & !grepl('(',TEAM,fixed=1) & USED_GENES=='all')#
-	tmp[, SMPL_L:= NA_character_]#
-	set(tmp, tmp[, which(SMPL_D=='3')], 'SMPL_L', '3 yr sampling duration\nafter intervention start')#
-	set(tmp, tmp[, which(SMPL_D=='5')], 'SMPL_L', '5 yr sampling duration\nafter intervention start')		#
-	set(tmp, NULL, 'SMPL_L', tmp[, factor(SMPL_L, levels=rev(c('3 yr sampling duration\nafter intervention start','5 yr sampling duration\nafter intervention start')), labels=rev(c('3 yr sampling duration\nafter intervention start','5 yr sampling duration\nafter intervention start')))])#
-	ggplot(subset(tmp, TEAM!='True'), aes(y=SMPL_L, x=central, xmin=lower95, xmax=upper95, colour=TEAM)) +#
-			geom_errorbarh(height=0.3) + geom_point(size=3, pch=13) +#
-			geom_point(data=subset(tmp, TEAM=='True'), size=3, colour='black', pch=18) +#
-			scale_colour_manual(values=TEAM_CL) +#
-			facet_grid(INT_L~OBJ_L2+AC_L, scales='free', space='free_y') +#
-			theme_bw() + theme(panel.margin.x= unit(0.5, "lines"), legend.position='bottom') +#
-			guides(colour=guide_legend(ncol=2)) +#
-			labs(x= 'Estimates', y='', title='Secondary objective: sampling duration after intervention start\n(Regional, using true tree)\n')	#
-	ggsave(file=paste(outdir,'/res_acrossTEAM_secondary_sdurregional','.pdf',sep=''), w=13, h=4)#
-	# 	SECONDARY: compare seq coverage #
-	df	<- subset(dfa, SC_RND%in%c('I','J','G','K','T','R','L','H','05','08','06','07','11','09','12','10'))#
-	tmp	<- subset(df, OBJ%in%c('OBJ_ii','OBJ_iii','OBJ_v','OBJ_vi') & !grepl('(',TEAM,fixed=1) & USED_GENES=='all')#
-	tmp[, SMPL_L:= NA_character_]#
-	set(tmp, tmp[, which(SMPL_C=='8%')], 'SMPL_L', '8% coverage (Regional)')#
-	set(tmp, tmp[, which(SMPL_C=='16%')], 'SMPL_L', '16% coverage (Regional)')#
-	set(tmp, tmp[, which(SMPL_C=='30%')], 'SMPL_L', '30% coverage (Village)')#
-	set(tmp, tmp[, which(SMPL_C=='60%')], 'SMPL_L', '60% coverage (Village)')		#
-	tmp2	<- c('8% coverage (Regional)','16% coverage (Regional)', '30% coverage (Village)', '60% coverage (Village)')	#
-	set(tmp, NULL, 'SMPL_L', tmp[, factor(SMPL_L, levels=rev(tmp2), labels=rev(tmp2))])#
-	ggplot(subset(tmp, TEAM!='True'), aes(y=SMPL_L, x=central, xmin=lower95, xmax=upper95, colour=TEAM)) +#
-			geom_errorbarh(height=0.3) + geom_point(size=3, pch=13) +#
-			geom_point(data=subset(tmp, TEAM=='True'), size=3, colour='black', pch=18) +#
-			scale_colour_manual(values=TEAM_CL) +#
-			facet_grid(INT_L~OBJ_L2+AC_L, scales='free', space='free_y') +#
-			theme_bw() + theme(panel.margin.x= unit(0.5, "lines"), legend.position='bottom') +#
-			guides(colour=guide_legend(ncol=2)) +#
-			labs(x= 'Estimates', y='', title='Secondary objective: sampling coverage\n(using true tree)\n')	#
-	ggsave(file=paste(outdir,'/res_acrossTEAM_secondary_scvrg','.pdf',sep=''), w=13, h=6)#
-	tmp	<- subset(tmp, !(OBJ=='OBJ_ii' & central>0.1) & !(OBJ=='OBJ_v' & central>0.3 & AC_T=='low') & !(OBJ=='OBJ_vi' & central>0.3 & AC_T=='low'))#
-	ggplot(subset(tmp, TEAM!='True'), aes(y=SMPL_L, x=central, xmin=lower95, xmax=upper95, colour=TEAM)) +#
-			geom_errorbarh(height=0.3) + geom_point(size=3, pch=13) +#
-			geom_point(data=subset(tmp, TEAM=='True'), size=3, colour='black', pch=18) +#
-			scale_colour_manual(values=TEAM_CL) +#
-			facet_grid(INT_L~OBJ_L2+AC_L, scales='free', space='free_y') +#
-			theme_bw() + theme(panel.margin.x= unit(0.5, "lines"), legend.position='bottom') +#
-			guides(colour=guide_legend(ncol=2)) +#
-			labs(x= 'Estimates', y='', title='Secondary objective: sampling coverage\n(using true tree, range cut)\n')	#
-	ggsave(file=paste(outdir,'/res_acrossTEAM_secondary_scvrgcut','.pdf',sep=''), w=13, h=6)
-indir	<- '/Users/Oliver/Dropbox\ (Infectious Disease)/PANGEAHIVsim_internal/documents/external/2015_05_results'#
-	file	<- paste(indir, '/answers_Regional_Feb2015_rFormat.csv', sep='')#
-	df		<- read.submission(file, verbose=0, reset.OBJiv.conservative=1)#
-	#	read truth for village simus#
-	file	<- paste(indir, '/answers_Village_Feb2015-yr43_rFormat.csv', sep='')#
-	tmp		<- read.submission(file, verbose=0, reset.OBJiv.conservative=1)#
-	set(tmp, NULL, 'TEAM', 'True')#
-	df		<- rbind(df, tmp)#
-	#	read submissions#
-	tmp		<- list.files(indir, pattern='csv$')#
-	tmp		<- tmp[!grepl('answers',tmp)]#
-	#	read Eriks multiple submissions#
-	tmp2	<- data.table(FILE=tmp[grepl('cambImp',tmp)])#
-	tmp2[, RUN:= tmp2[,  sapply( strsplit(FILE,'_'), function(x) rev(x)[1] )]]#
-	set(tmp2, NULL, 'RUN', tmp2[, substr(RUN, 1, nchar(RUN)-4)])#
-	set(tmp2, NULL, 'RUN', tmp2[, gsub('results0','',RUN)])#
-	dfs		<- do.call('rbind',lapply(seq_len(nrow(tmp2)), function(i)#
-				{#
-					z	<- read.submission( paste(indir, '/', tmp2[i, FILE], sep=''), verbose=0, reset.OBJiv.conservative=1 )#
-					set(z, NULL, 'TEAM', z[, paste(TEAM, ' (', tmp2[i, RUN], ')', sep='')])#
-					z#
-				}))#
-	tmp		<- tmp[!grepl('cambImp',tmp)]#
-	tmp		<- do.call('rbind',lapply(tmp, function(x) read.submission(paste(indir,'/',x,sep=''), verbose=0, reset.OBJiv.conservative=1)))#
-	dfs		<- rbind(dfs, tmp)#
-	# 	change team name#
-	set(dfs, dfs[, which(TEAM=='Colijn')],'TEAM','Imperial')#
-	#	construct Erik's gold submission#
-	#	for regional tree, use mergedTab#
-	tmp		<- subset(dfs, grepl('merged', TEAM) & grepl('Regional',SIM_SCENARIO))	#
-	tmp[, TEAM:='Cambridge/Imperial']
-indir	<- '/Users/Oliver/Dropbox\ (Infectious Disease)/PANGEAHIVsim_internal/documents/external/2015_05_results'#
-	file	<- paste(indir, '/answers_Regional_Feb2015_rFormat.csv', sep='')#
-	df		<- read.submission(file, verbose=0, reset.OBJiv.conservative=1)#
-	#	read truth for village simus#
-	file	<- paste(indir, '/answers_Village_Feb2015-yr43_rFormat.csv', sep='')#
-	tmp		<- read.submission(file, verbose=0, reset.OBJiv.conservative=1)#
-	set(tmp, NULL, 'TEAM', 'True')#
-	df		<- rbind(df, tmp)#
-	#	read submissions#
-	tmp		<- list.files(indir, pattern='csv$')#
-	tmp		<- tmp[!grepl('answers',tmp)]#
-	#	read Eriks multiple submissions#
-	tmp2	<- data.table(FILE=tmp[grepl('cambImp',tmp)])#
-	tmp2[, RUN:= tmp2[,  sapply( strsplit(FILE,'_'), function(x) rev(x)[1] )]]#
-	set(tmp2, NULL, 'RUN', tmp2[, substr(RUN, 1, nchar(RUN)-4)])#
-	set(tmp2, NULL, 'RUN', tmp2[, gsub('results0','',RUN)])#
-	dfs		<- do.call('rbind',lapply(seq_len(nrow(tmp2)), function(i)#
-				{#
-					z	<- read.submission( paste(indir, '/', tmp2[i, FILE], sep=''), verbose=0, reset.OBJiv.conservative=1 )#
-					set(z, NULL, 'TEAM', z[, paste(TEAM, ' (', tmp2[i, RUN], ')', sep='')])#
-					z#
-				}))#
-	tmp		<- tmp[!grepl('cambImp',tmp)]
 do.call('rbind',lapply(tmp, function(x) read.submission(paste(indir,'/',x,sep=''), verbose=0, reset.OBJiv.conservative=1)))
 tmp		<- do.call('rbind',lapply(tmp, function(x) read.submission(paste(indir,'/',x,sep=''), verbose=0, reset.OBJiv.conservative=1)))#
 	dfs		<- rbind(dfs, tmp)
@@ -3119,53 +2678,614 @@ tmp	<- subset(df, OBJ%in%c('OBJ_vi') & !grepl('(',TEAM,fixed=1) & DATAT_L=='Vill
 			guides(colour=guide_legend(ncol=2)) +#
 			labs(x= '%', y='', title='Primary objectives: %Acute at endpoint\n(Village)\n')	#
 	ggsave(file=paste(outdir,'/res_acrossTEAM_primaryvillage_pcacuteend_ssc','.pdf',sep=''), w=10, h=7)
-setwd("/Users/Oliver/git/HPTN071sim/source/rPANGEAHIVsim"); source("misc/rPANGEAHIV.startme.R")
-x1	<- data.table(FILE=list.files('/Users/Oliver/git/HPTN071sim/tmp150227-E-o111 copy 2/VirusTreeSimulator', full.names=1))#
-	x2	<- data.table(FILE=list.files('/Users/Oliver/git/HPTN071sim/tmp150227-E-o111 copy/VirusTreeSimulator', full.names=1))#
-	x1[, B:= basename(FILE)]#
-	x2[, B:= basename(FILE)]#
-	x1	<- merge(x1,x2,by='B')
-i<- 1
-ph1	<- hivc.beast2out.read.nexus.and.stats(x1[i, FILE.x], method.node.stat='any.node')$tree#
-		ph2	<- hivc.beast2out.read.nexus.and.stats(x1[i, FILE.y], method.node.stat='any.node')$tree
-ph1
-ph2
-seq.collapse.singles(ph1)
-seq.collapse.singles(ph2)
-ph1	<- seq.collapse.singles(ph1)#
-		ph2	<- seq.collapse.singles(ph2)
-ph1
-ph2
-stopifnot( setequal(ph1$tip.label,ph2$tip.label) )
-str(ph1)
-str(ph2)
-Nnode(ph1)
-for(i in seq_len(nrow(x1)))#
+library(devtools)#
+	code.dir	<- "/Users/Oliver/git/abc.star"#
+	roxygenize(code.dir)#
+	devtools::install(code.dir)#
+	require(abc.star)
+require(roxygen2)
+code.dir	<- "/Users/Oliver/git/abc.star"#
+	roxygenize(code.dir)#
+	devtools::install(code.dir)#
+	require(abc.star)
+p 		<- 3#
+# set number of observations#
+n.of.x 	<- 100#
+# set number of simulations#
+n.of.y 	<- 100#
+# set T2 calculated on the observed data#
+t2.x	<- 0.25
+ftest.calibrate(n.of.x=n.of.x, t2.x=t2.x, p=p, what='KL', mx.pw=0.9, alpha=0.01, plot=TRUE, verbose=FALSE)
+traceback()
+code.dir	<- "/Users/Oliver/git/abc.star"#
+	roxygenize(code.dir)#
+	devtools::install(code.dir)#
+	require(abc.star)
+ftest.calibrate(n.of.x=n.of.x, t2.x=t2.x, p=p, what='KL', mx.pw=0.9, alpha=0.01, plot=TRUE, verbose=FALSE)
+code.dir	<- "/Users/Oliver/git/abc.star"#
+	roxygenize(code.dir)#
+	devtools::install(code.dir)#
+	require(abc.star)
+ftest.calibrate(n.of.x=n.of.x, t2.x=t2.x, p=p, what='KL', mx.pw=0.9, alpha=0.01, plot=TRUE, verbose=FALSE)
+mx.pw=0.9; alpha=0.01; pow_scale=1.5
+tmp				<- ftest.calibrate.tau( mx.pw, n.of.y, p, tau.u, alpha )						#tau.u is taken as upper bound on calibrated tau.u#
+	crit			<- tmp['c']#
+	tau				<- tmp['tau']#
+	curr.pw		<- tmp['curr.pw']
+#' @title \code{ftest} power function #
+#' @description Compute the power of the one-sample multivariate equivalence test for population means of multivariate normal summary values with unknown population variance.#
+#' @export#
+#' @import data.table ggplot2#
+#' @inheritParams ftest.calibrate#
+#' @param rho 		Vector of quantiles#
+#' @param support 	Support of the truncated power function (vector of dimension 2).#
+#' @param log 		If \code{TRUE}, the power function is returned on the log scale. #
+#' @note The power function can be truncated to \code{support}.#
+#' @example example/ex.ftest.pow.R#
+#' @references  http://arxiv.org/abs/1305.4283#
+ftest.pow <- function(rho, tau, n.of.y, p, alpha=0.01, support=c(0, Inf), log=FALSE, norm=1)#
+{ #
+	stopifnot(alpha > 0, alpha < 0.5, support[1] <= support[2], tau > 0, support[1] >= 0)#
+	stopifnot(n.of.y %% 1 == 0, p %% 1 == 0, n.of.y > 1, p > 0, p < n.of.y)#
+	ans 			<- rho#
+	in_support 		<- (rho >= support[1] & rho <= support[2])#
+	ans[!in_support]<- ifelse(log, -Inf, 0)#
+	if(any(in_support))#
 	{#
-		print(i)#
-		ph1	<- hivc.beast2out.read.nexus.and.stats(x1[i, FILE.x], method.node.stat='any.node')$tree#
-		ph2	<- hivc.beast2out.read.nexus.and.stats(x1[i, FILE.y], method.node.stat='any.node')$tree#
-		ph1	<- seq.collapse.singles(ph1)#
-		ph2	<- seq.collapse.singles(ph2)#
-		stopifnot( setequal(ph1$tip.label,ph2$tip.label) )#
-		if(Nnode(ph1))#
+		crit.val            <- qf(alpha, p, n.of.y - p, n.of.y * tau)#
+		ans[in_support]		<- pf(crit.val, p, n.of.y - p, n.of.y * rho[in_support])/norm#
+		tmp					<- which(ans[in_support] < 0)#
+		if(length(tmp))#
+			ans[tmp]		<- 0#
+		if(log)#
+			ans[in_support]	<- log(ans[in_support])#
+	}#
+	ans#
+}#
+#------------------------------------------------------------------------------------------------------------------------#
+#' @title Area under the \code{ftest} power function#
+#' @export#
+#' @description This function computes the area under the power function \code{ftest.pow}.#
+#' @inheritParams ftest.pow#
+#' @seealso \code{\link{ftest.pow}}#
+ftest.pow.norm<- function(tau, n.of.y, p, support=c(0,Inf))#
+{#
+	ans <- integrate(ftest.pow, lower=support[1], upper=support[2], tau=tau, n.of.y=n.of.y, p=p, norm=1, support=support, log=FALSE)#
+	ans$value#
+}	#
+#------------------------------------------------------------------------------------------------------------------------#
+# density of Hotelling T2 (partial likelihood) on observed data#
+ftest.sulkl	<- function(rho, t2.x, n.of.x, p, norm = 1, support= c(0,Inf), log=FALSE) #
+{#
+	stopifnot(p>1, n.of.x>1)#
+	ans 				<- rho#
+	in_support 			<- (rho >= support[1] & rho <= support[2])#
+	ans[!in_support]	<- 0#
+	if(any(in_support)) 			#
+		ans[in_support]	<- df( t2.x * (n.of.x-p) / (p*(n.of.x-1)), df1=p, df2=n.of.x-p, ncp= n.of.x*rho[in_support]) / norm#
+	if(log)#
+		ans				<- log(ans)#
+	return(ans)#
+}#
+#------------------------------------------------------------------------------------------------------------------------#
+# normalising constant of density of Hotelling T2 (partial likelihood) on observed data#
+ftest.sulkl.norm	<- function(t2.x, n.of.x, p, support=c(0,Inf))#
+{	#
+	ans	<- integrate(ftest.sulkl, lower=support[1], upper=support[2],  t2.x=t2.x, n.of.x=n.of.x, p=p, norm=1, support=support, log=FALSE)	#
+	ans$value#
+}#
+#------------------------------------------------------------------------------------------------------------------------#
+# calculate the critical value for a given equivalence region#
+ftest.criticalvalue <- function(tau, n, p, alpha = 0.01)#
+{				 #
+	c <- p * (n - 1) * qf(alpha, p, n - p, n * tau) / (n - p)#
+	names(c) <- "c"#
+	c#
+}#
+#------------------------------------------------------------------------------------------------------------------------#
+# Calibrate the equivalence region for given maximum power#
+ftest.calibrate.tau <- function(mx.pw, n, p, tau.ub, alpha = 0.01, tol = 1e-5, max.it = 100, verbose = 0)#
+{#
+	stopifnot(mx.pw > 0, mx.pw < 1, alpha > 0, alpha < 0.5, tau.ub > 0, max.it > 10, tol < 0.01)#
+	stopifnot(n %% 1 == 0, p %% 1 == 0, n > 1, p > 0, p < n)#
+	stopifnot((mx.pw - tol) > 0, (mx.pw + tol) < 1)#
+	pw.lb <- mx.pw - tol#
+	pw.ub <- mx.pw + tol#
+	tau.lb <- 0#
+	tmp	<- max.it#
+	while(ftest.pow(0, tau.ub, n, p, alpha) < pw.ub & tmp > 0)#
+	{#
+		tau.ub <- tau.ub + 1#
+		tmp <- tmp - 1#
+	}#
+	if(tmp == 0) stop("could not set viable upper bound for tau")	#
+	tau <- (tau.ub + tau.lb) / 2#
+	tmp	<- max.it#
+	while(ftest.pow(0, tau, n, p, alpha) > pw.lb & tmp > 0)#
+	{#
+		tau <- (tau + tau.lb) / 2#
+		tmp <- tmp - 1#
+	}#
+	if(tmp == 0) stop("could not set viable lower bound for tau")#
+	else tau.lb <- tau#
+	if(ftest.pow(0, tau.lb, n, p, alpha) > ftest.pow(0, tau.ub, n, p, alpha)) stop("non-viable bounds generated")#
+	tmp	<- max.it#
+	while(tmp > 0 & round(tau.lb, digits = 10) != round(tau.ub, digits = 10))#
+	{#
+		tau <- seq(tau.lb, tau.ub, len = 1024)#
+		curr.pw <- sapply(tau, function(x) ftest.pow(0, x, n, p, alpha))#
+		in_tol <- (curr.pw >= pw.lb & curr.pw <= pw.ub)#
+		if(all(!in_tol))#
 		{#
-			xx	<- merge( 	data.table(LABEL=ph1$tip.label, H1=node.depth.edgelength(ph1)[seq_len(Ntip(ph1))]), #
-					data.table(LABEL=ph2$tip.label, H2=node.depth.edgelength(ph2)[seq_len(Ntip(ph2))]), by='LABEL')#
-			stopifnot( nrow(subset(xx, round(H1,d=4)!=round(H2,d=4)))==0 )	#
+			in_tol <- (curr.pw < pw.lb)#
+			if(!all(!in_tol)) tau.lb <- tau[max(which(in_tol))]#
+			in_tol <- (curr.pw > pw.ub)#
+			if(!all(!in_tol)) tau.ub <- tau[min(which(in_tol))]#
 		}#
-		if(!Nnode(ph1))#
-			stopifnot( ph1$root.edge==ph2$root.edge )#
+		else#
+		{   #
+			tau.ub <- min(tau[in_tol])#
+			min_in_tol <- which(1:length(curr.pw) < min(which(in_tol)))#
+			if(length(min_in_tol) > 0) tau.lb <- tau[max(min_in_tol)]#
+		}#
+		if(verbose)	cat(paste("\ntrial upper bound", tau.ub, "with power", ftest.pow(0, tau.ub, n, p, alpha), " lower bound", tau.lb, "with power", ftest.pow(0, tau.lb, alpha, n, p)))#
+		tmp <- tmp - 1#
+	}#
+	if(tmp == 0)	stop("could not find tau")#
+	tau <- round(tau.lb, digits = 10)#
+	curr.pw <- ftest.pow(0, tau, n, p, alpha)#
+	if(verbose)	cat(paste("\nFound tau", tau, "with power", curr.pw, "at rho=0\n"))#
+	ans				<- c(tau, curr.pw, abs(curr.pw - mx.pw))	#
+	names(ans)		<- c("tau", "curr.pw", "error")#
+	c(ans, ftest.criticalvalue(tau = tau, n = n, p = p, alpha = alpha))#
+}#
+#------------------------------------------------------------------------------------------------------------------------#
+#	compute KL divergence between power of F test and summary likelihood#
+ftest.getkl <- function(n.of.x, t2.x, n.of.y, p, tau.u, mx.pw=0.9, alpha=0.01, pow_scale=1.5, plot = F) #
+{	#
+	#	calibrate tau	#
+	tmp				<- ftest.calibrate.tau( mx.pw, n.of.y, p, tau.u, alpha )						#tau.u is taken as upper bound on calibrated tau.u#
+	crit			<- tmp['c']#
+	tau				<- tmp['tau']#
+	curr.pw		<- tmp['curr.pw']	#
+	if (abs(curr.pw - mx.pw) > 0.09) 	#
+		stop("tau.up not accurate")			#
+	#	truncate pow and compute the normalizing constant pow_norm	#
+	pow_support 	<- c(0, tau*pow_scale) 	#
+	pow_norm 		<- ftest.pow.norm(tau, n.of.y, p, support=pow_support)#
+	#	truncate lkl and compute the normalizing constant lkl_norm #
+	lkl_support		<- pow_support	#
+	#print(c(n.of.x)); print(lkl_support)#
+	lkl_norm		<- ftest.sulkl.norm(t2.x, n.of.x, p, support=lkl_support)#
+	integral_range	<- pow_support			#
+	lkl_arg			<- list(n.of.x=n.of.x, t2.x=t2.x, p=p, norm=lkl_norm, support=lkl_support)#
+	pow_arg			<- list(tau=tau, n.of.y=n.of.y, p=p, alpha=alpha, norm=pow_norm, support=pow_support)	#
+	tmp 			<- integrate(kl.integrand, lower=integral_range[1], upper=integral_range[2], dP=ftest.sulkl, dQ=ftest.pow, P_arg=lkl_arg, Q_arg=pow_arg)#
+	KL_div			<- tmp$value#
+	if (tmp$message != "OK") #
+	{#
+		warning(tmp$message)#
+	}#
+	if (plot) #
+	{#
+		rho_lkl 			<- seq(lkl_support[1], lkl_support[2], length.out = 1000)#
+		lkl					<- ftest.sulkl(rho_lkl, t2.x, n.of.x, p, norm=lkl_norm, support=lkl_support)#
+		df_lkl 				<- data.table(x = rho_lkl, yes = lkl, no = lkl*lkl_norm )#
+		df_lkl$distribution <- "summary likelihood"#
+		rho_pow	 			<- seq(pow_support[1], pow_support[2], length.out = 1000)#
+		pow					<- ftest.pow(rho_pow, tau, n.of.y, p, alpha=alpha, support=pow_support, norm=pow_norm)		#
+		df_pow 				<- data.table(x = rho_pow, yes = pow, no = pow*pow_norm)#
+		df_pow$distribution <- "ABC approximation"#
+		gdf 				<- rbind(df_pow, df_lkl)#
+		gdf					<- melt(gdf,id.vars=c("x","distribution"))#
+		pp	<- ggplot(gdf, aes(x=x, y=value, group=distribution)) +#
+				geom_ribbon(data=subset(gdf, distribution=='summary likelihood'), aes(ymax=value, ymin=0), fill='grey70') +				#
+				geom_vline(xintercept= tau,linetype="dotted") + #
+				geom_hline(yintercept= mx.pw,linetype="dotted") + #
+				geom_line(data=subset(gdf, distribution!='summary likelihood')) +#
+				scale_y_continuous(expand=c(0,0)) +#
+				#scale_colour_brewer(palette='Set1', guide=FALSE) + #
+				scale_linetype_manual(values=c('solid','longdash'), guide=FALSE) + #
+				scale_colour_manual(values=c('black','transparent'), guide=FALSE) + #
+				labs(x= expression(rho), y="", linetype="Normalized", colour='Distribution') +#
+				facet_wrap(~variable, scales='free') +#
+				theme_bw() + theme(legend.position='bottom') #+ guides(colour=guide_legend(ncol=2))#
+		#p 					<- p + ggtitle(paste("n.of.y=", df+1, "\ntau.l=", tau.l,"\ntau.u=", tau.u,"\nKL=", KL_div))#
+		print(pp)#
+	}#
+	tmp			<- c(KL_div, tau, crit, curr.pw,abs(curr.pw - mx.pw))#
+	names(tmp)	<- c('KL_div', 'tau', 'c', 'pw.cmx', 'err.pw')#
+	tmp#
+}#
+#------------------------------------------------------------------------------------------------------------------------#
+#	calibrate Ftest to match summary likelihood#
+ftest.calibrate.kl<- function(t2.x, n.of.x, p, n.of.y=n.of.x, mx.pw=0.9, alpha=0.01, max.it=100, debug=FALSE, plot=FALSE)#
+{				#
+	#	KL for initial n.of.y#
+	KL.of.yn		<- ftest.getkl(n.of.x, t2.x, n.of.y, p, 4*t2.x, mx.pw=mx.pw, alpha=alpha, pow_scale=1.5, plot=F)["KL_div"]	#
+	#	KL always decreases from n.of.x. Find upper bound yn.ub such that KL first increases again.	#
+	curr.it 		<- max.it#
+	yn.ub 			<- 2 * n.of.y		#
+	KL.of.yn_ub		<- ftest.getkl(n.of.x, t2.x, yn.ub, p, 4*t2.x, mx.pw=mx.pw, alpha=alpha, pow_scale=1.5, plot=F)["KL_div"]		#
+	while (KL.of.yn_ub < KL.of.yn && curr.it > 0) #
+	{#
+		#print(c(yn.ub, KL.of.yn_ub, KL.of.yn, curr.it))#
+		curr.it 		<- curr.it - 1#
+		KL.of.yn 		<- KL.of.yn_ub#
+		yn.ub 			<- 2 * yn.ub#
+		KL.of.yn_ub		<- ftest.getkl(n.of.x, t2.x, yn.ub, p, 4*t2.x,  mx.pw=mx.pw, alpha=alpha, pow_scale=1.5, plot=F)["KL_div"]#
+		if(debug)	cat(paste("\ntrial upper bound m=",yn.ub,"with KL",KL.of.yn_ub))#
+	}			#
+	if (curr.it == 0) 	stop("could not find upper bound for yn")					#
+	if(debug)	#
+		cat(paste("\nFound upper bound m=",yn.ub,"with KL",KL.of.yn_ub))#
+	yn.lb			<- ifelse(curr.it==max.it, yn.ub/2, yn.ub/4)#
+	if(debug)	#
+		cat(paste("\nupper and lower bounds on m:",yn.lb, yn.ub))#
+	KL_args				<- list(	n.of.x=n.of.x, t2.x=t2.x, p=p, tau.u=4*t2.x, mx.pw=mx.pw, alpha=alpha, plot=F)	#
+	tmp 				<- optimize(kl.optimize, interval=c(yn.lb-1, yn.ub-1), x_name="n.of.y", is_integer=TRUE, KL_divergence="ftest.getkl", KL_args=KL_args, verbose=debug, tol=1)	#
+	n.of.y 				<- round(tmp$minimum)+1		#
+	tmp					<- ftest.getkl(n.of.x, t2.x, n.of.y, p, 4*t2.x, mx.pw=mx.pw, alpha=alpha, pow_scale=1.5, plot=plot)#
+	c(n.of.y=n.of.y, tau=tmp['tau'], c=tmp['c'], pw.cmx=tmp['pw.cmx'], KL_div=tmp['KL_div'])		#
+}#
+#------------------------------------------------------------------------------------------------------------------------#
+ftest.plot <- function(n, p, tau, alpha, pow_scale = 1.5)#
+{#
+	tmp			<- data.frame(rho = seq(0, pow_scale * tau, length.out = 1024))	#
+	tmp$power	<- ftest.pow(tmp$rho, tau, n, p, alpha)#
+	p	<- ggplot(tmp, aes(x = rho, y = power)) + geom_line() + labs(x = expression(rho), y = 'Power\n(ABC acceptance probability)') +#
+			scale_y_continuous(breaks = seq(0, 1, 0.2), limits = c(0, 1)) +#
+			geom_vline(xintercept = tau, linetype = "dotted") +#
+			ggtitle(substitute(paste("n = ", n, ", p = ", p, ", ", " tau = ", tau, sep = ""), list(n = n, p = p, tau = tau)))#
+	print(p)#
+}#
+#
+#------------------------------------------------------------------------------------------------------------------------#
+#' @title Calibrating \code{ftest} for ABC#
+#' @description Calibrate the one-sample equivalence test for population means of multivariate normal summary values with unknown population covariance matrix for ABC inference.#
+#' #
+#' Different types of calibrations are available, see Notes for details:#
+#' \enumerate{ #
+#'  \item (\code{what = ALPHA}) compute the ABC false positive rate for given critical region,#
+#'  \item (\code{what = CR}) calibrate the critical region for given ABC false positive rate,#
+#'  \item (\code{what = MXPW}) calibrate the critical region and the equivalence region for given ABC false positive rate and maximum power.#
+#' }#
+#' #
+#' Depending on the type of calibration, some of the following inputs must be specified (see Examples). #
+#' @export #
+#' @import data.table ggplot2#
+#' @param n 		Number of replicate simulations#
+#' @param p 		Number of variables#
+#' @param what		Character string to indicate the type of calibration to be performed #
+#' @param c		Upper boundary point of the critical region #
+#' @param tau		Upper boundary point of the equivalence region  #
+#' @param mx.pw 	Maximum power at the point of equality#
+#' @param alpha 	Level of the equivalence test#
+#' @param max.it  	Maximum number of optimization steps at each calibration hierarchy#
+#' @param tol		Required error tolerance in calibrating the actual maximum power to the requested maximum power #
+#' @param plot  	Flag to plot calibrations#
+#' @param pow_scale Scale for the support of the power function (used for plotting)#
+#' @param verbose	Flag to run in verbose mode#
+#' @return	vector#
+#' @seealso \code{\link{mutost.calibrate}}, \code{\link{vartest.calibrate}}, \code{\link{ratetest.calibrate}}, \code{\link{ztest.calibrate}}#
+#' @note #
+#' \enumerate{	#
+#'  \item (\code{what = ALPHA}) This calibration requires the inputs \code{c}, \code{tau} with \code{0 < tau} and \code{c > 0}. #
+#' 				The output contains the corresponding ABC false positive rate \code{alpha}.#
+#' 				This option does not specify any of the free ABC parameters, but may be useful to determine the ABC#
+#' 				false positive rate for uncalibrated ABC routines.#
+#'  \item (\code{what = CR}) This calibration requires the input \code{tau}, \code{alpha} with \code{tau > 0} and default \code{alpha = 0.01}. #
+#' 				The output contains the corresponding critical value \code{c}, which defines critical region \code{[0, c]}, which corresponds to the ABC tolerance region typically denoted by \code{[0, tau]}.#
+#'  \item (\code{what=MXPW}) This calibration requires the inputs \code{alpha}, \code{mx.pw}, with default values 0.01 and 0.9 respectively.#
+#' 				The output contains the corresponding critical value \code{c}, corresponding to critical region \code{[0, c]} (to be used in ABC). It also contains #
+#' 				the corresponding squared distance \code{tau}, defining equivalence region \code{[0, tau]} that gives a suitable ABC accept/reject probability if the simulated summary values are close to the observed summary values.#
+#' 				As a check to the numerical calibrations, the actual power at the point of equality is returned (\code{pw.cmx}).#
+#' }#
+#' @example example/ex.ftest.calibrate.R#
+#' @references  http://arxiv.org/abs/1305.4283#
+ftest.calibrate<- function(n.of.x=NA, t2.x=NA, n.of.y = NA, p = NA, what = 'MXPW', #
+							mx.pw = 0.9, alpha = 0.01, c = NA, tau = NA, tol = 1e-5, #
+							max.it = 100, pow_scale = 1.5, debug=FALSE, plot=FALSE, verbose=FALSE)#
+{#
+	stopifnot(what %in% c('ALPHA', 'CR', 'MXPW', 'KL'))#
+	if(what == 'ALPHA')#
+	{#
+		stopifnot(c > 0, tau > 0)#
+		stopifnot(n.of.y %% 1 == 0, p %% 1 == 0, n.of.y > 1, p > 0, p < n.of.y)#
+		ans         <- pf((n.of.y - p) * c / (p * (n.of.y - 1)), p, n.of.y - p, n.of.y * tau)#
+		names(ans)	<- c('alpha')#
+		if(plot)#
+			ftest.plot(n.of.y = n.of.y, p = p, tau = tau, alpha = ans['alpha'], pow_scale = pow_scale)#
+	}#
+	if(what == 'CR')#
+	{#
+		stopifnot(tau > 0, alpha > 0, alpha < 1)#
+		stopifnot(n.of.y %% 1 == 0, p %% 1 == 0, n.of.y > 1, p > 0, p < n.of.y)#
+		ans			<- ftest.criticalvalue(tau = tau, n.of.y = n.of.y, p = p, alpha = alpha)#
+		names(ans)	<- c('c')#
+		if(plot)#
+			ftest.plot(n.of.y = n.of.y, p = p, tau = tau, alpha = alpha, pow_scale = pow_scale)#
+	}#
+	if(what == 'MXPW')#
+	{#
+		stopifnot(mx.pw > 0, mx.pw < 1, alpha > 0, alpha < 0.5, max.it > 10, tol < 0.01, pow_scale > 1)#
+		stopifnot(n.of.y %% 1 == 0, p %% 1 == 0, n.of.y > 1, p > 0, p < n.of.y)#
+		tmp			<- ftest.calibrate.tau(mx.pw, n.of.y = n.of.y, p = p, alpha = alpha, tau.ub = ifelse(is.na(tau), 1, tau), tol = tol, max.it = max.it, verbose = verbose)#
+		ans			<- c(tmp[4], tmp[1], tmp[2], tmp[3])#
+		names(ans)	<- c('c','tau', 'pw.cmx', 'pw.error')#
+		if(plot)#
+			ftest.plot(n.of.y = n, p = p, tau = ans['tau'], alpha = alpha, pow_scale = pow_scale)		#
+	}	#
+	if(what == 'KL')#
+	{#
+		stopifnot(!is.na(t2.x), n.of.x>2, p>1, p<n.of.x, alpha>0, alpha<1, max.it > 10, tol < 0.01, pow_scale > 1)#
+		stopifnot(n.of.x %% 1 == 0, p %% 1 == 0)		#
+		tmp			<- ftest.calibrate.kl(t2.x, n.of.x, p, n.of.y=n.of.x, mx.pw=mx.pw, alpha=alpha, max.it=max.it, debug=debug, plot=plot)#
+		ans			<- c(tmp[3], tmp[2], tmp[1], tmp[4], tmp[5])#
+		names(ans)	<- c('c','tau','n.of.y','pw.cmx','KL.div')#
+	}#
+	ans	#
+}
+tmp				<- ftest.calibrate.tau( mx.pw, n.of.y, p, tau.u, alpha )						#tau.u is taken as upper bound on calibrated tau.u#
+	crit			<- tmp['c']#
+	tau				<- tmp['tau']#
+	curr.pw		<- tmp['curr.pw']
+t2.x	<- 0.25
+tau.u<- 4*t2.x
+tmp				<- ftest.calibrate.tau( mx.pw, n.of.y, p, tau.u, alpha )						#tau.u is taken as upper bound on calibrated tau.u#
+	crit			<- tmp['c']#
+	tau				<- tmp['tau']#
+	curr.pw		<- tmp['curr.pw']
+pow_support 	<- c(0, tau*pow_scale) 	#
+	pow_norm 		<- ftest.pow.norm(tau, n.of.y, p, support=pow_support)#
+	#	truncate lkl and compute the normalizing constant lkl_norm #
+	lkl_support		<- pow_support	#
+	#print(c(n.of.x)); print(lkl_support)#
+	lkl_norm		<- ftest.sulkl.norm(t2.x, n.of.x, p, support=lkl_support)#
+	integral_range	<- pow_support			#
+	lkl_arg			<- list(n.of.x=n.of.x, t2.x=t2.x, p=p, norm=lkl_norm, support=lkl_support)#
+	pow_arg			<- list(tau=tau, n.of.y=n.of.y, p=p, alpha=alpha, norm=pow_norm, support=pow_support)	#
+	tmp 			<- integrate(kl.integrand, lower=integral_range[1], upper=integral_range[2], dP=ftest.sulkl, dQ=ftest.pow, P_arg=lkl_arg, Q_arg=pow_arg)#
+	KL_div			<- tmp$value
+# @title Integrand of the Kullback-Leibler divergence D(P||Q) for generic distributions#
+# @param x value at which integrand is evaluated. Can be a vector.#
+# @param dP name of the functions that compute the density of P#
+# @param dQ name of the functions that compute the density of Q#
+# @param P_arg list of arguments for \code{dP}#
+# @param Q_arg list of arguments for \code{dQ}#
+# @return KL divergence#
+kl.integrand<-function(x, dP, dQ, P_arg, Q_arg)#
+{#
+	#this function must accept x as a vector	#
+	log_P_x	<- do.call(dP,c(list(x,log=T),P_arg))				#
+	log_Q_x	<- do.call(dQ,c(list(x,log=T),Q_arg))#
+	if(any(tmp<-(log_Q_x == -Inf)))#
+	{#
+		cat("\nQ(x) is 0 at some point! Usually this happens due to numerical inacurracy in the tail of Q. For simplicity we assume that log(Q(x))=-100 at these points.")#
+		log_Q_x[tmp]<- log(.Machine$double.xmin)#
+	}#
+	ans		<- (log_P_x-log_Q_x)*exp(log_P_x)#
+	if(any(!is.finite(ans)))#
+	{#
+		print(data.frame(x,P_x=exp(log_P_x),log_P_x,log_Q_x,ans))#
+		stop()#
+	}			#
+	return(ans)#
+}#
+#
+# @title Compute the KL divergence for two dimensional densities P and Q#
+# @param df1	data.table with two columes th1 and th2, random draws from P#
+# @param df2	data.table with two columes th1 and th2, random draws from Q#
+# @param nbin	number of bins for both densities#
+# @return KL divergence#
+kl.2D <- function(df1, df2, nbin=100)#
+{#
+	df1.lim		<- df1[, lapply(.SD, range)]#
+	df2.lim		<- df2[, lapply(.SD, range)]#
+	df.lim		<- as.matrix( rbind(df1.lim, df2.lim)[, lapply(.SD, range)] )#
+	df1.bins	<- bin2(as.matrix(df1), ab=t(df.lim), nbin=rep(nbin,2))#
+	df1.bins$nc	<- df1.bins$nc / sum( df1.bins$nc )#
+	df2.bins	<- bin2(as.matrix(df2), ab=t(df.lim), nbin=rep(nbin,2))#
+	df2.bins$nc	<- df2.bins$nc / sum( df2.bins$nc )#
+	kl			<- data.table(one= as.numeric(log( df1.bins$nc / df2.bins$nc )), two= as.numeric( log( df2.bins$nc / df1.bins$nc )) )#
+	set(kl, which(is.nan(kl[,one])), 'one', 0. )#
+	set(kl, which(is.nan(kl[,two])), 'two', 0. )#
+	set(kl, which(is.infinite(kl[,one])), 'one', NA )#
+	set(kl, which(is.infinite(kl[,two])), 'two', NA )#
+	set(kl, NULL, 'one', kl[, one] * as.numeric(df1.bins$nc) )#
+	set(kl, NULL, 'two', kl[, two] * as.numeric(df2.bins$nc) )#
+	set(kl, which(as.numeric(df1.bins$nc)==0), 'one', 0. )#
+	set(kl, which(as.numeric(df2.bins$nc)==0), 'two', 0. )#
+	ans			<- list(one= sum(kl[,one], na.rm=1), two= sum(kl[,two], na.rm=1), zero.denom.one= sum(is.na(kl[,one])), zero.denom.two= sum(is.na(kl[,two]))	)#
+	ans#
+}#
+#
+# A wrapper to minimize \code{KL_divergence} over the parameter \code{x_name} using the function \link{optimize}#
+# @param x_value value tested.#
+# @param x_name name of the parameter over which minimization is performed.#
+# @param is_integer if \code{TRUE}, \code{x_value} is rounded to the closest integer. See \link{round}.#
+# @param KL_divergence character, name of the function that computes the KL divergence.#
+# @param KL_args additional arguments to be passed to \code{KL_divergence}.#
+# @param verbose logical, if \code{TRUE}, print warnings.#
+# @return the minimized Kullback-Leibler divergence (scalar).#
+kl.optimize<- function(x_value, x_name, is_integer=FALSE, KL_divergence, KL_args, verbose=FALSE) #
+{#
+	if (verbose)		cat(paste("\nOptimizing x=",x_value))#
+	if(is_integer)#
+		x_value 		<- round(x_value)	#
+	KL_args 			<- c(list(x_name = x_value),KL_args)#
+	names(KL_args)[1] 	<- x_name#
+	tmp					<- do.call(KL_divergence,KL_args)	#
+	if(0 || !verbose)								#TODO anton check#
+		options(warn=0)	#
+	return(tmp["KL_div"])#
+}
+tmp				<- ftest.calibrate.tau( mx.pw, n.of.y, p, tau.u, alpha )						#tau.u is taken as upper bound on calibrated tau.u#
+	crit			<- tmp['c']#
+	tau				<- tmp['tau']#
+	curr.pw		<- tmp['curr.pw']	#
+	if (abs(curr.pw - mx.pw) > 0.09) 	#
+		stop("tau.up not accurate")			#
+	#	truncate pow and compute the normalizing constant pow_norm	#
+	pow_support 	<- c(0, tau*pow_scale) 	#
+	pow_norm 		<- ftest.pow.norm(tau, n.of.y, p, support=pow_support)#
+	#	truncate lkl and compute the normalizing constant lkl_norm #
+	lkl_support		<- pow_support	#
+	#print(c(n.of.x)); print(lkl_support)#
+	lkl_norm		<- ftest.sulkl.norm(t2.x, n.of.x, p, support=lkl_support)#
+	integral_range	<- pow_support			#
+	lkl_arg			<- list(n.of.x=n.of.x, t2.x=t2.x, p=p, norm=lkl_norm, support=lkl_support)#
+	pow_arg			<- list(tau=tau, n.of.y=n.of.y, p=p, alpha=alpha, norm=pow_norm, support=pow_support)	#
+	tmp 			<- integrate(kl.integrand, lower=integral_range[1], upper=integral_range[2], dP=ftest.sulkl, dQ=ftest.pow, P_arg=lkl_arg, Q_arg=pow_arg)#
+	KL_div			<- tmp$value
+rho_lkl 			<- seq(lkl_support[1], lkl_support[2], length.out = 1000)#
+		lkl					<- ftest.sulkl(rho_lkl, t2.x, n.of.x, p, norm=lkl_norm, support=lkl_support)#
+		df_lkl 				<- data.table(X = rho_lkl, density = lkl, power = lkl*lkl_norm, TYPE="summary likelihood" )#
+		rho_pow	 			<- seq(pow_support[1], pow_support[2], length.out = 1000)#
+		pow					<- ftest.pow(rho_pow, tau, n.of.y, p, alpha=alpha, support=pow_support, norm=pow_norm)		#
+		df_pow 				<- data.table(X = rho_pow, density = pow, power = pow*pow_norm, TYPE="ABC approximation")#
+		gdf 				<- rbind(df_pow, df_lkl)#
+		gdf					<- melt(gdf, id.vars=c("X","TYPE"))
+gdf
+subset(gdf, !(TYPE=='summary likelihood' & variable=='power'))
+gdf					<- subset(gdf, !(TYPE=='summary likelihood' & variable=='power'))
+ggplot(gdf, aes(x=x, y=value, group=distribution)) +#
+				geom_ribbon(data=subset(gdf, distribution=='summary likelihood'), aes(ymax=value, ymin=0), fill='grey70') +				#
+				geom_vline(xintercept= tau,linetype="dotted") + #
+				geom_hline(yintercept= mx.pw,linetype="dotted") + #
+				geom_line(data=subset(gdf, distribution!='summary likelihood')) +#
+				scale_y_continuous(expand=c(0,0)) +				 #
+				scale_colour_manual(values=c('black','grey70')) + #
+				labs(x= expression(rho), y="", linetype="Normalized", colour='Distribution') +#
+				facet_wrap(~variable, scales='free') +#
+				theme_bw() + theme(legend.position='bottom')
+ggplot(gdf, aes(x=x, y=value, group=TYPE)) +#
+				geom_ribbon(data=subset(gdf, TYPE=='summary likelihood'), aes(ymax=value, ymin=0), fill='grey70') +				#
+				geom_vline(xintercept= tau,linetype="dotted") + #
+				geom_hline(yintercept= mx.pw,linetype="dotted") + #
+				geom_line() +#
+				scale_y_continuous(expand=c(0,0)) +				 #
+				scale_colour_manual(values=c('black','grey70')) + #
+				labs(x= expression(rho), y="", linetype="Normalized", colour='Distribution') +#
+				facet_wrap(~variable, scales='free') +#
+				theme_bw() + theme(legend.position='bottom')
+ggplot(gdf, aes(x=X, y=value, group=TYPE)) +#
+				geom_ribbon(data=subset(gdf, TYPE=='summary likelihood'), aes(ymax=value, ymin=0), fill='grey70') +				#
+				geom_vline(xintercept= tau,linetype="dotted") + #
+				geom_hline(yintercept= mx.pw,linetype="dotted") + #
+				geom_line() +#
+				scale_y_continuous(expand=c(0,0)) +				 #
+				scale_colour_manual(values=c('black','grey70')) + #
+				labs(x= expression(rho), y="", linetype="Normalized", colour='Distribution') +#
+				facet_wrap(~variable, scales='free') +#
+				theme_bw() + theme(legend.position='bottom')
+ggplot(gdf, aes(x=X, y=value, group=TYPE, colour=TYPE)) +#
+				geom_ribbon(data=subset(gdf, TYPE=='summary likelihood'), aes(ymax=value, ymin=0), fill='grey70') +				#
+				geom_vline(xintercept= tau,linetype="dotted") + #
+				geom_hline(yintercept= mx.pw,linetype="dotted") + #
+				geom_line() +#
+				scale_y_continuous(expand=c(0,0)) +				 #
+				scale_colour_manual(values=c('black','grey70')) + #
+				labs(x= expression(rho), y="", linetype="Normalized", colour='Distribution') +#
+				facet_wrap(~variable, scales='free') +#
+				theme_bw() + theme(legend.position='bottom')
+str(gdf)
+set(gdf, NULL, 'TYPE', gdf[, factor(TYPE, levels=c('summary likelihood',"ABC approximation"), labels=c('summary likelihood',"ABC approximation"))])
+ggplot(gdf, aes(x=X, y=value, group=TYPE, colour=TYPE)) +#
+				geom_ribbon(data=subset(gdf, TYPE=='summary likelihood'), aes(ymax=value, ymin=0), fill='grey70') +				#
+				geom_vline(xintercept= tau,linetype="dotted") + #
+				geom_hline(yintercept= mx.pw,linetype="dotted") + #
+				geom_line() +#
+				scale_y_continuous() +				 #
+				scale_colour_manual(values=c('black','grey70')) + #
+				labs(x= expression(rho), y="", linetype="Normalized", colour='Distribution') +#
+				facet_wrap(~variable, scales='free') +#
+				theme_bw() + theme(legend.position='bottom')
+ggplot(gdf, aes(x=X, y=value, group=TYPE, colour=TYPE)) +#
+				geom_ribbon(data=subset(gdf, TYPE=='summary likelihood'), aes(ymax=value, ymin=0), fill='grey70', guide=FALSE) +				#
+				geom_vline(xintercept= tau,linetype="dotted") + #
+				geom_hline(yintercept= mx.pw,linetype="dotted") + #
+				geom_line() +#
+				scale_y_continuous() +				 #
+				scale_colour_manual(values=c('black','grey70')) + #
+				labs(x= expression(rho), y="", linetype="Normalized", colour='') +#
+				facet_wrap(~variable, scales='free') +#
+				theme_bw() + theme(legend.position='bottom')
+setwd("/Users/Oliver/git/HPTN071sim/source/rPANGEAHIVsim"); source("misc/rPANGEAHIV.startme.R")
+indir.simu		<- '/Users/Oliver/git/HPTN071sim/treecomparison/nogaps'#
+	indir.gap		<-	'~/git/HPTN071sim/treecomparison/PANGEAcov'#
+	infile.gap		<- '150623_PANGEAGlobal2681_C5.fa'#
+	outdir			<- '/Users/Oliver/git/HPTN071sim/treecomparison/withgaps_150701'					#
+	gap.symbol		<- '?'#
+	gap.seed		<- 42
+gap.country		<- 'BW'#
+		infile.gaps		<- sapply(c(5),function(x) paste('150623_PANGEAGlobal2681_C',x,'.fa',sep=''))
+infile.gap<- infile.gaps
+outfile.cov		<- regmatches(infile.gap,regexpr('C[0-9]+',basename(infile.gap)))#
+							infile.simu		<- 'Vill_98_Jul15'#
+							outfile			<- paste(infile.simu, '_', gap.country, outfile.cov, '.fa', sep='')
+files			<- data.table(FILE=list.files(indir.simu, pattern='\\.fa.*$'))#
+	files			<- subset(files, !grepl('RMGPS',FILE) & !grepl('map$',FILE) & !grepl('^TMP',FILE) & grepl(infile.simu, FILE, fixed=1))
+infile.simu	<- files[1,FILE]
+ps				<- read.dna(paste(indir.gap,'/',infile.gap,sep=''), format='fasta')#
+	tmp				<- ps[(nrow(ps)-20):nrow(ps),]#
+	tmp				<- as.character(tmp)#
+	tmp[tmp=='?']	<- 'n'	#need this for MAFFT#
+	tmp				<- as.DNAbin(tmp)#
+	infile.old		<- paste('TMP',gsub('\\.','_last20\\.',infile.gap),sep='')#
+	write.dna(tmp, file=paste(indir.simu, infile.old, sep='/'), format='fasta', colsep='', nbcol=-1)	#
+	infile.old	<- paste(indir.simu, infile.old, sep='/')	#
+	#	mafft --thread 1 --treeout --reorder --keeplength --mapout --ep 0.0 --add new_sequences input > output#
+	infile.new	<- paste(indir.simu,'/',infile.simu, sep='')	#
+	file		<- paste(indir.simu,'/','TMP', gsub('\\.','mergedpartial\\.',infile.simu), sep='')#
+	cmd			<- paste('mafft --thread 4 --treeout --reorder --keeplength --mapout --ep 0.0 --add ',infile.new,' ',infile.old,' > ',file, sep='')#
+	cat('\ncalling')#
+	cat(cmd)
+gap.country		<- 'BW'#
+		infile.gaps		<- sapply(c(5),function(x) paste('150623_PANGEAGlobal2681_C',x,'.fa',sep=''))
+infile.gaps
+outfile.cov		<- regmatches(infile.gap,regexpr('C[0-9]+',basename(infile.gap)))#
+							infile.simu		<- '150701_Regional_TRAIN1_SIMULATED'#
+							outfile			<- paste(infile.simu, '_', gap.country, outfile.cov, '.fa', sep='')
+files			<- data.table(FILE=list.files(indir.simu, pattern='\\.fa.*$'))#
+	files			<- subset(files, !grepl('RMGPS',FILE) & !grepl('map$',FILE) & !grepl('^TMP',FILE) & grepl(infile.simu, FILE, fixed=1))#
+	if(files[, any(grepl('gag', FILE))])#
+	{#
+		files[, SIMU:=files[, regmatches(FILE,regexpr('TRAIN[0-9]', FILE))]]#
+		files[, GENE:=files[, sapply(strsplit(FILE,'_'), '[[', 5)]]#
+		set(files, NULL, 'GENE', toupper(files[, substr(GENE,1,nchar(GENE)-3)]))#
+		set(files, NULL, 'GENE', files[, factor(GENE, levels=c('GAG','POL','ENV'), labels=c('GAG','POL','ENV'))])#
+		setkey(files, SIMU, GENE)#
+		files			<- subset(files, grepl(infile.simu, FILE, fixed=1) & !is.na(GENE))#
+		#	concatenate simu seqs#
+		files[, {#
+					gag	<- read.dna( paste(indir.simu, FILE[1], sep='/'), format='fasta' )#
+					pol	<- read.dna( paste(indir.simu, FILE[2], sep='/'), format='fasta' )#
+					env	<- read.dna( paste(indir.simu, FILE[3], sep='/'), format='fasta' )#
+					tmp	<- cbind(gag, pol, env)#
+					write.dna( tmp, file=paste(indir.simu, '/', 'TMP', gsub('gag','conc',FILE[1]), sep=''), format='fasta', colsep='', nbcol=-1)#
+					NULL#
+				}, by='SIMU']#
+		infile.simu	<- paste('TMP', gsub('gag','conc',files[1,FILE]), sep='')#
 	}
-x1[6,]
-i<- 6
-ph1	<- hivc.beast2out.read.nexus.and.stats(x1[i, FILE.x], method.node.stat='any.node')$tree#
-		ph2	<- hivc.beast2out.read.nexus.and.stats(x1[i, FILE.y], method.node.stat='any.node')$tree#
-		ph1	<- seq.collapse.singles(ph1)#
-		ph2	<- seq.collapse.singles(ph2)
-ph1
-ph2
-str(ph1)
-str(ph2)
-require(devtools)#
-	devtools::install("/Users/Oliver/git/HPTN071sim/source/rPANGEAHIVsim")
+ps				<- read.dna(paste(indir.gap,'/',infile.gap,sep=''), format='fasta')#
+	tmp				<- ps[(nrow(ps)-20):nrow(ps),]#
+	tmp				<- as.character(tmp)#
+	tmp[tmp=='?']	<- 'n'	#need this for MAFFT#
+	tmp				<- as.DNAbin(tmp)#
+	infile.old		<- paste('TMP',gsub('\\.','_last20\\.',infile.gap),sep='')#
+	write.dna(tmp, file=paste(indir.simu, infile.old, sep='/'), format='fasta', colsep='', nbcol=-1)	#
+	infile.old	<- paste(indir.simu, infile.old, sep='/')	#
+	#	mafft --thread 1 --treeout --reorder --keeplength --mapout --ep 0.0 --add new_sequences input > output#
+	infile.new	<- paste(indir.simu,'/',infile.simu, sep='')	#
+	file		<- paste(indir.simu,'/','TMP', gsub('\\.','mergedpartial\\.',infile.simu), sep='')#
+	cmd			<- paste('mafft --thread 4 --treeout --reorder --keeplength --mapout --ep 0.0 --add ',infile.new,' ',infile.old,' > ',file, sep='')#
+	cat('\ncalling')
+cat(cmd)
+45/7
+45/7*2
+45/7*2*18
+45/7
+45/7/5
+45/7/5*2
+45/8/5*2

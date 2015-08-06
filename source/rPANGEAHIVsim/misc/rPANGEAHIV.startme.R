@@ -3,7 +3,7 @@
 ##	first line in shell script starts with #! and points to absolute path to Rscript
 ##	CHANGE  as needed
 ##
-##! /apps/R/2.15/lib64/R/bin/Rscript
+##! /apps/R/3.2.0/lib64/R/bin/Rscript
 ###############################################################################
 #
 #	project scripts that can be run from command line, without re-building the package all the time,
@@ -20,11 +20,11 @@ if(any(args=='--args'))
 	args<- args[-(1:match("--args", args)) ]
 #the package directory (local working copy of the code, not the installed package directory within the R directory 
 CODE.HOME	<<- "/Users/Oliver/git/HPTN071sim/source/rPANGEAHIVsim"
+#CODE.HOME	<<- "/work/or105/libs/rPANGEAHIVsim"
 
 #the home directory of all projects
 HOME		<<- "/Users/Oliver/git/HPTN071sim/"
-#HOME		<<- "/work/or105/UKCA_1309"
-#HOME		<<- "/work/or105/ATHENA_2013"
+#HOME		<<- "/work/or105/Gates_2014"
 DATA		<<- paste(HOME,"data",sep='/')
 
 DEBUG		<<- 1		#If 1, a dump file is created that can be loaded and computations can be inspected at the point of error.
@@ -34,6 +34,7 @@ EPS			<<- 1e-12	#Machine precision
 
 #the default script to be called if -exe is not specified on the command line	
 default.fun		<- 'pipeline.HPTN071'
+default.fun		<- 'pipeline.various'
 ###############################################################################
 #	select script specified with -exe on the command line. If missing, start default script 'default.fun'.
 argv<- list()
@@ -59,7 +60,8 @@ if(length(args))
 					PR.SEQGEN.FILECREATOR	= "prog.PANGEA.SeqGen.createInputFile",
 					PR.SEQGEN.SIMULATOR		= "prog.PANGEA.SeqGen.run.v4",
 					SKYGRID					= "project.PANGEA.TEST.SSApg.CLUSTERBEAST.skygrid",
-					SIMGAPS					= "project.PANGEA.treecomparison.gaps.simulate"
+					SIMGAPS					= "project.PANGEA.treecomparison.gaps.simulate",
+					VARIOUS					= "prog.haircut.150806"
 					)
 	}
 	tmp<- na.omit(sapply(args,function(arg)
@@ -124,11 +126,11 @@ my.dumpframes<- function()
 require(rPANGEAHIVsim)
 print(CODE.HOME)
 function.list<-c(list.files(path= paste(CODE.HOME,"R",sep='/'), pattern = ".R$", all.files = FALSE,
-				full.names = TRUE, recursive = FALSE),paste(CODE.HOME,"misc","rPANGEAHIV.prjcts.R",sep='/'))
+				full.names = TRUE, recursive = FALSE),paste(CODE.HOME,"misc","rPANGEAHIV.prjcts.R",sep='/'),paste(CODE.HOME,"misc","rPANGEAHIV.haircut.R",sep='/'))
 sapply(function.list,function(x){ source(x,echo=FALSE,print.eval=FALSE, verbose=FALSE) })
 ###############################################################################
 #	run script
-#stop()
+stop()
 if(DEBUG)	options(error= my.dumpframes)	
 cat(paste("\nrPANGEAHIV: ",ifelse(DEBUG,"debug",""),"call",default.fun,"\n"))
 do.call(default.fun,list()) 	
