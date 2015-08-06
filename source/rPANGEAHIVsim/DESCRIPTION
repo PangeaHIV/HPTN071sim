@@ -15,7 +15,6 @@ Depends:
     grid,
     ggplot2,
     igraph,
-    phyclust,
     distr
 Description: R scripts for the PANGEA-HIV methods comparison exercise.
 License: GPL (>=2)
