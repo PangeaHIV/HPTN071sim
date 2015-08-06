@@ -128,13 +128,33 @@ haircutwrap.get.cut.statistics<- function(indir, par, outdir=indir)
 	infiles[, PNG_ID:= gsub('_wRefs\\.fasta','',gsub('_cut|_raw','',FILE))]
 	infiles[, BLASTnCUT:= regmatches(FILE,regexpr('cut|raw',FILE))]
 	set(infiles, NULL, 'BLASTnCUT', infiles[, factor(BLASTnCUT, levels=c('cut','raw'), labels=c('Y','N'))])
+	#	check which contigs not yet processed
+	infiles		<- merge(infiles, infiles[, {
+				file	<- paste(indir, FILE, sep='/')
+				tmp		<- paste(outdir, '/', gsub('\\.fasta',paste('_HAIRCUTSTAT_thr',100*par['FRQx.quantile'],'_aw',par['CNS_AGR.window'],'_fw',par['CNS_FRQ.window'],'_gw',par['GPS.window'],'.R',sep=''),basename(file)), sep='')
+				options(show.error.messages = FALSE)		
+				readAttempt		<-try(suppressWarnings(load(tmp)))
+				list(	DONE=!inherits(readAttempt, "try-error")	)			
+			}, by='FILE'], by='FILE')
+	cat(paste('\nFound processed files, n=', infiles[, length(which(DONE))]))
+	infiles		<- subset(infiles, !DONE)
 	#
 	#	infiles[, which(grepl('12559_1_5_cut',FILE))]	fls<- 41
 	#	process files
 	for(fls in infiles[, seq_along(FILE)])
 	{
+		#	see if not yet constructed
 		file	<- paste(indir, infiles[fls, FILE], sep='/')
 		cat(paste('\nProcess', file))
+		tmp		<- paste(outdir, '/', gsub('\\.fasta',paste('_HAIRCUTSTAT_thr',100*par['FRQx.quantile'],'_aw',par['CNS_AGR.window'],'_fw',par['CNS_FRQ.window'],'_gw',par['GPS.window'],'.R',sep=''),basename(file)), sep='')
+		options(show.error.messages = FALSE)		
+		readAttempt		<-try(suppressWarnings(load(tmp)))
+		if(!inherits(readAttempt, "try-error"))	cat(paste("\nFound results",tmp))			
+		options(show.error.messages = TRUE)		
+	}
+	if(!resume || inherits(readAttempt, "try-error"))
+		
+		
 		#	read Contigs+Rrefs: cr
 		cr		<- read.dna(file, format='fasta')			
 		#	determine start of non-LTR position and cut 
