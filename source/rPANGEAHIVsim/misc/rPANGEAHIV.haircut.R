@@ -67,7 +67,7 @@ dev.haircut<- function()
 ##--------------------------------------------------------------------------------------------------------
 prog.haircut.150806<- function()
 {
-	DATA	<<- '/Users/Oliver/Dropbox\ (Infectious Disease)/PANGEA_data'
+	DATA	<<- '/Users/Oliver/Dropbox\ (Infectious Disease)/OR_Work/2015/2015_PANGEA_haircut'
 	#DATA	<<- '/work/or105/Gates_2014/2015_PANGEA_haircut'
 	if(0)
 	{		
@@ -128,6 +128,8 @@ haircutwrap.get.cut.statistics<- function(indir, par, outdir=indir)
 	infiles[, PNG_ID:= gsub('_wRefs\\.fasta','',gsub('_cut|_raw','',FILE))]
 	infiles[, BLASTnCUT:= regmatches(FILE,regexpr('cut|raw',FILE))]
 	set(infiles, NULL, 'BLASTnCUT', infiles[, factor(BLASTnCUT, levels=c('cut','raw'), labels=c('Y','N'))])
+	#
+	#	infiles[, which(grepl('12559_1_5_cut',FILE))]	fls<- 41
 	#	process files
 	for(fls in infiles[, seq_along(FILE)])
 	{
@@ -156,6 +158,7 @@ haircutwrap.get.cut.statistics<- function(indir, par, outdir=indir)
 		tx		<- data.table(	TAXON= rownames(cnsc), 
 				FIRST= apply( as.character(cnsc), 1, function(x) which(x!='-')[1] ),
 				LAST= ncol(cnsc)-apply( as.character(cnsc), 1, function(x) which(rev(x)!='-')[1] )		)
+		tx		<- subset(tx, !is.na(FIRST) & !is.na(LAST))	#	some contigs only map into LTR
 		#	get cut statistics
 		cnsc.df	<- haircut.get.cut.statistics(cnsc, tx, par, outdir=NA, file=NA, mode='rolling')
 		#	get rolling CNS_FRQ
@@ -163,6 +166,7 @@ haircutwrap.get.cut.statistics<- function(indir, par, outdir=indir)
 		cnsc.df	<- merge(cnsc.df, subset(cnsr.df, select=c(SITE, CNS_FRQr)), by='SITE')
 		cnsc.df[, PNG_ID:= infiles[fls, PNG_ID]]
 		cnsc.df[, BLASTnCUT:= infiles[fls, BLASTnCUT]]
+		cat(paste('\nSave contigs, n=', cnsc.df[, length(unique(TAXON))]))
 		#	save
 		file	<- paste(outdir, '/', gsub('\\.fasta',paste('_HAIRCUTSTAT_thr',100*par['FRQx.quantile'],'_aw',par['CNS_AGR.window'],'_fw',par['CNS_FRQ.window'],'_gw',par['GPS.window'],'.R',sep=''),basename(file)), sep='')
 		cat(paste('\nSave to', file))
