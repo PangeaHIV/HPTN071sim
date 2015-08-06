@@ -1,7 +1,7 @@
 PR.PACKAGE					<- "rPANGEAHIVsim"
 #PR.STARTME					<- system.file(package=PR.PACKAGE, "misc", "rPANGEAHIV.startme.R")
 PR.STARTME					<- '/Users/Oliver/git/HPTN071sim/source/rPANGEAHIVsim/misc/rPANGEAHIV.startme.R'
-#PR.STARTME					<- '/work/or105/libs/HPTN071sim/source/rPANGEAHIVsim/rPANGEAHIVsim/misc/rPANGEAHIV.startme.R'
+#PR.STARTME					<- '/work/or105/libs/HPTN071sim/source/rPANGEAHIVsim/misc/rPANGEAHIV.startme.R'
 PR.HPTN071.INPUT.PARSER1	<- paste(PR.STARTME,"-exe=HPTN071.INPUT.PARSER1",sep=' ')
 PR.HPTN071.INPUT.PARSER2	<- paste(PR.STARTME,"-exe=HPTN071.INPUT.PARSER2",sep=' ')
 PR.HPTN071.INPUT.PARSER3	<- paste(PR.STARTME,"-exe=HPTN071.INPUT.PARSER3",sep=' ')
