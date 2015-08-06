@@ -1770,7 +1770,7 @@ pipeline.various<- function()
 		cat(cmd)		
 		outdir		<- paste(HOME,"tmp",sep='/')
 		outfile		<- paste("vrs",paste(strsplit(date(),split=' ')[[1]],collapse='_',sep=''),sep='.')
-		hivc.cmd.hpccaller(outdir, outfile, cmd)
+		cmd.hpccaller(outdir, outfile, cmd)
 		quit("no")		
 	}	
 }
