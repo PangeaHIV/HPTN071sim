@@ -20,7 +20,7 @@ if(any(args=='--args'))
 	args<- args[-(1:match("--args", args)) ]
 #the package directory (local working copy of the code, not the installed package directory within the R directory 
 CODE.HOME	<<- "/Users/Oliver/git/HPTN071sim/source/rPANGEAHIVsim"
-#CODE.HOME	<<- "/work/or105/libs/rPANGEAHIVsim"
+#CODE.HOME	<<- "/work/or105/libs/HPTN071sim/source/rPANGEAHIVsim"
 
 #the home directory of all projects
 HOME		<<- "/Users/Oliver/git/HPTN071sim/"
