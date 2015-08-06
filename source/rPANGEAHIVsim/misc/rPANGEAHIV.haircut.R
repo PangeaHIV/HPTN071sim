@@ -121,6 +121,7 @@ haircut.align.contigs.with.ref<- function(infile, reffile, outfile)
 ##--------------------------------------------------------------------------------------------------------
 haircutwrap.get.cut.statistics<- function(indir, par, outdir=indir)	
 {
+	require(zoo)
 	#	read just one file
 	#	determine statistics for each contig after LTR
 	infiles		<- data.table(FILE=list.files(indir, pattern='fasta$', recursive=T))
@@ -197,6 +198,7 @@ haircutwrap.get.cut.statistics<- function(indir, par, outdir=indir)
 ##--------------------------------------------------------------------------------------------------------
 haircut.get.cut.statistics<- function(cnsc, tx, par, outdir=NA, file=NA, mode='rolling')
 {
+	require(zoo)
 	stopifnot(mode%in%c('rolling','overall'))
 	#	count overall disagreement with consensus		
 	if(mode=='overall')
