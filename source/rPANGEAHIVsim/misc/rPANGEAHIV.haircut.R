@@ -1388,7 +1388,7 @@ haircutwrap.get.cut.statistics.150815<- function(indir, par, outdir=indir)
 	cat(paste('\nFound processed files, n=', infiles[, length(which(DONE))]))
 	infiles		<- subset(infiles, !DONE)
 	#
-	#	infiles[, which(grepl('12559_1_81',FILE))]	fls<- 51
+	#	infiles[, which(grepl('12559_1_11',FILE))]	fls<- 4
 	#	process files
 	for(fls in infiles[, seq_along(FILE)])
 	{
@@ -1397,9 +1397,9 @@ haircutwrap.get.cut.statistics.150815<- function(indir, par, outdir=indir)
 		#	read Contigs+Rrefs: cr
 		cr		<- read.dna(file, format='fasta')			
 		#	determine start of non-LTR position and cut 
-		tmp		<- haircut.find.nonLTRstart(cr)
-		cat(paste('\nFound end of LTR at=', tmp-1))
-		cr		<- cr[, seq.int(tmp, ncol(cr))]
+		cr		<- cr[, seq.int(haircut.find.nonLTRstart(cr), ncol(cr))]
+		#	cut at last site of references
+		cr		<- cr[, seq.int(1, haircut.find.lastRefSite(cr))]		
 		#	determine reference sequences. 
 		#	non-refs have the first part of the file name in their contig name and are at the top of the alignment
 		tmp		<- strsplit(basename(file), '_')[[1]][1]
@@ -1422,9 +1422,7 @@ haircutwrap.get.cut.statistics.150815<- function(indir, par, outdir=indir)
 		tx		<- subset(tx, !is.na(FIRST) & !is.na(LAST))	#	some contigs only map into LTR
 		#	determine all cut statistics
 		cnsc.df	<- haircut.get.cut.statistics.150815(cnsc, rp, tx, par)		
-		#ggplot(cnsc.df, aes(x=SITE)) +facet_wrap(~TAXON, ncol=1) +
-		#		geom_line(aes(y=FRQ), colour='black') + geom_line(aes(y=AGRpc), colour='blue') +
-		#		geom_line(aes(y=GPS), colour='red') + geom_line(aes(y=FRQ-2*FRQ_STD), colour='DarkGreen')
+		#ggplot(cnsc.df, aes(x=SITE)) +facet_wrap(~TAXON, ncol=1) + geom_line(aes(y=FRQ), colour='black') + geom_line(aes(y=AGRpc), colour='blue') + geom_line(aes(y=GPS), colour='red') + geom_line(aes(y=FRQ-2*FRQ_STD), colour='DarkGreen')
 		cnsc.df[, PNG_ID:= infiles[fls, PNG_ID]]
 		cnsc.df[, BLASTnCUT:= infiles[fls, BLASTnCUT]]
 		cat(paste('\nSave contigs, n=', cnsc.df[, length(unique(TAXON))]))
@@ -1846,6 +1844,7 @@ haircut.get.frequencies	<- function(seq, bases=c('a','c','g','t','-') )
 	set(rp, NULL, 'BASE', rp[, gsub('GAP','-',gsub('BASE','',BASE))])
 	set(rp, NULL, 'BASE', rp[, factor(BASE, levels=bases, labels=bases)])
 	set(rp, NULL, 'FRQ', rp[, FRQ/COV])
+	set(rp, rp[, which(COV==0)], 'FRQ', 0.)
 	rp
 }	
 ##--------------------------------------------------------------------------------------------------------
