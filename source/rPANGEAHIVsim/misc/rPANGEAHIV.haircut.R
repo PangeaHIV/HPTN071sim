@@ -94,12 +94,6 @@ dev.haircut<- function()
 		ctrmc					<- tmp$coef
 		ctrev					<- tmp$ev
 		model.150811a.predict	<- tmp$predict
-		#	get info on which cut contig is a subset of the corresponding raw contig
-		indir	<- '/Users/Oliver/Dropbox\ (Infectious Disease)/OR_Work/2015/2015_PANGEA_haircut/contigs_150408_wref'
-		outfile	<- '/Users/Oliver/Dropbox\ (Infectious Disease)/OR_Work/2015/2015_PANGEA_haircut/contigs_150408_cutsubraw.R'
-		txe		<- haircutwrap.get.subset.among.raw.and.cut.contigs(indir, outfile)
-		set(txe, NULL, 'CUT', txe[, factor(CUT, levels=c('cut','raw'), labels=c('Y','N'))])
-		setnames(txe, 'CUT', 'BLASTnCUT')	
 		#	get contigs that were used for training		
 		outfile	<- '/Users/Oliver/Dropbox\ (Infectious Disease)/OR_Work/2015/2015_PANGEA_haircut/contigs_150408_trainingset_subsets.R'
 		ctrain	<- haircut.get.training.contigs(NULL, outfile, NULL)
@@ -580,12 +574,25 @@ haircut.get.call.for.PNG_ID.150814<- function(indir.str, indir.al, png_id, files
 		set(tx, tmp, 'CCNTG', NA_character_)
 		set(tx, tmp, 'CNTG', tx[tmp, OCNTG])
 	}
-	#	predict
+	#	calculate PR_CALL of contig
 	tmp		<- seq(cnsc.df[, floor(min(SITE)/10)*10],cnsc.df[, max(SITE)+10],10)
 	cnsc.df[, CHUNK:=cut(SITE, breaks=tmp, labels=tmp[-length(tmp)])]	
 	cnsc.df	<- merge(cnsc.df, ctrmc, by='CHUNK')
-	cnsc.df[, PR_CALL:= predict.fun(AGRpc, GPS, BETA0, BETA1, BETA2)]							
-	cnsc.df[, CALL:= as.integer(PR_CALL>=par['PRCALL.thr'])]	
+	cnsc.df[, PR_CALL:= predict.fun(AGRpc, GPS, BETA0, BETA1, BETA2)]
+	#	calculate PR_CALL of consensus
+	cnsc.df[, CNS_PR_CALL:= predict.fun(CNS_FRQr, CNS_GPSr, BETA0, BETA1, BETA2)]
+	
+	ggplot(subset(cnsc.df, BLASTnCUT=='Y'), aes(x=SITE)) + facet_wrap(~TAXON, ncol=1) +
+			geom_line(aes(y=PR_CALL), colour='black') +
+			geom_line(aes(y=CNS_PR_CALL), colour='blue') +
+			geom_line(aes(y=CNS_FRQr), colour='red') +
+			geom_line(aes(y=CNS_GPSr), colour='orange') +
+			geom_line(aes(y=AGRpc), colour='green') +
+			geom_line(aes(y=GPS), colour='DarkGreen') 
+
+	cnsc.df[, CALL:= as.integer(PR_CALL>=par['PRCALL.thr'])]
+	
+	
 	#	determine predicted sites
 	cnsc.1s	<- cnsc.df[, {
 				z	<- gsub('0*$','',paste(CALL,collapse=''))
@@ -1311,12 +1318,19 @@ prog.haircut.150806<- function()
 		reffile	<- paste(DATA, 'HIV1_COM_2012_genome_DNA_WithExtraA1UG.fasta', sep='/' )	
 		haircutwrap.align.contigs.with.ref(indir, reffile, outdir)	
 	}
-	if(1)
+	if(0)
 	{
 		indir	<- paste(DATA, 'contigs_150408_wref', sep='/' )
 		outdir	<- paste(DATA, 'contigs_150408_wref_cutstat', sep='/' )		
 		par		<- c('FRQx.quantile'=0.05, 'FRQx.thr'=0.566, 'CNS_FRQ.window'=100, 'CNS_AGR.window'=200, 'GPS.window'=200)
 		haircutwrap.get.cut.statistics(indir, par, outdir=outdir)
+	}
+	if(1)
+	{
+		indir	<- paste(DATA, 'contigs_150408_wref', sep='/' )
+		outdir	<- paste(DATA, 'contigs_150408_wref_cutstat', sep='/' )		
+		par		<- c('FRQx.quantile'=NA, 'FRQx.thr'=NA, 'CNS_FRQ.window'=200, 'CNS_AGR.window'=200, 'GPS.window'=200)
+		haircutwrap.get.cut.statistics.150815(indir, par, outdir=outdir)
 	}
 	
 }
@@ -1353,6 +1367,97 @@ haircut.align.contigs.with.ref<- function(infile, reffile, outfile)
 ##--------------------------------------------------------------------------------------------------------
 ##	process all files in indir with 'haircut.get.cut.statistics'
 ##--------------------------------------------------------------------------------------------------------
+haircutwrap.get.cut.statistics.150815<- function(indir, par, outdir=indir)	
+{
+	require(zoo)
+	#	read just one file
+	#	determine statistics for each contig after LTR
+	infiles		<- data.table(FILE=list.files(indir, pattern='fasta$', recursive=T))
+	infiles[, PNG_ID:= gsub('_wRefs\\.fasta','',gsub('_cut|_raw','',FILE))]
+	infiles[, BLASTnCUT:= regmatches(FILE,regexpr('cut|raw',FILE))]
+	set(infiles, NULL, 'BLASTnCUT', infiles[, factor(BLASTnCUT, levels=c('cut','raw'), labels=c('Y','N'))])
+	#	check which contigs not yet processed
+	infiles		<- merge(infiles, infiles[, {
+						file	<- paste(indir, FILE, sep='/')
+						tmp		<- paste(outdir, '/', gsub('\\.fasta',paste('_HAIRCUTSTAT_thr',100*par['FRQx.quantile'],'_aw',par['CNS_AGR.window'],'_fw',par['CNS_FRQ.window'],'_gw',par['GPS.window'],'.R',sep=''),basename(file)), sep='')
+						options(show.error.messages = FALSE)		
+						readAttempt		<-try(suppressWarnings(load(tmp)))
+						options(show.error.messages = TRUE)	
+						list(	DONE=!inherits(readAttempt, "try-error")	)			
+					}, by='FILE'], by='FILE')
+	cat(paste('\nFound processed files, n=', infiles[, length(which(DONE))]))
+	infiles		<- subset(infiles, !DONE)
+	#
+	#	infiles[, which(grepl('12559_1_81',FILE))]	fls<- 51
+	#	process files
+	for(fls in infiles[, seq_along(FILE)])
+	{
+		file	<- paste(indir, infiles[fls, FILE], sep='/')
+		cat(paste('\nProcess', file))
+		#	read Contigs+Rrefs: cr
+		cr		<- read.dna(file, format='fasta')			
+		#	determine start of non-LTR position and cut 
+		tmp		<- haircut.find.nonLTRstart(cr)
+		cat(paste('\nFound end of LTR at=', tmp-1))
+		cr		<- cr[, seq.int(tmp, ncol(cr))]
+		#	determine reference sequences. 
+		#	non-refs have the first part of the file name in their contig name and are at the top of the alignment
+		tmp		<- strsplit(basename(file), '_')[[1]][1]
+		tx		<- data.table(TAXON= rownames(cr), CONTIG=as.integer(grepl(tmp, rownames(cr))) )
+		stopifnot( all( tx[, which(CONTIG==1)] == seq.int(1, tx[, length(which(CONTIG==1))]) ) )
+		cat(paste('\nFound contigs, n=', tx[, length(which(CONTIG==1))]))
+		#	determine base frequencies at each site amongst references.
+		tmp		<- cr[subset(tx, CONTIG==0)[, TAXON],]
+		rp		<- haircut.get.frequencies(tmp, bases=c('a','c','g','t','-') )
+		tmp		<- haircut.get.consensus.from.frequencies(rp, par)
+		cnsr	<- tmp$DNAbin
+		cnsr.df	<- tmp$DATATABLE
+		#	for each contig, determine %agreement with consensus on rolling window
+		cnsc	<- rbind(cnsr, cr[subset(tx, CONTIG==1)[, TAXON],])
+		#	determine first and last non-gap sites
+		tmp		<- as.character(cnsc)
+		tx		<- data.table(	TAXON= rownames(cnsc), 
+				FIRST= apply( tmp, 1, function(x) which(x!='-')[1] ),
+				LAST= ncol(cnsc)-apply( tmp, 1, function(x) which(rev(x)!='-')[1] )+1L		)
+		tx		<- subset(tx, !is.na(FIRST) & !is.na(LAST))	#	some contigs only map into LTR
+		#	determine all cut statistics
+		cnsc.df	<- haircut.get.cut.statistics.150815(cnsc, rp, tx, par)		
+		#ggplot(cnsc.df, aes(x=SITE)) +facet_wrap(~TAXON, ncol=1) +
+		#		geom_line(aes(y=FRQ), colour='black') + geom_line(aes(y=AGRpc), colour='blue') +
+		#		geom_line(aes(y=GPS), colour='red') + geom_line(aes(y=FRQ-2*FRQ_STD), colour='DarkGreen')
+		cnsc.df[, PNG_ID:= infiles[fls, PNG_ID]]
+		cnsc.df[, BLASTnCUT:= infiles[fls, BLASTnCUT]]
+		cat(paste('\nSave contigs, n=', cnsc.df[, length(unique(TAXON))]))
+		#	save
+		file	<- paste(outdir, '/', gsub('\\.fasta',paste('_HAIRCUTSTAT_thr',100*par['FRQx.quantile'],'_aw',par['CNS_AGR.window'],'_fw',par['CNS_FRQ.window'],'_gw',par['GPS.window'],'.R',sep=''),basename(file)), sep='')
+		cat(paste('\nSave to', file))
+		save(cnsc, cnsc.df, file=file)		
+	}
+}
+##--------------------------------------------------------------------------------------------------------
+##	get cut statistics:
+##		- FRQ, FRQ_STD, AGRpc, GPS
+##--------------------------------------------------------------------------------------------------------
+haircut.get.cut.statistics.150815<- function(cnsc, rp,  tx, par)
+{
+	require(zoo)
+	cnsc.df	<- tx[,{					
+				tmp		<- cnsc[ c('consensus',TAXON), seq.int(FIRST,LAST)]
+				agrpc	<- 1-rollapply( seq_len(LAST-FIRST+1), width=par['CNS_AGR.window'], FUN= function(z) dist.dna(tmp[,z], model='indel' )/length(z), align='center', partial=T )					
+				tmp		<- data.table(	BASE=as.vector(as.character(cnsc[TAXON, seq.int(FIRST,LAST)])), SITE=seq.int(FIRST,LAST))
+				tmp		<- merge(rp,tmp,by=c('SITE','BASE'))
+				set(tmp, NULL, 'FRQ_STD', tmp[, sqrt(FRQ*(1-FRQ)/COV)])
+				freqr	<- rollapply( seq_len(LAST-FIRST+1), width=par['CNS_AGR.window'], FUN= function(z) mean(tmp$FRQ[z]), align='center', partial=T )
+				freqsr	<- rollapply( seq_len(LAST-FIRST+1), width=par['CNS_AGR.window'], FUN= function(z) mean(tmp$FRQ_STD[z]), align='center', partial=T )
+				tmp		<- as.character( cnsc[ TAXON, seq.int(FIRST,LAST)] )=='-'
+				gps		<- rollapply( seq_len(LAST-FIRST+1), width=par['GPS.window'], FUN= function(z) mean(tmp[z]), align='center', partial=T )
+				list( SITE=seq.int(FIRST,LAST),  FRQ=freqr, FRQ_STD=freqsr, AGRpc=agrpc, GPS=gps   )
+			},by='TAXON']	
+	cnsc.df
+}
+##--------------------------------------------------------------------------------------------------------
+##	process all files in indir with 'haircut.get.cut.statistics'
+##--------------------------------------------------------------------------------------------------------
 haircutwrap.get.cut.statistics<- function(indir, par, outdir=indir)	
 {
 	require(zoo)
@@ -1374,7 +1479,7 @@ haircutwrap.get.cut.statistics<- function(indir, par, outdir=indir)
 	cat(paste('\nFound processed files, n=', infiles[, length(which(DONE))]))
 	infiles		<- subset(infiles, !DONE)
 	#
-	#	infiles[, which(grepl('12559_1_5_cut',FILE))]	fls<- 41
+	#	infiles[, which(grepl('12559_1_81',FILE))]	fls<- 51
 	#	process files
 	for(fls in infiles[, seq_along(FILE)])
 	{
@@ -1402,12 +1507,12 @@ haircutwrap.get.cut.statistics<- function(indir, par, outdir=indir)
 		#	determine first and last non-gap sites
 		tx		<- data.table(	TAXON= rownames(cnsc), 
 				FIRST= apply( as.character(cnsc), 1, function(x) which(x!='-')[1] ),
-				LAST= ncol(cnsc)-apply( as.character(cnsc), 1, function(x) which(rev(x)!='-')[1] )		)
+				LAST= ncol(cnsc)-apply( as.character(cnsc), 1, function(x) which(rev(x)!='-')[1] )+1L		)
 		tx		<- subset(tx, !is.na(FIRST) & !is.na(LAST))	#	some contigs only map into LTR
 		#	get cut statistics
 		cnsc.df	<- haircut.get.cut.statistics(cnsc, tx, par, outdir=NA, file=NA, mode='rolling')
 		#	get rolling CNS_FRQ
-		cnsr.df[, CNS_FRQr:= rollapply( seq_len(nrow(cnsr.df)), width=par['CNS_FRQ.window'], FUN= function(z) mean(cnsr.df$CNS_FRQ[z]), align='center', partial=T )]
+		cnsr.df[, CNS_FRQr:= rollapply( seq_len(nrow(cnsr.df)), width=par['CNS_FRQ.window'], FUN= function(z) mean(cnsr.df$CNS_FRQ[z]), align='center', partial=T )]		
 		#	get rolling CNS_GPS
 		tmp		<- subset(tx, TAXON=='consensus')[, {
 					tmp		<- as.character( cnsr.df$CNS_BASE[seq.int(FIRST,LAST)] )=='-'
@@ -1708,11 +1813,58 @@ haircut.getconsensus	<- function(seq, par, bases=c('a','c','g','t','-') )
 	set(rp, rp[, which(FRQx<qu.par)], 'BASE', NA_character_)
 	set(rp, NULL, 'BASE', rp[, factor(as.character(BASE), levels=bases, labels=bases)])
 	#	get consensus base above lower quantile. Some consensus bases will be NA
-	crp		<- rp[, list(CNS_BASE= BASE[ which.max(FRQ) ], CNS_FRQ=FRQxu[1]), by='SITE']
+	crp		<- rp[, list(CNS_BASE= BASE[ which.max(FRQ) ], CNS_FRQ=FRQxu[1], CNS_AGRpc=FRQx[1]), by='SITE']
 	set(crp, crp[, which(is.na(CNS_BASE))], 'CNS_BASE','?')	
 	tmp		<- crp[, as.DNAbin(t(as.matrix(CNS_BASE)))]
 	rownames(tmp)	<- 'consensus'
 	list(DNAbin=tmp, DATATABLE=crp)
+}
+##--------------------------------------------------------------------------------------------------------
+##	determine the base frequencies in the reference alignment
+##--------------------------------------------------------------------------------------------------------
+haircut.get.frequencies	<- function(seq, bases=c('a','c','g','t','-') )
+{	
+	#	calculate base frequency Profile among References: rp
+	rp		<- sapply(seq_len(ncol(seq)), function(i) base.freq(seq[,i], freq=T, all=T))
+	rp		<- as.data.table( t(rp[bases,]) )
+	rp[, SITE:= seq_len(nrow(rp))]
+	setnames(rp, c('a','c','g','t','-'), c('BASEa','BASEc','BASEg','BASEt','GAP'))
+	#	calculate first and last positions of each sequence
+	tmp		<- as.character(seq)
+	tx		<- data.table(	TAXON= rownames(tmp), 
+			FIRST= apply( tmp, 1, function(x) which(x!='-')[1] ),
+			LAST= ncol(tmp)-apply( tmp, 1, function(x) which(rev(x)!='-')[1] ) + 1L		)
+	#	calculate coverage
+	tmp		<- data.table(SITE=c(tx[, seq_len(max(FIRST))], tx[, seq.int(min(LAST), ncol(seq))]))
+	tmp		<- tmp[, list( COV=tx[, as.numeric(length(which(SITE>=FIRST & SITE<=LAST)))]), by='SITE']
+	rp		<- merge(rp, tmp, by='SITE', all.x=TRUE)
+	set(rp, rp[, which(is.na(COV))], 'COV', nrow(seq))
+	#	correct - count
+	set(rp, NULL, 'GAP', rp[, GAP+COV-nrow(seq)]) 
+	#	get frequencies
+	rp		<- melt(rp, id.vars=c('SITE','COV'), variable.name='BASE', value.name='FRQ')
+	set(rp, NULL, 'BASE', rp[, gsub('GAP','-',gsub('BASE','',BASE))])
+	set(rp, NULL, 'BASE', rp[, factor(BASE, levels=bases, labels=bases)])
+	set(rp, NULL, 'FRQ', rp[, FRQ/COV])
+	rp
+}	
+##--------------------------------------------------------------------------------------------------------
+##	calculate consensus from frequency profile
+##--------------------------------------------------------------------------------------------------------
+haircut.get.consensus.from.frequencies	<- function(rp, par)
+{		
+	#	get consensus
+	crp		<- rp[, {
+						z	<- which.max(FRQ)
+						list(CNS_BASE= BASE[z], CNS_FRQ=FRQ[z], CNS_COV=COV[z])
+					}, by='SITE']
+	#	get consensus base above lower quantile. Some consensus bases will be ?
+	if(!is.na(par['FRQx.thr']))
+		set(crp, crp[, which(CNS_FRQ<par['FRQx.thr'])], 'CNS_BASE', '?')
+	#	get DNAbin
+	tmp		<- crp[, as.DNAbin(t(as.matrix(CNS_BASE)))]
+	rownames(tmp)	<- 'consensus'
+	list(DNAbin=tmp, DATATABLE=crp)	
 }
 ##--------------------------------------------------------------------------------------------------------
 ##	find the first site with pattern in alignment 
