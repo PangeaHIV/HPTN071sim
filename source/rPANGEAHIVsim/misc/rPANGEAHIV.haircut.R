@@ -441,8 +441,9 @@ haircutwrap.get.call.for.PNG_ID.150816<- function(indir.st,indir.al,outdir,ctrmc
 					#PNG_ID<- png_id	<- '13554_1_12'
 					#PNG_ID<- png_id	<- '13554_1_14'
 					#PNG_ID<- png_id	<- '13554_1_27'
-					PNG_ID<- png_id	<- '13554_1_33'
-					PNG_ID<- png_id	<- '14760_1_1'
+					#PNG_ID<- png_id	<- '13554_1_33'
+					#PNG_ID<- png_id	<- '14760_1_1'
+					PNG_ID<- png_id	<- '15034_1_75'
 					files	<- subset(infiles, PNG_ID==png_id)[, INFILE]
 					alfiles	<- subset(infiles, PNG_ID==png_id)[, ALFILE]
 					bc		<- subset(infiles, PNG_ID==png_id)[, BLASTnCUT]
@@ -497,7 +498,10 @@ haircutwrap.get.call.for.PNG_ID.150816<- function(indir.st,indir.al,outdir,ctrmc
 				subset(cnsc.df, CALL==1)[, list(QUANTILE=c(0,0.01,0.05,0.1,0.2,0.5), PR_CALL=quantile(PR_CALL, p=c(0,0.01,0.05,0.1,0.2,0.5))), by=c('TAXON','BLASTnCUT')]
 			}, by='PNG_ID']
 	#	write quantiles of PR_CALL to file
-	file		<- paste(outdir, '/model150816a_QUANTILESofPRCALLbyCONTIG.csv',sep='')
+	if(is.na(batch.n) || is.na(batch.id))
+		file		<- paste(outdir, '/model150816a_QUANTILESofPRCALLbyCONTIG.csv',sep='')
+	if(!is.na(batch.n) & !is.na(batch.id))
+		file		<- paste(outdir, '/model150816a_QUANTILESofPRCALLbyCONTIG_batchn',batch.n,'_batchid',batch.id,'.csv',sep='')
 	cnsc.info	<- dcast.data.table(cnsc.info, PNG_ID+TAXON+BLASTnCUT~QUANTILE, value.var='PR_CALL')
 	write.csv(cnsc.info, row.names=FALSE, file=file)	
 }	
@@ -685,7 +689,7 @@ haircut.get.call.for.PNG_ID.150816<- function(indir.st, indir.al, png_id, files,
 		set(tx, tmp, 'CNTG', tx[tmp, OCNTG])
 	}
 	#	calculate PR_CALL of contig and of consensus
-	tmp		<- seq(cnsc.df[, floor(min(SITE)/10)*10],cnsc.df[, max(SITE)+10],10)	
+	tmp		<- seq(cnsc.df[, floor(min(SITE)/10)*10-10],cnsc.df[, max(SITE)+10],10)	
 	cnsc.df[, CHUNK:=cut(SITE, breaks=tmp, labels=tmp[-length(tmp)])]	
 	cnsc.df	<- merge(cnsc.df, ctrmc, by='CHUNK', all.x=TRUE)
 	stopifnot(cnsc.df[, !any(is.na(BETA0))])
@@ -750,7 +754,7 @@ haircut.get.call.for.PNG_ID.150816<- function(indir.st, indir.al, png_id, files,
 		tmp		<- cnsc.1s[, which(CALL_LEN<par['PRCALL.cutprdcthair'])]	
 		for(i in tmp)	#keep raw
 		{
-			if( (i-1)>0	  &  cnsc.1s[i-1,TAXON]==cnsc.1s[i,TAXON] &  cnsc.1s[i-1,BLASTnCUT]==cnsc.1s[i,BLASTnCUT]  &  cnsc.1s[i-1,GAP_LEN]>2*par['PRCALL.cutprdcthair'])
+			if( (i-1)>0	  &&  cnsc.1s[i-1,TAXON]==cnsc.1s[i,TAXON] &&  cnsc.1s[i-1,BLASTnCUT]==cnsc.1s[i,BLASTnCUT]  &&  cnsc.1s[i-1,GAP_LEN]>2*par['PRCALL.cutprdcthair'])
 			{
 				cat('\nFound predicted extra hair of length <',par['PRCALL.cutprdcthair'],'delete, n=',cnsc.1s$CALL_LEN[i])
 				set(cnsc.df, cnsc.df[, which(TAXON==cnsc.1s$TAXON[i] & BLASTnCUT==cnsc.1s$BLASTnCUT[i] & SITE>=cnsc.1s$CALL_POS[i] & SITE<=cnsc.1s$CALL_LAST[i])], 'CALL', 0L)
