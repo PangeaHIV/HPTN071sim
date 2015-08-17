@@ -443,7 +443,9 @@ haircutwrap.get.call.for.PNG_ID.150816<- function(indir.st,indir.al,outdir,ctrmc
 					#PNG_ID<- png_id	<- '13554_1_27'
 					#PNG_ID<- png_id	<- '13554_1_33'
 					#PNG_ID<- png_id	<- '14760_1_1'
-					PNG_ID<- png_id	<- '15034_1_75'
+					#PNG_ID<- png_id	<- '15034_1_75'
+					#PNG_ID<- png_id	<- '14944_1_17'
+					PNG_ID<- png_id	<- '15065_1_24'
 					files	<- subset(infiles, PNG_ID==png_id)[, INFILE]
 					alfiles	<- subset(infiles, PNG_ID==png_id)[, ALFILE]
 					bc		<- subset(infiles, PNG_ID==png_id)[, BLASTnCUT]
@@ -690,9 +692,16 @@ haircut.get.call.for.PNG_ID.150816<- function(indir.st, indir.al, png_id, files,
 	}
 	#	calculate PR_CALL of contig and of consensus
 	tmp		<- seq(cnsc.df[, floor(min(SITE)/10)*10-10],cnsc.df[, max(SITE)+10],10)	
-	cnsc.df[, CHUNK:=cut(SITE, breaks=tmp, labels=tmp[-length(tmp)])]	
+	cnsc.df[, CHUNK:=cut(SITE, breaks=tmp, labels=tmp[-length(tmp)])]
 	cnsc.df	<- merge(cnsc.df, ctrmc, by='CHUNK', all.x=TRUE)
-	stopifnot(cnsc.df[, !any(is.na(BETA0))])
+	if(cnsc.df[, !any(is.na(BETA0))])
+	{
+		tmp	<- cnsc.df[, which(SITE==subset(cnsc.df, !is.na(BETA0))[, max(SITE)])[1]]
+		tmp2<- cnsc.df[, which(is.na(BETA0))]
+		set(cnsc.df, tmp2, 'BETA0', cnsc.df[tmp, BETA0])
+		set(cnsc.df, tmp2, 'BETA1', cnsc.df[tmp, BETA1])
+		set(cnsc.df, tmp2, 'BETA2', cnsc.df[tmp, BETA2])
+	}
 	cnsc.df[, PR_CALL:= predict.fun(FRQ, GPS, BETA0, BETA1, BETA2)]
 	cnsc.df[, CNS_PR_CALL:= CNS_FRQ-par['PRCALL.thrstd']*CNS_FRQ_STD]
 	set(cnsc.df, cnsc.df[, which(CNS_PR_CALL<0)], 'CNS_PR_CALL', 0)
@@ -721,7 +730,7 @@ haircut.get.call.for.PNG_ID.150816<- function(indir.st, indir.al, png_id, files,
 	cnsc.1s[, CALL_LAST:= CALL_POS+CALL_LEN-1L]
 	cnsc.1s	<- subset(cnsc.1s, CALL_LEN>0)
 	#	fill internal predicted gaps		
-	if(!is.na(par['PRCALL.rmintrnlgpsblw'] | !is.na(par['PRCALL.rmintrnlgpsend'])))
+	if((!is.na(par['PRCALL.rmintrnlgpsblw'] | !is.na(par['PRCALL.rmintrnlgpsend']))) && nrow(cnsc.1s))
 	{
 		cnsc.g	<- cnsc.1s[, {
 					if(length(CALL_ID)==1)
@@ -748,7 +757,7 @@ haircut.get.call.for.PNG_ID.150816<- function(indir.st, indir.al, png_id, files,
 		cnsc.1s		<- subset(cnsc.g, !is.na(CALL_ID))
 	}
 	#	check if called contig has gaps of CALL=='0': if yes, return last non-gap before first CALL=='0
-	if(!is.na(par['PRCALL.cutprdcthair']))
+	if(!is.na(par['PRCALL.cutprdcthair']) && nrow(cnsc.1s))
 	{
 		setkey(cnsc.1s, TAXON, BLASTnCUT, CALL_POS)
 		tmp		<- cnsc.1s[, which(CALL_LEN<par['PRCALL.cutprdcthair'])]	
@@ -765,7 +774,7 @@ haircut.get.call.for.PNG_ID.150816<- function(indir.st, indir.al, png_id, files,
 		cnsc.1s	<- subset(cnsc.1s, !is.na(CALL_ID))								
 	}
 	#	check if all called chunks in cut and raw contigs correspond to each other
-	if(!is.na(par['PRCALL.cutrawgrace']))
+	if(!is.na(par['PRCALL.cutrawgrace']) && nrow(cnsc.1s))
 	{
 		cnsc.1s	<- merge(cnsc.1s, tx, by=c('TAXON','BLASTnCUT'))
 		tmp		<- subset(cnsc.1s, BLASTnCUT=='Y', select=c(OCNTG, TAXON, CALL_ID, CALL_POS, CALL_LEN ))
@@ -795,7 +804,7 @@ haircut.get.call.for.PNG_ID.150816<- function(indir.st, indir.al, png_id, files,
 		cnsc.1s	<- subset(cnsc.1s, !is.na(CALL_ID))		
 	}
 	#	check that remaining contigs have sufficient length
-	if(!is.na(par['PRCALL.cutprdctcntg']))
+	if(!is.na(par['PRCALL.cutprdctcntg']) && nrow(cnsc.1s))
 	{		
 		tmp		<- cnsc.1s[, which(CALL_LEN<par['PRCALL.cutprdctcntg'])]	
 		set(cnsc.1s, tmp, 'CALL_ID', NA_integer_)
