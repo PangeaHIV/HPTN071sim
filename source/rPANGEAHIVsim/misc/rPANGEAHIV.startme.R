@@ -25,7 +25,8 @@ CODE.HOME	<<- "/Users/Oliver/git/HPTN071sim/source/rPANGEAHIVsim"
 #the home directory of all projects
 HOME		<<- "/Users/Oliver/git/HPTN071sim/"
 #HOME		<<- "/work/or105/Gates_2014"
-DATA		<<- paste(HOME,"data",sep='/')
+DATA		<<- '/Users/Oliver/Dropbox\ (Infectious Disease)/OR_Work/2015/2015_PANGEA_haircut'
+#DATA		<<- '/work/or105/Gates_2014/2015_PANGEA_haircut'
 
 DEBUG		<<- 1		#If 1, a dump file is created that can be loaded and computations can be inspected at the point of error.
 LIB.LOC		<<- NULL
@@ -61,7 +62,8 @@ if(length(args))
 					PR.SEQGEN.SIMULATOR		= "prog.PANGEA.SeqGen.run.v4",
 					SKYGRID					= "project.PANGEA.TEST.SSApg.CLUSTERBEAST.skygrid",
 					SIMGAPS					= "project.PANGEA.treecomparison.gaps.simulate",
-					VARIOUS					= "prog.haircut.150806"
+					VARIOUS					= "prog.haircut.150806",
+					HAIRCUT.CALL			= "haircutprog.get.call.for.PNG_ID"	
 					)
 	}
 	tmp<- na.omit(sapply(args,function(arg)

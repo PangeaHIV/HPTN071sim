@@ -12,6 +12,7 @@ PR.SEQGEN.SIMULATOR			<- paste(PR.STARTME,"-exe=PR.SEQGEN.SIMULATOR",sep=' ')
 PR.VIRUSTREESIMULATOR		<- system.file(package=PR.PACKAGE, "ext", "VirusTreeSimulator.jar")
 PR.SEQGEN					<- system.file(package=PR.PACKAGE, "ext", "seq-gen")
 PR.VARIOUS					<- paste(PR.STARTME," -exe=VARIOUS",sep='')
+PR.HAIRCUT.CALL				<- paste(PR.STARTME," -exe=HAIRCUT.CALL",sep='')
 
 HPC.MPIRUN					<- {tmp<- c("mpirun","mpiexec"); names(tmp)<- c("debug","cx1.hpc.ic.ac.uk"); tmp}
 HPC.CX1.IMPERIAL			<- "cx1.hpc.ic.ac.uk"		#this is set to system('domainname',intern=T) for the hpc cluster of choice
@@ -38,6 +39,27 @@ cmd.various<- function(prog= PR.VARIOUS)
 	cmd		<- paste(cmd, '\n', prog, '\n', sep='')
 	cmd		<- paste(cmd,"#######################################################
 # end: run VARIOUS
+#######################################################\n",sep='')
+	cmd
+}
+##--------------------------------------------------------------------------------------------------------
+##	command line generator for 'prog.HPTN071.input.parser.v4'
+##	olli originally written 16-08-2015
+##--------------------------------------------------------------------------------------------------------
+cmd.haircut.call<- function(indir.st, indir.al, outdir, mfile, trainfile=NA, batch.n=NA, batch.id=NA, prog=PR.HAIRCUT.CALL )	
+{
+	cmd<- "#######################################################
+# start: run haircutprog.get.call.for.PNG_ID
+#######################################################"
+	cmd		<- paste(cmd, paste("\necho \'run ",prog,"\'\n",sep=''))
+	cmd		<- paste(cmd, paste(prog,' -mfile=', mfile,' -indir.st=',indir.st,' -indir.al=',indir.al,' -outdir=',outdir, sep=''))
+	if(!is.na(trainfile))
+		cmd	<- paste(cmd, ' -trainfile=',trainfile, sep='')
+	if(!is.na(batch.n) & !is.na(batch.id))
+		cmd	<- paste(cmd, ' -batch.n=',batch.n, ' -batch.id=',batch.id, sep='')
+	cmd		<- paste('\n',cmd,paste("echo \'end ",prog,"\'\n",sep=''))
+	cmd		<- paste(cmd,"#######################################################
+# end: run haircutprog.get.call.for.PNG_ID
 #######################################################\n",sep='')
 	cmd
 }
