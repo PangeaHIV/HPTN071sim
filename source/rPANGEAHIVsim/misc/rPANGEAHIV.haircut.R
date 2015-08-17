@@ -555,7 +555,7 @@ haircutwrap.get.call.for.PNG_ID.150811<- function(indir.st,indir.al,outdir,ctrmc
 ##--------------------------------------------------------------------------------------------------------
 ##	predict Calls for contigs with same PANGEA ID, based on fitted model 
 ##--------------------------------------------------------------------------------------------------------
-haircut.get.call.for.PNG_ID.150811<- function(indir.str, indir.al, png_id, files, alfiles, bc, par, ctrmc, predict.fun)	
+haircut.get.call.for.PNG_ID.150811<- function(indir.st, indir.al, png_id, files, alfiles, bc, par, ctrmc, predict.fun)	
 {
 	#	load covariates
 	cnsc.df	<- do.call('rbind',lapply(files, function(x)
@@ -626,7 +626,7 @@ haircut.get.call.for.PNG_ID.150811<- function(indir.str, indir.al, png_id, files
 ##		1)	do not return duplicate contigs (ie cut and raw, if both are to be kept)
 ##		2)	do not return raw contigs if cut exists and if raw extends into LTR
 ##--------------------------------------------------------------------------------------------------------
-haircut.get.call.for.PNG_ID.150816<- function(indir.str, indir.al, png_id, files, alfiles, bc, par, ctrmc, predict.fun)	
+haircut.get.call.for.PNG_ID.150816<- function(indir.st, indir.al, png_id, files, alfiles, bc, par, ctrmc, predict.fun)	
 {
 	#	load covariates
 	cnsc.df	<- do.call('rbind',lapply(files, function(x)
@@ -800,7 +800,7 @@ haircut.get.call.for.PNG_ID.150816<- function(indir.str, indir.al, png_id, files
 ##		1)	do not return duplicate contigs (ie cut and raw, if both are to be kept)
 ##		2)	do not return raw contigs if cut exists and if raw extends into LTR
 ##--------------------------------------------------------------------------------------------------------
-haircut.get.call.for.PNG_ID.150814<- function(indir.str, indir.al, png_id, files, alfiles, bc, par, ctrmc, predict.fun)	
+haircut.get.call.for.PNG_ID.150814<- function(indir.st, indir.al, png_id, files, alfiles, bc, par, ctrmc, predict.fun)	
 {
 	#	load covariates
 	cnsc.df	<- do.call('rbind',lapply(files, function(x)
@@ -1712,6 +1712,10 @@ prog.haircut.150806<- function()
 		outdir	<- paste(DATA,'contigs_150408_model150816a',sep='/')
 		par		<- c(	'FRQx.quantile'=NA, 'FRQx.thr'=NA, 'CNS_FRQ.window'=200, 'CNS_AGR.window'=200, 'GPS.window'=200, 
 				'PRCALL.thrmax'=0.8, 'PRCALL.thrstd'=10, 'PRCALL.cutprdcthair'=100, 'PRCALL.cutrawgrace'=100, 'PRCALL.rmintrnlgpsblw'=100 ,'PRCALL.rmintrnlgpsend'=9700)
+		print(indir.st)
+		print(indir.al)
+		print(outdir)
+		print(par)
 		haircutwrap.get.call.for.PNG_ID.150816(indir.st,indir.al,outdir,ctrmc,predict.fun,par,ctrain=ctrain)
 	}
 }
