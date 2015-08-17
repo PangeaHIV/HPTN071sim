@@ -405,7 +405,7 @@ haircutwrap.get.call.for.PNG_ID.150814<- function(indir.st,indir.al,outdir,ctrmc
 ##--------------------------------------------------------------------------------------------------------
 ##	wrapper to call 'haircutwrap.get.call.for.PNG_ID'
 ##--------------------------------------------------------------------------------------------------------
-haircutwrap.get.call.for.PNG_ID.150816<- function(indir.st,indir.al,outdir,ctrmc,predict.fun,par,ctrain=NULL,batch.n=200,batch.id=1)
+haircutwrap.get.call.for.PNG_ID.150816<- function(indir.st,indir.al,outdir,ctrmc,predict.fun,par,ctrain=NULL,batch.n=NA,batch.id=NA)
 {
 	infiles	<- data.table(INFILE=list.files(indir.st, pattern='\\.R$', recursive=T))
 	infiles[, PNG_ID:= gsub('_wRefs.*','',gsub('_cut|_raw','',INFILE))]
@@ -421,7 +421,7 @@ haircutwrap.get.call.for.PNG_ID.150816<- function(indir.st,indir.al,outdir,ctrmc
 		infiles[, BATCH:= ceiling(seq_len(nrow(infiles))/batch.n)]
 		infiles		<- subset(infiles, BATCH==batch.id)
 	}
-		
+	print(batch.id)		
 	#	predict by PANGEA_ID
 	cnsc.info	<-  infiles[,
 			{
@@ -499,6 +499,7 @@ haircutwrap.get.call.for.PNG_ID.150816<- function(indir.st,indir.al,outdir,ctrmc
 				#	report confidence score
 				subset(cnsc.df, CALL==1)[, list(QUANTILE=c(0,0.01,0.05,0.1,0.2,0.5), PR_CALL=quantile(PR_CALL, p=c(0,0.01,0.05,0.1,0.2,0.5))), by=c('TAXON','BLASTnCUT')]
 			}, by='PNG_ID']
+	print(batch.id)
 	#	write quantiles of PR_CALL to file
 	if(is.na(batch.n) || is.na(batch.id))
 		file		<- paste(outdir, '/model150816a_QUANTILESofPRCALLbyCONTIG.csv',sep='')
