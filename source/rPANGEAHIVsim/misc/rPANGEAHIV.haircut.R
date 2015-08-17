@@ -83,17 +83,22 @@ dev.haircut<- function()
 		indir	<- '/Users/Oliver/Dropbox\ (Infectious Disease)/OR_Work/2015/2015_PANGEA_haircut/contigs_150408_wref_cutstat'
 		outdir	<- '/Users/Oliver/Dropbox\ (Infectious Disease)/OR_Work/2015/2015_PANGEA_haircut/contigs_150408_train'
 		outfile	<- 'contigs_150408_train'
-		par		<- c('FRQx.quantile'=0.05, 'FRQx.thr'=0.566, 'CNS_FRQ.window'=100, 'CNS_AGR.window'=200, 'GPS.window'=200)
+		par		<- c('FRQx.quantile'=NA, 'FRQx.thr'=NA, 'CNS_FRQ.window'=200, 'CNS_AGR.window'=200, 'GPS.window'=200)
 		haircut.get.training.data(indir, ctrain, par, outdir, outfile)
+	}
+	if(1)	#	fit model
+	{
+		indir	<- '/Users/Oliver/Dropbox\ (Infectious Disease)/OR_Work/2015/2015_PANGEA_haircut/contigs_150408_train'
+		outfile	<- '/Users/Oliver/Dropbox\ (Infectious Disease)/OR_Work/2015/2015_PANGEA_haircut/model_150816a.R'
+		tmp		<- haircut.get.fitted.model.150816a(indir, outfile)
 	}
 	if(0)	#	call contigs on training data and plot
 	{		
-		outfile	<- '/Users/Oliver/Dropbox\ (Infectious Disease)/OR_Work/2015/2015_PANGEA_haircut/contigs_150408_train/model_150811a.R'
+		mfile	<- '/Users/Oliver/Dropbox\ (Infectious Disease)/OR_Work/2015/2015_PANGEA_haircut/model_150816a.R'
 		#	get model coefficients across the chunks
-		tmp						<- haircut.get.fitted.model.150811a(NULL, outfile)
-		ctrmc					<- tmp$coef
-		ctrev					<- tmp$ev
-		model.150811a.predict	<- tmp$predict
+		tmp						<- haircut.get.fitted.model.150816a(NULL, mfile)
+		ctrmc					<- tmp$coef		
+		predict.fun				<- tmp$predict
 		#	get contigs that were used for training		
 		outfile	<- '/Users/Oliver/Dropbox\ (Infectious Disease)/OR_Work/2015/2015_PANGEA_haircut/contigs_150408_trainingset_subsets.R'
 		ctrain	<- haircut.get.training.contigs(NULL, outfile, NULL)
@@ -102,9 +107,9 @@ dev.haircut<- function()
 		#	get covariates for all contigs
 		indir.st<- '/Users/Oliver/Dropbox\ (Infectious Disease)/OR_Work/2015/2015_PANGEA_haircut/contigs_150408_wref_cutstat'
 		indir.al<- '/Users/Oliver/Dropbox\ (Infectious Disease)/OR_Work/2015/2015_PANGEA_haircut/contigs_150408_wref'
-		outdir	<- '/Users/Oliver/Dropbox\ (Infectious Disease)/OR_Work/2015/2015_PANGEA_haircut/contigs_150408_model150811a'
-		par		<- c(	'FRQx.quantile'=0.05, 'FRQx.thr'=0.566, 'CNS_FRQ.window'=100, 'CNS_AGR.window'=200, 'GPS.window'=200, 
-						'PRCALL.thr'=0.8, 'PRCALL.cutprdcthair'=100, 'PRCALL.cutrawgrace'=100, 'PRCALL.rmintrnlgpsblw'=100 ,'PRCALL.rmintrnlgpsend'=9700)
+		outdir	<- '/Users/Oliver/Dropbox\ (Infectious Disease)/OR_Work/2015/2015_PANGEA_haircut/contigs_150408_model150816a'
+		par		<- c(	'FRQx.quantile'=NA, 'FRQx.thr'=NA, 'CNS_FRQ.window'=200, 'CNS_AGR.window'=200, 'GPS.window'=200, 
+						'PRCALL.thrmax'=0.8, 'PRCALL.thrstd'=10, 'PRCALL.cutprdcthair'=100, 'PRCALL.cutrawgrace'=100, 'PRCALL.rmintrnlgpsblw'=100 ,'PRCALL.rmintrnlgpsend'=9700)
 		haircutwrap.get.call.for.PNG_ID(indir.st,indir.al,outdir,ctrmc,ctrev,predict.fun,txe,par,ctrain=ctrain)
 	}
 	if(0)	# evaluate training data
@@ -140,11 +145,11 @@ dev.haircut<- function()
 						ctr		<- haircut.calculate.training.data(indir, site)	
 						tmp		<- seq(ctr[, min(SITE)-1],ctr[, max(SITE)],10)
 						ctr[, CHUNK:=cut(SITE, breaks=tmp, labels=tmp[-length(tmp)])]
-						ggplot(ctr, aes(x=GPS, y=AGRpc, colour=factor(ANS_CALL, levels=c(0,1), labels=c('N','Y')))) + 
-								geom_hline(yintercept=ctrch$CNS_FRQr[1]) + geom_point(alpha=0.6, size=1) + 
+						ggplot(ctr, aes(x=GPS, y=FRQ, colour=factor(ANS_CALL, levels=c(0,1), labels=c('N','Y')))) + 
+								geom_point(alpha=0.6, size=1) + 
 								facet_wrap(~CHUNK, ncol=5) +
 								theme_bw() + labs(x='%gappiness', y='%agreement with consensus\nline: %agreement of consensus with references', colour='In curated contigs') + theme(legend.position='bottom')
-						ggsave(file=paste(outdir,'/',outfile,'_ANSCALLBYAGRpcGPS_SITE',site,'.pdf',sep=''), w=9, h=9)						
+						ggsave(file=paste(outdir,'/',outfile,'_ANSCALLBYFRQGPS_SITE',site,'.pdf',sep=''), w=9, h=9)						
 					})))
 		#
 		#	calculate model coefficients across the chunks
@@ -230,18 +235,28 @@ dev.haircut<- function()
 		ctr		<- haircut.load.training.data(indir, site)		
 		tmp		<- seq(ctr[, min(SITE)-1],ctr[, max(SITE)],10)
 		ctr[, CHUNK:=cut(SITE, breaks=tmp, labels=tmp[-length(tmp)])]
+		ctrch	<- subset(ctr, CHUNK==chunk)
+		setkey(ctrch, FRQ)
+		ctrch[, ANS_CALLrm:=ctrch[, rollapply(ANS_CALL, width=100, FUN=mean, align="center", partial=TRUE)]]	
+		
+		#setkey(ctrch, GPSc, AGRpc)
+		#ctrch	<- merge(ctrch, ctrch[, list(TAXON=TAXON, SITE=SITE, BLASTnCUT=BLASTnCUT, ANS_CALLrm2=rollapply(ANS_CALL, width=100, FUN=mean, align="center", partial=TRUE)), by='GPSc'] , by=c('TAXON','SITE','BLASTnCUT','GPSc'))		
 		#tmp		<- seq(0,1.01,0.01)
 		#ctr[, GPSC:= cut(GPS, breaks=tmp, labels=tmp[-length(tmp)])]
 		#ctr[, AGRpcC:= cut(AGRpc, breaks=tmp, labels=tmp[-length(tmp)])]		
-		ctrch	<- subset(ctr, CHUNK==chunk)
+		
+		ctrchm	<- gamlss(ANS_CALL~FRQ, data=ctrch, family=BI())
+		ctrch[, PR_CALL:= predict(ctrchm, type='response', what='mu')]
+		ggplot(melt(ctrch, id.vars=c('FRQ','GPS'), measure.vars=c('ANS_CALLrm','PR_CALL')), aes(x=FRQ, y=value, colour=variable)) + geom_line()
+		ctrchm2	<- gamlss(ANS_CALL~FRQ, sigma.formula=~FRQ, data=ctrch, family=BB(), i.control=glim.control(cyc=100,cc=1e-4))
+		ctrch[, PR_CALL2:= predict(ctrchm2, type='response', what='mu')]
+		ggplot(melt(ctrch, id.vars=c('FRQ','GPS'), measure.vars=c('ANS_CALLrm','PR_CALL','PR_CALL2')), aes(x=FRQ, y=value, colour=variable)) + geom_line()
+		
 		ctrchs	<- ctrch[, {
 					z	<- sample(length(AGRpc), min(length(AGRpc),50))
 					list(AGRpc=AGRpc[z], GPS=GPS[z], ANS_CALL=ANS_CALL[z], CHUNK=CHUNK[z])	
 				}, by=c('AGRpcC','GPSC')]
 		
-		
-		
-		ctrchm	<- gamlss(ANS_CALL~AGRpc+GPS, data=ctrch, family=BI())
 		ctrchms	<- gamlss(ANS_CALL~AGRpc+GPS, data=ctrchs, family=BI())
 		ctrchm2	<- gamlss(ANS_CALL~AGRpc+GPS, data=ctrchs, family=BB())
 		ctrchm3	<- gamlss(ANS_CALL~AGRpc+GPS, sigma.formula=~AGRpc+GPS, data=ctrchs, family=BB())
@@ -266,17 +281,10 @@ dev.haircut<- function()
 		ctrchp[, varn1:=mu*(1-mu)]
 		
 		
-		setkey(ctrch, AGRpc)
-		ctrch[, ANS_CALLrm:=ctrch[, rollapply(ANS_CALL, width=100, FUN=mean, align="center", partial=TRUE)]]	
-		setkey(ctrch, GPSc, AGRpc)
-		ctrch	<- merge(ctrch, ctrch[, list(TAXON=TAXON, SITE=SITE, BLASTnCUT=BLASTnCUT, ANS_CALLrm2=rollapply(ANS_CALL, width=100, FUN=mean, align="center", partial=TRUE)), by='GPSc'] , by=c('TAXON','SITE','BLASTnCUT','GPSc'))
 		
 		#ctrchm	<- gamlss(ANS_CALL~AGRpc+bs(GPSc,df=3), data=ctrch, family=BI())
 		
 		
-		ctrch[, PR_CALL:= predict(ctrchm, type='response', what='mu')]
-		setkey(ctrch, GPSc, AGRpc)
-		ggplot(melt(ctrch, id.vars=c('AGRpc','GPSc'), measure.vars=c('ANS_CALLrm2','PR_CALL')), aes(x=AGRpc, y=value, colour=variable)) + geom_line() +facet_wrap(~GPSc, ncol=4)
 		
 		
 		ctrchm	<- gamlss(ANS_CALL~AGRpc, data=ctrch, family=BI())				#as good as 'AGRpc+GPS+CNS_FRQr' in terms of FN, FP
@@ -313,7 +321,7 @@ dev.haircut<- function()
 ##--------------------------------------------------------------------------------------------------------
 ##	wrapper to call 'haircutwrap.get.call.for.PNG_ID'
 ##--------------------------------------------------------------------------------------------------------
-haircutwrap.get.call.for.PNG_ID.150814<- function(indir.st,indir.al,outdir,ctrmc,ctrev,predict.fun,txe,par,ctrain=NULL)
+haircutwrap.get.call.for.PNG_ID.150814<- function(indir.st,indir.al,outdir,ctrmc,predict.fun,par,ctrain=NULL)
 {
 	infiles	<- data.table(INFILE=list.files(indir.st, pattern='\\.R$', recursive=T))
 	infiles[, PNG_ID:= gsub('_wRefs.*','',gsub('_cut|_raw','',INFILE))]
@@ -394,9 +402,96 @@ haircutwrap.get.call.for.PNG_ID.150814<- function(indir.st,indir.al,outdir,ctrmc
 					}, by='PNG_ID']
 }	
 ##--------------------------------------------------------------------------------------------------------
+##	wrapper to call 'haircutwrap.get.call.for.PNG_ID'
+##--------------------------------------------------------------------------------------------------------
+haircutwrap.get.call.for.PNG_ID.150816<- function(indir.st,indir.al,outdir,ctrmc,predict.fun,par,ctrain=NULL)
+{
+	infiles	<- data.table(INFILE=list.files(indir.st, pattern='\\.R$', recursive=T))
+	infiles[, PNG_ID:= gsub('_wRefs.*','',gsub('_cut|_raw','',INFILE))]
+	infiles[, BLASTnCUT:= regmatches(INFILE,regexpr('cut|raw',INFILE))]
+	set(infiles, NULL, 'BLASTnCUT', infiles[, factor(BLASTnCUT, levels=c('cut','raw'), labels=c('Y','N'))])
+	alfiles <- data.table(ALFILE=list.files(indir.al, pattern='\\.fasta$', recursive=T))
+	alfiles[, PNG_ID:= gsub('_wRefs.*','',gsub('_cut|_raw','',basename(ALFILE)))]
+	alfiles[, BLASTnCUT:= regmatches(basename(ALFILE),regexpr('cut|raw',basename(ALFILE)))]
+	set(alfiles, NULL, 'BLASTnCUT', alfiles[, factor(BLASTnCUT, levels=c('cut','raw'), labels=c('Y','N'))])
+	infiles	<- merge(infiles, alfiles, by=c('PNG_ID','BLASTnCUT'))
+	
+	#	predict by PANGEA_ID
+	cnsc.info	<-  infiles[,
+			{
+				cat(paste('\nProcess', PNG_ID))
+				if(0)	#devel
+				{
+					#PNG_ID<- png_id	<- '15172_1_32'
+					#PNG_ID<- png_id	<- '12559_1_11'
+					#PNG_ID<- png_id	<- '14728_1_84'
+					#PNG_ID<- png_id	<- '14938_1_10'
+					#PNG_ID<- png_id	<- '14728_1_82'
+					#PNG_ID<- png_id	<- '12559_1_24'
+					#PNG_ID<- png_id	<- '12559_1_81'
+					#PNG_ID<- png_id	<- '12559_1_87'
+					files	<- subset(infiles, PNG_ID==png_id)[, INFILE]
+					alfiles	<- subset(infiles, PNG_ID==png_id)[, ALFILE]
+					bc		<- subset(infiles, PNG_ID==png_id)[, BLASTnCUT]
+					tmp		<- haircut.get.call.for.PNG_ID.150816(indir.str, indir.al, png_id, files, alfiles, bc, par, ctrmc, predict.fun)
+				}
+				#
+				tmp		<- haircut.get.call.for.PNG_ID.150816(indir.str, indir.al, PNG_ID, INFILE, ALFILE, BLASTnCUT, par, ctrmc, predict.fun)
+				crs		<- tmp$crs
+				cnsc.df	<- tmp$cnsc.df	
+				#	handle output
+				if(any(grepl(PNG_ID,rownames(crs[['N']]))))
+				{
+					tmp		<- paste(outdir,'/',PNG_ID,'_wref_nohaironraw.fasta',sep='')
+					cat('\nWrite to file', tmp)
+					write.dna(crs[['N']], file=tmp, format='fasta', colsep='', nbcol=-1)							
+				}
+				if(any(grepl(PNG_ID,rownames(crs[['Y']]))))
+				{
+					tmp		<- paste(outdir,'/',PNG_ID,'_wref_nohaironcut.fasta',sep='')
+					cat('\nWrite to file', tmp)
+					write.dna(crs[['Y']], file=tmp, format='fasta', colsep='', nbcol=-1)							
+				}
+				#	see if there is curated contig available
+				if(!is.null(ctrain))
+				{
+					cnsc.df	<- merge(cnsc.df, subset(ctrain, select=c(PNG_ID, TAXON, BLASTnCUT, ANS_FIRST, ANS_LAST)), all.x=T, by=c('PNG_ID','TAXON','BLASTnCUT'))		
+					cnsc.df[, CUR_CALL:=NA_integer_]
+					set(cnsc.df, cnsc.df[, which(!is.na(ANS_FIRST) & SITE>=ANS_FIRST & SITE<=ANS_LAST)], 'CUR_CALL', 1L)
+					set(cnsc.df, cnsc.df[, which(!is.na(ANS_FIRST) & (SITE<ANS_FIRST | SITE>ANS_LAST))], 'CUR_CALL', 0L)
+					set(cnsc.df, cnsc.df[, which(is.na(CUR_CALL))], 'CUR_CALL', 0L)								
+				}	
+				if(is.null(ctrain))
+					cnsc.df[, CUR_CALL:=NA_integer_]
+				#	save as R
+				tmp	<- paste(outdir, '/', PNG_ID, '_wref_nohaironcutraw.R',sep='')
+				cat('\nSave to file', tmp)
+				save(cnsc.df, crs, file=tmp)
+				#	plot
+				cnsc.df[, TAXONnCUT:= paste(TAXON,BLASTnCUT,sep='_BLASTnCUT:')]
+				ggplot(cnsc.df, aes(x=SITE, fill=BLASTnCUT, group=TAXONnCUT)) +
+						geom_ribbon(aes(ymax=CALL, ymin=0), alpha=0.5) +
+						geom_line(aes(y=PR_CALL), colour='black') +
+						geom_line(aes(y=CNS_PR_CALL), colour='blue') +
+						geom_line(aes(y=CUR_CALL), colour='red') +
+						scale_x_continuous(breaks=seq(0,15e3, ifelse(cnsc.df[,max(SITE)]>5e2, 5e2, floor(cnsc.df[,max(SITE)/3])))) + 
+						facet_wrap(~TAXONnCUT, ncol=1) + theme_bw() + theme(legend.position='bottom') +
+						labs(fill='Contig BLASTnCUT', x='position on consensus w/o LTR', y='fill: predicted call\nblack line: predictive probability\nblue line: threshold\nred line: curated call')
+				tmp	<- paste(outdir, '/', PNG_ID, '_wref_nohaironcutraw.pdf',sep='')
+				cat('\nPlot to file', tmp)
+				ggsave(w=10, h=3*cnsc.df[, length(unique(TAXON))], file=tmp)
+				#	report confidence score
+				subset(cnsc.df, CALL==1)[, list(QUANTILE=c(0,0.01,0.05,0.1,0.2,0.5), PR_CALL=quantile(PR_CALL, p=c(0,0.01,0.05,0.1,0.2,0.5))), by=c('TAXON','BLASTnCUT')]
+			}, by='PNG_ID']
+	#	write quantiles of PR_CALL to file
+	file		<- paste(outdir, '/model150816a_QUANTILESofPRCALLbyCONTIG.csv',sep='')
+	cnsc.info	<- dcast.data.table(cnsc.info, PNG_ID+TAXON+BLASTnCUT~QUANTILE, value.var='PR_CALL')
+	write.csv(cnsc.info, row.names=FALSE, file=file)	
+}	
+##--------------------------------------------------------------------------------------------------------
 ##	wrapper to call 'haircutwrap.get.call.for.PNG_ID.150811'
 ##--------------------------------------------------------------------------------------------------------
-haircutwrap.get.call.for.PNG_ID.150811<- function(indir.st,indir.al,outdir,ctrmc,ctrev,predict.fun,par,ctrain=NULL)
+haircutwrap.get.call.for.PNG_ID.150811<- function(indir.st,indir.al,outdir,ctrmc,predict.fun,par,ctrain=NULL)
 {
 	infiles	<- data.table(INFILE=list.files(indir.st, pattern='\\.R$', recursive=T))
 	infiles[, PNG_ID:= gsub('_wRefs.*','',gsub('_cut|_raw','',INFILE))]
@@ -460,7 +555,7 @@ haircutwrap.get.call.for.PNG_ID.150811<- function(indir.st,indir.al,outdir,ctrmc
 ##--------------------------------------------------------------------------------------------------------
 ##	predict Calls for contigs with same PANGEA ID, based on fitted model 
 ##--------------------------------------------------------------------------------------------------------
-haircut.get.call.for.PNG_ID<- function(indir.str, indir.al, png_id, files, alfiles, bc, par, ctrmc, predict.fun)	
+haircut.get.call.for.PNG_ID.150811<- function(indir.str, indir.al, png_id, files, alfiles, bc, par, ctrmc, predict.fun)	
 {
 	#	load covariates
 	cnsc.df	<- do.call('rbind',lapply(files, function(x)
@@ -531,6 +626,180 @@ haircut.get.call.for.PNG_ID<- function(indir.str, indir.al, png_id, files, alfil
 ##		1)	do not return duplicate contigs (ie cut and raw, if both are to be kept)
 ##		2)	do not return raw contigs if cut exists and if raw extends into LTR
 ##--------------------------------------------------------------------------------------------------------
+haircut.get.call.for.PNG_ID.150816<- function(indir.str, indir.al, png_id, files, alfiles, bc, par, ctrmc, predict.fun)	
+{
+	#	load covariates
+	cnsc.df	<- do.call('rbind',lapply(files, function(x)
+					{
+						load( paste(indir.st, '/', x, sep='') )
+						tmp	<- subset(cnsc.df, TAXON=='consensus', c(SITE, FRQ, FRQ_STD, GPS))
+						setnames(tmp, c('FRQ','FRQ_STD','GPS'), c('CNS_FRQ','CNS_FRQ_STD','CNS_GPS'))
+						merge(subset(cnsc.df, TAXON!='consensus'), tmp, by='SITE')
+					})) 
+	#	load alignment	and cut LTR and anything that extends past references
+	crs		<- lapply(alfiles, function(x)
+			{
+				cr	<- read.dna(file=paste(indir.al,x,sep='/'), format='fasta')
+				cr	<- cr[, seq.int(haircut.find.nonLTRstart(cr), ncol(cr))]
+				cr[, seq.int(1, haircut.find.lastRefSite(cr))]																
+			})
+	names(crs)	<- bc
+	#
+	#	get contig table
+	tx		<- do.call('rbind',lapply(seq_along(crs), function(i)
+					{
+						tmp		<- rownames(crs[[i]])[grepl(png_id,rownames(crs[[i]]))]						
+						data.table(	TAXON=tmp, 
+								BLASTnCUT= bc[i], 
+								FIRST= apply( as.character(crs[[i]][tmp,,drop=FALSE]), 1, function(x) which(x!='-')[1] ),
+								LAST= ncol(crs[[i]])-apply( as.character(crs[[i]][tmp,,drop=FALSE]), 1, function(x) which(rev(x)!='-')[1] ) + 1L,
+								CRS_ID=i)
+					}))	
+	tx		<- subset(tx, !is.na(FIRST) & !is.na(LAST))	#some contigs may just be in LTR
+	tx[, CNTG:=tx[, gsub(paste(png_id,'.',sep=''),'',substring(TAXON, regexpr(png_id, TAXON)))]]
+	tx[, OCNTG:= tx[, sapply(strsplit(CNTG,'.',fixed=T),'[[',1)]]
+	tx[, CCNTG:= NA_character_]		
+	tmp		<- tx[, which(grepl('.',CNTG,fixed=T))]
+	if(length(tmp))
+		set(tx, tmp, 'CCNTG', tx[tmp, sapply(strsplit(CNTG,'.',fixed=T),'[[',2)])	
+	tmp		<- subset(tx, BLASTnCUT=='Y' & !is.na(CCNTG))[, list(CCNTGn=length(CCNTG)), by='OCNTG']
+	tmp		<- subset(tmp, CCNTGn==1)[, OCNTG]	#check for cut contigs that should be present in multiple cuts by naming scheme, but after LTR removal there is only one cut
+	if(length(tmp))
+	{
+		cat('\nFound lone cuts for which multiple cuts are expected by naming scheme, n=', length(tmp))
+		tmp	<- tx[, which(BLASTnCUT=='Y' & OCNTG%in%tmp)]
+		set(tx, tmp, 'CCNTG', NA_character_)
+		set(tx, tmp, 'CNTG', tx[tmp, OCNTG])
+	}
+	#	calculate PR_CALL of contig and of consensus
+	tmp		<- seq(cnsc.df[, floor(min(SITE)/10)*10],cnsc.df[, max(SITE)+10],10)	
+	cnsc.df[, CHUNK:=cut(SITE, breaks=tmp, labels=tmp[-length(tmp)])]	
+	cnsc.df	<- merge(cnsc.df, ctrmc, by='CHUNK', all.x=TRUE)
+	stopifnot(cnsc.df[, !any(is.na(BETA0))])
+	cnsc.df[, PR_CALL:= predict.fun(FRQ, GPS, BETA0, BETA1, BETA2)]
+	cnsc.df[, CNS_PR_CALL:= CNS_FRQ-par['PRCALL.thrstd']*CNS_FRQ_STD]
+	set(cnsc.df, cnsc.df[, which(CNS_PR_CALL<0)], 'CNS_PR_CALL', 0)
+	set(cnsc.df, NULL, 'CNS_PR_CALL', cnsc.df[,predict.fun(CNS_PR_CALL, CNS_GPS, BETA0, BETA1, BETA2)])
+	set(cnsc.df, cnsc.df[, which(CNS_PR_CALL>par['PRCALL.thrmax'])], 'CNS_PR_CALL', par['PRCALL.thrmax']) 
+	#	call if call prob of contig is not too low in relation to the call prob of the consensus 
+	cnsc.df[, CALL:= as.integer(PR_CALL>=CNS_PR_CALL)]	
+	if(0)
+	{
+		ggplot(subset(cnsc.df, BLASTnCUT=='Y'), aes(x=SITE)) + facet_wrap(~TAXON, ncol=1) +
+				geom_line(aes(y=PR_CALL), colour='black') +
+				geom_line(aes(y=CNS_FRQ), colour='red') +
+				geom_line(aes(y=CNS_PR_CALL), colour='blue') +
+				geom_line(aes(y=CNS_GPS), colour='orange') +
+				geom_line(aes(y=FRQ), colour='green') +
+				geom_line(aes(y=GPS), colour='DarkGreen')
+	} 	
+	#	determine predicted sites
+	cnsc.1s	<- cnsc.df[, {
+				z	<- gsub('0*$','',paste(CALL,collapse=''))
+				#print(TAXON)
+				#print(z)
+				z	<- gregexpr('1+',z)[[1]]	
+				list(CALL_ID= seq_along(z), CALL_POS=as.integer(z+min(SITE)-1L), CALL_LEN=attr(z, 'match.length'))
+			}, by=c('PNG_ID','TAXON','BLASTnCUT')]
+	cnsc.1s[, CALL_LAST:= CALL_POS+CALL_LEN-1L]
+	cnsc.1s	<- subset(cnsc.1s, CALL_LEN>0)
+	#	fill internal predicted gaps		
+	if(!is.na(par['PRCALL.rmintrnlgpsblw'] | !is.na(par['PRCALL.rmintrnlgpsend'])))
+	{
+		cnsc.g	<- cnsc.1s[, {
+					if(length(CALL_ID)==1)
+						ans	<- NA_integer_
+					if(length(CALL_ID)>1)
+						ans	<- CALL_POS[seq.int(2,length(CALL_POS))]-CALL_LAST[seq.int(1,length(CALL_LAST)-1)]-1L
+					list(CALL_LAST=CALL_LAST[seq.int(1,length(CALL_LAST)-1)], GAP_LEN= ans)
+				}, by=c('TAXON','BLASTnCUT')]
+		cnsc.g	<- merge(cnsc.1s, cnsc.g,  by=c('TAXON','BLASTnCUT','CALL_LAST'), all.x=1)
+		tmp		<- cnsc.g[, which(GAP_LEN<par['PRCALL.rmintrnlgpsblw'] | (CALL_LAST>par['PRCALL.rmintrnlgpsend'] & !is.na(GAP_LEN)))]
+		for(i in tmp)	#	add ith called region to next call region
+		{
+			tmp2	<- cnsc.df[, which(TAXON==cnsc.g$TAXON[i] & BLASTnCUT==cnsc.g$BLASTnCUT[i] & SITE>cnsc.g$CALL_LAST[i] & SITE<=cnsc.g$CALL_LAST[i]+cnsc.g$GAP_LEN[i])]
+			stopifnot( cnsc.df[tmp2,all(CALL==0)])
+			cat('\nFound internal predicted gap and set to CALL=1, taxon=',cnsc.g[i,TAXON],', cut=',cnsc.g[i,as.character(BLASTnCUT)],', pos=',cnsc.g[i,CALL_LAST+1L],', len=', length(tmp2))
+			set(cnsc.df, tmp2, 'CALL', 1L)
+			set(cnsc.g, i+1L, 'CALL_POS', cnsc.g[i,CALL_POS])
+			set(cnsc.g, i+1L, 'CALL_LEN', cnsc.g[i+1L,CALL_LEN]+cnsc.g[i,CALL_LEN]+cnsc.g[i,GAP_LEN])
+			set(cnsc.g, i, 'CALL_ID', NA_integer_)
+		}
+		cnsc.1s		<- subset(cnsc.g, !is.na(CALL_ID))
+	}
+	#	check if all called chunks in cut and raw contigs correspond to each other
+	if(!is.na(par['PRCALL.cutrawgrace']))
+	{
+		cnsc.1s	<- merge(cnsc.1s, tx, by=c('TAXON','BLASTnCUT'))
+		tmp		<- subset(cnsc.1s, BLASTnCUT=='Y', select=c(OCNTG, TAXON, CALL_ID, CALL_POS, CALL_LEN ))
+		setnames(tmp, c('TAXON','CALL_ID','CALL_POS','CALL_LEN'),c('TAXON_CUT','CALL_ID_CUT','CALL_POS_CUT','CALL_LEN_CUT'))
+		tmp		<- merge(subset(cnsc.1s, BLASTnCUT=='N'), tmp, by='OCNTG', allow.cartesian=TRUE)
+		tmp		<- subset(tmp, abs(CALL_POS-CALL_POS_CUT)<par['PRCALL.cutrawgrace'] )	
+		#	of the corresponding calls, keep the longer one 
+		#	dont extend shorter for now as alignments may not match
+		tmp2	<- subset(tmp, CALL_LEN>CALL_LEN_CUT)
+		for(i in seq_len(nrow(tmp2)))	#keep raw
+		{			
+			cat('\nkeep only raw:', tmp2[i,TAXON])
+			z	<- cnsc.df[, which( TAXON==tmp2$TAXON_CUT[i] & BLASTnCUT=='Y' & SITE>=tmp2$CALL_POS_CUT[i] & SITE<(tmp2$CALL_POS_CUT[i]+tmp2$CALL_LEN_CUT[i]))]
+			stopifnot( cnsc.df[z,all(CALL==1)])
+			set(cnsc.df, z, 'CALL', 0L)		
+		}
+		if(length(tmp2))
+			set(cnsc.1s, cnsc.1s[, which(TAXON%in%tmp2[, TAXON_CUT] & BLASTnCUT=='Y' & CALL_ID%in%tmp2[, CALL_ID_CUT])],'CALL_ID',NA_integer_)	
+		tmp2	<- subset(tmp, CALL_LEN<=CALL_LEN_CUT)
+		for(i in seq_len(nrow(tmp2)))	#keep cut
+		{	
+			cat('\nkeep only cut:', tmp2[i,TAXON_CUT])
+			z	<- cnsc.df[, which( TAXON==tmp2$TAXON[i] & BLASTnCUT=='N' & SITE>=tmp2$CALL_POS[i] & SITE<=tmp2$CALL_LAST[i])]
+			stopifnot( cnsc.df[z,all(CALL==1)])
+			set(cnsc.df, z, 'CALL', 0L)
+		}
+		if(length(tmp2))
+			set(cnsc.1s, cnsc.1s[, which(TAXON%in%tmp2[, TAXON] & BLASTnCUT=='N' & CALL_ID%in%tmp2[, CALL_ID])],'CALL_ID',NA_integer_)
+		cnsc.1s	<- subset(cnsc.1s, !is.na(CALL_ID))		
+	}	
+	#	check if called contig has gaps of CALL=='0': if yes, return last non-gap before first CALL=='0
+	if(!is.na(par['PRCALL.cutprdcthair']))
+	{
+		tmp		<- subset( cnsc.1s, CALL_LEN<par['PRCALL.cutprdcthair'] )
+		if(nrow(tmp))
+		{
+			cat('\nFound predicted extra hair of length <',par['PRCALL.cutprdcthair'],'delete, n=',tmp[,sum(CALL_LEN)])
+			set(tmp, NULL, 'CALL_LEN', tmp[, CALL_POS+CALL_LEN-1])
+			for(i in seq_len(nrow(tmp)))
+			{				
+				set(cnsc.df, cnsc.df[, which(TAXON==tmp$TAXON[i] & BLASTnCUT==tmp$BLASTnCUT[i] & SITE>=tmp$CALL_POS[i] & SITE<=tmp$CALL_LEN[i])], 'CALL', 0L)
+			}				
+		}										
+	}
+	#	check there is no dust
+	tmp			<- subset(cnsc.df, CALL==1)[, list(CALL_N= length(CALL)), by=c('TAXON','BLASTnCUT')][, CALL_N]
+	if(length(tmp))
+		stopifnot(min(tmp)>40)
+	#	produce fasta output:
+	#	select cut and raw contigs with a call, then set all characters with CALL==0 to -
+	crs			<- lapply(crs, as.character)
+	tmp			<- subset(cnsc.df, BLASTnCUT=='N' & CALL==1 )[, unique(TAXON)]
+	tmp2		<- rownames(crs[['N']])[ !grepl(png_id,rownames(crs[['N']])) | rownames(crs[['N']])%in%tmp ] 
+	crs[['N']]	<- crs[['N']][tmp2,]
+	for(tx in tmp)
+		crs[['N']][tx, subset(cnsc.df, BLASTnCUT=='N' & TAXON==tx & CALL==0 & SITE<=ncol(crs[['N']]))[, SITE]]	<- '-'
+	
+	tmp			<- subset(cnsc.df, BLASTnCUT=='Y' & CALL==1 )[, unique(TAXON)]
+	tmp2		<- rownames(crs[['Y']])[ !grepl(png_id,rownames(crs[['Y']])) | rownames(crs[['Y']])%in%tmp ] 
+	crs[['Y']]	<- crs[['Y']][tmp2,]
+	for(tx in tmp)
+		crs[['Y']][tx, subset(cnsc.df, BLASTnCUT=='Y' & TAXON==tx & CALL==0 & SITE<=ncol(crs[['Y']]))[, SITE]]	<- '-'
+	crs			<- lapply(crs, as.DNAbin)			
+	list(crs=crs, cnsc.df=cnsc.df)
+}
+##--------------------------------------------------------------------------------------------------------
+##	predict Calls for contigs with same PANGEA ID, based on fitted model
+##	update: 
+##		1)	do not return duplicate contigs (ie cut and raw, if both are to be kept)
+##		2)	do not return raw contigs if cut exists and if raw extends into LTR
+##--------------------------------------------------------------------------------------------------------
 haircut.get.call.for.PNG_ID.150814<- function(indir.str, indir.al, png_id, files, alfiles, bc, par, ctrmc, predict.fun)	
 {
 	#	load covariates
@@ -553,9 +822,9 @@ haircut.get.call.for.PNG_ID.150814<- function(indir.str, indir.al, png_id, files
 					{
 						tmp		<- rownames(crs[[i]])[grepl(png_id,rownames(crs[[i]]))]						
 						data.table(	TAXON=tmp, 
-								BLASTnCUT= factor(blastncut[i],levels=c('cut','raw'),labels=c('Y','N')), 
+								BLASTnCUT= factor(bc[i],levels=c('cut','raw'),labels=c('Y','N')), 
 								FIRST= apply( as.character(crs[[i]][tmp,,drop=FALSE]), 1, function(x) which(x!='-')[1] ),
-								LAST= ncol(crs[[i]])-apply( as.character(crs[[i]][tmp,,drop=FALSE]), 1, function(x) which(rev(x)!='-')[1] ),
+								LAST= ncol(crs[[i]])-apply( as.character(crs[[i]][tmp,,drop=FALSE]), 1, function(x) which(rev(x)!='-')[1] ) + 1L,
 								CRS_ID=i)
 					}))	
 	tx		<- subset(tx, !is.na(FIRST) & !is.na(LAST))	#some contigs may just be in LTR
@@ -697,7 +966,7 @@ haircut.get.call.for.PNG_ID.150814<- function(indir.str, indir.al, png_id, files
 ##--------------------------------------------------------------------------------------------------------
 ##	fit Beta Binomial regression model to training data 
 ##--------------------------------------------------------------------------------------------------------
-haircut.get.fitted.model.150814a<- function(indir, outfile)
+haircut.get.fitted.model.150816b<- function(indir, outfile)
 {
 	options(show.error.messages = FALSE)		
 	readAttempt		<-try(suppressWarnings(load(outfile)))
@@ -714,7 +983,7 @@ haircut.get.fitted.model.150814a<- function(indir, outfile)
 							ctrmc	<- do.call('rbind',lapply(ctr[, unique(CHUNK)], function(chunk)
 											{
 												ctrch		<- subset(ctr, CHUNK==chunk)
-												tmp			<- tryCatch( gamlss(ANS_CALL~AGRpc+GPS, sigma.formula=~AGRpc+GPS, data=ctrch, family=BB(), control=gamlss.control(trace=FALSE), i.control=glim.control(cyc=100,cc=1e-4)), warning=function(w) w, error=function(e) e)
+												tmp			<- tryCatch( gamlss(ANS_CALL~FRQ+GPS, sigma.formula=~FRQ+GPS, data=ctrch, family=BB(), control=gamlss.control(trace=FALSE), i.control=glim.control(cyc=100,cc=1e-4)), warning=function(w) w, error=function(e) e)
 												if(!is(tmp,'warning') & !is(tmp,'error'))
 												{
 													ctrchm	<- tmp
@@ -723,7 +992,7 @@ haircut.get.fitted.model.150814a<- function(indir, outfile)
 												}
 												if(is(tmp,'warning') | is(tmp,'error'))
 												{
-													ctrchm	<- gamlss(ANS_CALL~AGRpc+GPS, sigma.formula=~AGRpc+GPS, data=ctrch, family=BI(), control=gamlss.control(trace=FALSE))
+													ctrchm	<- gamlss(ANS_CALL~FRQ+GPS, sigma.formula=~FRQ+GPS, data=ctrch, family=BI(), control=gamlss.control(trace=FALSE))
 													tmp2	<- TRUE
 												}													
 												ctrchmc	<- data.table(CHUNK=chunk, BETA0=coef(ctrchm)[1], BETA1=coef(ctrchm)[2], BETA2=coef(ctrchm)[3], FAMILY=family(ctrchm)[1], CONVERGED=tmp2	)					
@@ -732,17 +1001,16 @@ haircut.get.fitted.model.150814a<- function(indir, outfile)
 		#	deal with end of genome where little data is available: we estimated coefs for all sites > 1e4, now split up using CHUNK notation
 		ctr		<- haircut.load.training.data(indir, 10001)
 		tmp		<- seq(ctr[, min(SITE)-1],ctr[, max(SITE)+10],10)
-		tmp[tmp>10000]
 		tmp		<- as.data.table(expand.grid(CHUNK=as.character(tmp[tmp>10000]), BETA0=subset(ctrmc, CHUNK==10000)[, BETA0], BETA1=subset(ctrmc, CHUNK==10000)[, BETA1], BETA2=subset(ctrmc, CHUNK==10000)[, BETA2], stringsAsFactors=F))
 		ctrmc	<- rbind(ctrmc, tmp)
 		#	model predict function, so we save mem by not having to call 'predict'
-		model.150811a.predict<- function(agrpc, gps, b0, b1, b2)
+		model.150816b.predict<- function(frq, gps, b0, b1, b2)
 		{	
-			stopifnot(all(!is.na(agrpc)), all(!is.na(gps)))
+			stopifnot(all(!is.na(frq)), all(!is.na(gps)))
 			b0[which(is.na(b0))]	<- 0
 			b1[which(is.na(b1))]	<- 0
 			b2[which(is.na(b2))]	<- 0
-			exp(b0+b1*agrpc+b2*gps)/(exp(b0+b1*agrpc+b2*gps)+1)	
+			exp(b0+b1*frq+b2*gps)/(exp(b0+b1*frq+b2*gps)+1)	
 		}
 		#	calculate Sensitivity & Specificity on training data
 		ctrev	<- do.call('rbind', lapply(seq(1,11000,200), function(site)
@@ -753,7 +1021,7 @@ haircut.get.fitted.model.150814a<- function(indir, outfile)
 							ctr[, CHUNK:=cut(SITE, breaks=tmp, labels=tmp[-length(tmp)])]
 							print(ctr)
 							ctrp	<- merge(ctr, ctrmc, by='CHUNK')
-							ctrp[, PR_CALL:=model.150811a.predict(AGRpc, GPS, BETA0, BETA1, BETA2)]
+							ctrp[, PR_CALL:=model.150816b.predict(FRQ, GPS, BETA0, BETA1, BETA2)]
 							setkey(ctrp, CHUNK)
 							ctrev	<- as.data.table(expand.grid(THR= seq(0.05,0.95,0.01), CHUNK= as.character(ctrp[, unique(CHUNK)]), stringsAsFactors=FALSE))
 							ctrev	<- ctrev[, {
@@ -772,9 +1040,9 @@ haircut.get.fitted.model.150814a<- function(indir, outfile)
 						}))		
 		set(ctrev, NULL, 'CHUNK', ctrev[, as.numeric(CHUNK)])
 		
-		save(ctrmc, ctrev, model.150811a.predict, file=outfile)
+		save(ctrmc, ctrev, model.150816b.predict, file=outfile)
 	}
-	list(coef=ctrmc, ev=ctrev, predict=model.150811a.predict)
+	list(coef=ctrmc, ev=ctrev, predict=model.150816b.predict)
 }
 ##--------------------------------------------------------------------------------------------------------
 ##	fit simple Binomial regression model to training data 
@@ -846,6 +1114,93 @@ haircut.get.fitted.model.150811a<- function(indir, outfile)
 		save(ctrmc, ctrev, model.150811a.predict, file=outfile)
 	}
 	list(coef=ctrmc, ev=ctrev, predict=model.150811a.predict)
+}
+##--------------------------------------------------------------------------------------------------------
+##	Binomial model using FRQ and GAP
+##--------------------------------------------------------------------------------------------------------
+haircut.get.fitted.model.150816a<- function(indir, outfile)
+{
+	options(show.error.messages = FALSE)		
+	readAttempt		<-try(suppressWarnings(load(outfile)))
+	options(show.error.messages = TRUE)	
+	if( inherits(readAttempt, "try-error")	)
+	{
+		ctrmc	<- do.call('rbind', lapply(seq(1,10001,200), function(site)
+						{
+							cat('\nProcess',site,'\n')							
+							ctr		<- haircut.load.training.data(indir, site)	
+							tmp		<- seq(ctr[, min(SITE)-1],ctr[, max(SITE)+10],10)
+							tmp		<- tmp[tmp<=10000 | tmp==floor(ctr[, max(SITE)+10]/10)*10]
+							ctr[, CHUNK:=cut(SITE, breaks=tmp, labels=tmp[-length(tmp)])]							
+							ctrmc	<- do.call('rbind',lapply(ctr[, unique(CHUNK)], function(chunk)
+											{
+												ctrch	<- subset(ctr, CHUNK==chunk)
+												ctrchm	<- gamlss(ANS_CALL~FRQ+GPS, data=ctrch, family=BI())				#as good as 'AGRpc+GPS+CNS_FRQr' in terms of FN, FP
+												ctrchmc	<- data.table(CHUNK=chunk, BETA0=coef(ctrchm)[1], BETA1=coef(ctrchm)[2], BETA2=coef(ctrchm)[3])					
+											}))
+						}))
+		#	deal with end of genome where little data is available: we estimated coefs for all sites > 1e4, now split up using CHUNK notation
+		ctr		<- haircut.load.training.data(indir, 10001)
+		tmp		<- seq(ctr[, min(SITE)-1],ctr[, max(SITE)+10],10)
+		tmp		<- as.data.table(expand.grid(CHUNK=as.character(tmp[tmp>10000]), BETA0=subset(ctrmc, CHUNK==10000)[, BETA0], BETA1=subset(ctrmc, CHUNK==10000)[, BETA1], BETA2=subset(ctrmc, CHUNK==10000)[, BETA2], stringsAsFactors=F))
+		ctrmc	<- rbind(ctrmc, tmp)
+		#	model predict function, so we save mem by not having to call 'predict'
+		model.150816a.predict<- function(frq, gps, b0, b1, b2)
+		{	
+			stopifnot(all(!is.na(frq)), all(!is.na(gps)))
+			b0[which(is.na(b0))]	<- 0
+			b1[which(is.na(b1))]	<- 0
+			b2[which(is.na(b2))]	<- 0
+			exp(b0+b1*frq+b2*gps)/(exp(b0+b1*frq+b2*gps)+1)	
+		}
+		#	calculate Sensitivity & Specificity on training data
+		ctrev	<- do.call('rbind', lapply(seq(1,10200,200), function(site)
+						{
+							cat('\nProcess',site,'\n')	
+							ctr		<- haircut.load.training.data(indir, site)	
+							tmp		<- seq(ctr[, min(SITE)-1],ctr[, max(SITE)+10],10)
+							tmp		<- tmp[tmp<=10000 | tmp==floor(ctr[, max(SITE)+10]/10)*10]
+							ctr[, CHUNK:=cut(SITE, breaks=tmp, labels=tmp[-length(tmp)])]
+							ctrp	<- merge(ctr, ctrmc, by='CHUNK')
+							ctrp[, PR_CALL:=model.150816a.predict(FRQ, GPS, BETA0, BETA1, BETA2)]														
+							setkey(ctrp, CHUNK)
+							if(0)
+							{
+								ctrev	<- as.data.table(expand.grid(THR= seq(0.05,0.95,0.01), CHUNK= as.character(ctrp[, unique(CHUNK)]), stringsAsFactors=FALSE))
+								ctrev	<- ctrev[, {																																
+											tmp	<- ctrp[CHUNK,][,table(ANS_CALL, factor(PR_CALL>=THR, levels=c('TRUE','FALSE'), labels=c('TRUE','FALSE')))]
+											list(TP= tmp['1','TRUE'], FP= tmp['0','TRUE'], FN= tmp['1','FALSE'], TN= tmp['0','FALSE'] )					
+										}, by=c('CHUNK','THR')]
+								ctrev	<- merge(ctrev, ctrev[, list(SENS= TP/(TP+FN), SPEC=TN/(TN+FP), FDR=FP/(FP+TP), FOR=FN/(FN+TN)), by=c('CHUNK','THR')], by=c('CHUNK','THR'))
+								
+							}
+							if(1)
+							{
+								ctrev	<- as.data.table(expand.grid(THR= c(seq(2,10,1), seq(15,30,5)), CHUNK= as.character(ctrp[, unique(CHUNK)]), stringsAsFactors=FALSE))
+								ctrev	<- ctrev[, {
+											ctrp[, CNS_PR_CALL:=CNS_FRQ-THR*CNS_FRQ_STD]
+											set(ctrp, NULL, 'CNS_PR_CALL', ctrp[,model.150816a.predict(CNS_PR_CALL, CNS_GPS, BETA0, BETA1, BETA2)])										
+											tmp	<- ctrp[CHUNK,][,table(ANS_CALL, factor(PR_CALL>=CNS_PR_CALL, levels=c('TRUE','FALSE'), labels=c('TRUE','FALSE')))]
+											list(TP= tmp['1','TRUE'], FP= tmp['0','TRUE'], FN= tmp['1','FALSE'], TN= tmp['0','FALSE'] )					
+										}, by=c('CHUNK','THR')]
+								ctrev	<- merge(ctrev, ctrev[, list(SENS= TP/(TP+FN), SPEC=TN/(TN+FP), FDR=FP/(FP+TP), FOR=FN/(FN+TN)), by=c('CHUNK','THR')], by=c('CHUNK','THR'))								
+							}
+							#	plot Sensitivity & Specificity
+							ggplot(melt(ctrev, id.vars=c('CHUNK','THR'), measure.vars=c('SENS','SPEC','FDR','FOR')), aes(x=THR, y=100*value, colour=CHUNK)) +
+									scale_x_reverse() +
+									geom_line() + labs(x='standard deviations of consensus call prob\nPR_CALL_CNT >= PR_CALL_CNS-x*std(PR_CALL_CNS)',y='%', colour='site\n(base relative to HXB2)') +
+									theme_bw() + theme(legend.position='bottom') + facet_wrap(~variable, ncol=2, scales='free') +									
+									guides(col = guide_legend(ncol=5, byrow=TRUE)) 
+							ggsave(file=paste(outdir,'/model.150816a_SensSpec_SITE',site,'.pdf',sep=''), w=9, h=9)
+							#
+							ctrev							
+						}))		
+		set(ctrev, NULL, 'CHUNK', ctrev[, as.numeric(CHUNK)])
+		
+		save(ctrmc, ctrev, model.150816a.predict, file=outfile)
+	}
+	#list(coef=ctrmc, ev=ctrev, predict=model.150816a.predict)
+	list(coef=ctrmc, predict=model.150816a.predict)
 }
 ##--------------------------------------------------------------------------------------------------------
 ##	determine if cut contigs are identical to a stretch or possibly the whole raw contig with the same contig ID 
@@ -1065,7 +1420,7 @@ haircut.get.subset.among.raw.and.cut.contigs<- function(indir, files, png_id, bl
 	tx		<- do.call('rbind',lapply(seq_along(crs), function(i)	data.table(	TAXON=rownames(crs[[i]]), 
 								CUT= blastncut[i], 
 								FIRST= apply( as.character(crs[[i]]), 1, function(x) which(x!='-')[1] ),
-								LAST= ncol(crs[[i]])-apply( as.character(crs[[i]]), 1, function(x) which(rev(x)!='-')[1] ),
+								LAST= ncol(crs[[i]])-apply( as.character(crs[[i]]), 1, function(x) which(rev(x)!='-')[1] ) + 1L,
 								CRS_ID=i)	))
 	tx		<- subset(tx, !is.na(FIRST) & !is.na(LAST))	#some contigs may just be in LTR
 	tx[, CNTG:=tx[, gsub(paste(png_id,'.',sep=''),'',substring(TAXON, regexpr(png_id, TAXON)))]]
@@ -1116,7 +1471,7 @@ haircut.get.subset.among.raw.and.cut.contigs<- function(indir, files, png_id, bl
 		tx		<- merge(tx, txe, all.x=TRUE, by='CNTG')
 		tmp		<- tx[, which(!is.na(EQ_FIRSTtmp) & EQ_FIRSTtmp>0)]
 		set(tx, tmp, 'EQ_FIRST', tx[tmp,FIRST]+tx[tmp,EQ_FIRSTtmp]-1L)
-		set(tx, tmp, 'EQ_LAST', tx[tmp,FIRST]+tx[tmp,EQ_LASTtmp]-1L-tx[tmp,EQ_FIRSTtmp])
+		set(tx, tmp, 'EQ_LAST', tx[tmp,FIRST]+tx[tmp,EQ_LASTtmp]-tx[tmp,EQ_FIRSTtmp])
 		set(tx, tmp, 'EQ', tx[tmp,EQtmp])
 		set(tx, NULL, c('EQ_FIRSTtmp','EQ_LASTtmp','EQtmp'),NULL)				
 	}
@@ -1158,7 +1513,7 @@ haircut.get.subset.among.raw.and.cut.contigs<- function(indir, files, png_id, bl
 		tx		<- merge(tx,txe,all.x=TRUE,by=c('CNTG','OCNTG'))
 		tmp		<- tx[, which(!is.na(EQ_FIRSTtmp) & EQ_FIRSTtmp>0)]
 		set(tx, tmp, 'EQ_FIRST', tx[tmp,FIRST]+tx[tmp,EQ_FIRSTtmp]-1L)
-		set(tx, tmp, 'EQ_LAST', tx[tmp,FIRST]+tx[tmp,EQ_LASTtmp]-1L-tx[tmp,EQ_FIRSTtmp])
+		set(tx, tmp, 'EQ_LAST', tx[tmp,FIRST]+tx[tmp,EQ_LASTtmp]-tx[tmp,EQ_FIRSTtmp])
 		set(tx, NULL, c('EQ_FIRSTtmp','EQ_LASTtmp'),NULL)
 		set(tx, tx[, which( CUT=='raw' & OCNTG%in%txe[, unique(OCNTG)] )], 'EQ', TRUE)
 		set(tx, tx[, which( !is.na(EQ_FIRST))], 'EQ', TRUE)
@@ -1220,7 +1575,7 @@ haircut.get.identical.among.raw.and.cut.contigs <- function(indir, files, png_id
 	tx		<- do.call('rbind',lapply(seq_along(crs), function(i)	data.table(	TAXON=rownames(crs[[i]]), 
 								CUT= blastncut[i], 
 								FIRST= apply( as.character(crs[[i]]), 1, function(x) which(x!='-')[1] ),
-								LAST= ncol(crs[[i]])-apply( as.character(crs[[i]]), 1, function(x) which(rev(x)!='-')[1] ),
+								LAST= ncol(crs[[i]])-apply( as.character(crs[[i]]), 1, function(x) which(rev(x)!='-')[1] ) + 1L,
 								CRS_ID=i)	))
 	tx		<- subset(tx, !is.na(FIRST) & !is.na(LAST))	#some contigs may just be in LTR
 	tx[, CNTG:=tx[, gsub(paste(png_id,'.',sep=''),'',substring(TAXON, regexpr(png_id, TAXON)))]]
@@ -1325,14 +1680,40 @@ prog.haircut.150806<- function()
 		par		<- c('FRQx.quantile'=0.05, 'FRQx.thr'=0.566, 'CNS_FRQ.window'=100, 'CNS_AGR.window'=200, 'GPS.window'=200)
 		haircutwrap.get.cut.statistics(indir, par, outdir=outdir)
 	}
-	if(1)
+	if(0)
 	{
 		indir	<- paste(DATA, 'contigs_150408_wref', sep='/' )
 		outdir	<- paste(DATA, 'contigs_150408_wref_cutstat', sep='/' )		
 		par		<- c('FRQx.quantile'=NA, 'FRQx.thr'=NA, 'CNS_FRQ.window'=200, 'CNS_AGR.window'=200, 'GPS.window'=200)
 		haircutwrap.get.cut.statistics.150815(indir, par, outdir=outdir)
 	}
-	
+	if(0)
+	{
+		indir	<- paste(DATA, 'contigs_150408_wref', sep='/' )
+		outdir	<- paste(DATA, 'contigs_150408_wref_cutstat', sep='/' )		
+		par		<- c('FRQx.quantile'=NA, 'FRQx.thr'=NA, 'CNS_FRQ.window'=200, 'CNS_AGR.window'=200, 'GPS.window'=200)
+		haircutwrap.get.cut.statistics.150815(indir, par, outdir=outdir)
+	}
+	if(1)
+	{
+		#	get model coefficients across the chunks
+		mfile					<- paste(DATA,'model_150816a.R',sep='/')		
+		tmp						<- haircut.get.fitted.model.150816a(NULL, mfile)
+		ctrmc					<- tmp$coef		
+		predict.fun				<- tmp$predict
+		#	get contigs that were used for training
+		outfile	<- paste(DATA,'contigs_150408_trainingset_subsets.R',sep='/')
+		ctrain	<- haircut.get.training.contigs(NULL, outfile, NULL)
+		set(ctrain, NULL, 'CUT', ctrain[, factor(CUT, levels=c('cut','raw'), labels=c('Y','N'))])
+		setnames(ctrain, 'CUT', 'BLASTnCUT')		
+		#	get covariates for all contigs
+		indir.st<- paste(DATA,'contigs_150408_wref_cutstat',sep='/')
+		indir.al<- paste(DATA,'contigs_150408_wref',sep='/')
+		outdir	<- paste(DATA,'contigs_150408_model150816a',sep='/')
+		par		<- c(	'FRQx.quantile'=NA, 'FRQx.thr'=NA, 'CNS_FRQ.window'=200, 'CNS_AGR.window'=200, 'GPS.window'=200, 
+				'PRCALL.thrmax'=0.8, 'PRCALL.thrstd'=10, 'PRCALL.cutprdcthair'=100, 'PRCALL.cutrawgrace'=100, 'PRCALL.rmintrnlgpsblw'=100 ,'PRCALL.rmintrnlgpsend'=9700)
+		haircutwrap.get.call.for.PNG_ID.150816(indir.st,indir.al,outdir,ctrmc,predict.fun,par,ctrain=ctrain)
+	}
 }
 ##--------------------------------------------------------------------------------------------------------
 ##	process all files in indir with 'haircut.align.contigs.with.ref'
@@ -1577,16 +1958,17 @@ haircut.get.training.data<- function(indir, ctrain, par, outdir, outfile)
 		tmp		<- subset(infiles, BATCH==b)[, {
 					cat(paste('\nProcess', INFILE ))
 					#	INFILE	<- infiles[12,INFILE]
-					load( paste(indir,INFILE,sep='/'))		
+					load( paste(indir,INFILE,sep='/'))						
 					#	select contig+refs for which curated answer available				
-					cm		<- merge( unique(subset(cnsc.df, select=c(PNG_ID, TAXON, BLASTnCUT))), subset( ctrain, select=c(PNG_ID, TAXON, BLASTnCUT, USE_IN_TRAIN, EQ_FIRST, EQ_LAST, ANS_FILE, ANS_LEN, ANS_FIRST, ANS_LAST) ), all.x=1, by=c('PNG_ID','TAXON','BLASTnCUT') )
+					#cm		<- merge( unique(subset(cnsc.df, select=c(PNG_ID, TAXON, BLASTnCUT))), subset( ctrain, select=c(PNG_ID, TAXON, BLASTnCUT, USE_IN_TRAIN, EQ_FIRST, EQ_LAST, ANS_FILE, ANS_LEN, ANS_FIRST, ANS_LAST) ), all.x=1, by=c('PNG_ID','TAXON','BLASTnCUT') )
+					cm		<- merge( unique(subset(cnsc.df, TAXON!='consensus',select=c(PNG_ID, TAXON, BLASTnCUT))), subset( ctrain, select=c(PNG_ID, TAXON, BLASTnCUT, USE_IN_TRAIN, EQ_FIRST, EQ_LAST, ANS_FILE, ANS_LEN, ANS_FIRST, ANS_LAST) ), all.x=1, by=c('PNG_ID','TAXON','BLASTnCUT') )
 					#	code below identifies ANS_CALL=1
 					#	we also need ANS_CALL=0; these are all those that don t have a curated file + all those that have USE_IN_TRAIN=='Y'					
 					cm		<- subset(cm, is.na(USE_IN_TRAIN) |  USE_IN_TRAIN=='Y' |  USE_IN_TRAIN=='P')
 					if( cm[, all(is.na(ANS_LEN))] )
 					{
 						cat(paste('\nNo data contigs matched in training data set', INFILE ))
-						ca	<- merge(subset(cnsc.df, select=c(TAXON, SITE, AGRpc, GPS, CNS_FRQr, PNG_ID, BLASTnCUT)), subset(cm, select=TAXON), by='TAXON')
+						ca	<- merge(subset(cnsc.df, select=c(TAXON, SITE, FRQ, FRQ_STD, AGRpc, GPS, PNG_ID, BLASTnCUT)), subset(cm, select=TAXON), by='TAXON')
 						ca[, ANS_CALL:=0L]							
 					}
 					if( cm[, !all(is.na(ANS_LEN))] && ncol(cnsc)!=subset(cm, !is.na(ANS_LEN))[1, ANS_LEN] )
@@ -1599,7 +1981,8 @@ haircut.get.training.data<- function(indir, ctrain, par, outdir, outfile)
 						tmp		<- strsplit(basename(subset(cm, !is.na(ANS_LEN))[1,  ANS_FILE]), '_')[[1]][1]
 						tx		<- data.table(TAXON= rownames(cr), CONTIG=as.integer(grepl(tmp, rownames(cr))) )			
 						tmp		<- cr[subset(tx, CONTIG==0)[, TAXON],]
-						crc		<- haircut.getconsensus(tmp, par, bases=c('a','c','g','t','-') )$DNAbin	
+						rp		<- haircut.get.frequencies(tmp, bases=c('a','c','g','t','-') )
+						crc		<- haircut.get.consensus.from.frequencies(rp, par)$DNAbin
 						cdc		<- cnsc['consensus', ]
 						#	calculate site offset in the curated sequence (crc)
 						offset	<- haircut.calculate.offset(crc,cdc)
@@ -1613,26 +1996,31 @@ haircut.get.training.data<- function(indir, ctrain, par, outdir, outfile)
 						#	expand to SITEs that were called manually
 						ca		<- subset(cm, !is.na(ANS_LEN))[, list(SITE=seq.int(ANS_FIRST,ANS_LAST), ANS_CALL=1L), by='TAXON']
 						#	keep only those contigs that are not in USE_IN_TRAIN=='N'
-						tmp		<- merge(subset(cnsc.df, select=c(TAXON, SITE, AGRpc, GPS, CNS_FRQr, PNG_ID, BLASTnCUT)), subset(cm, select=c(TAXON, USE_IN_TRAIN, EQ_FIRST, EQ_LAST)), by='TAXON')
+						tmp		<- merge(subset(cnsc.df, select=c(TAXON, SITE, FRQ, FRQ_STD, AGRpc, GPS, PNG_ID, BLASTnCUT)), subset(cm, select=c(TAXON, USE_IN_TRAIN, EQ_FIRST, EQ_LAST)), by='TAXON')
 						ca		<- merge(tmp, ca, all.x=1, by=c('TAXON','SITE'))
 						ca		<- subset(ca, USE_IN_TRAIN=='Y' | is.na(USE_IN_TRAIN) | (USE_IN_TRAIN=='P' & SITE>=EQ_FIRST & SITE<=EQ_LAST))
 						set(ca, ca[,which(is.na(ANS_CALL))],'ANS_CALL',0L)
 						set(ca, NULL, c('USE_IN_TRAIN','EQ_FIRST','EQ_LAST'), NULL)
-					}							
+					}
+					
+					tmp		<- subset(cnsc.df, TAXON=='consensus')
+					setnames(tmp, c('FRQ','FRQ_STD','AGRpc','GPS'), c('CNS_FRQ','CNS_FRQ_STD','CNS_AGRpc','CNS_GPS'))
+					ca		<- merge(ca, subset(tmp, select=c(SITE, CNS_FRQ, CNS_FRQ_STD, CNS_AGRpc, CNS_GPS)), by='SITE')
 					ca
 				}, by='INFILE']
 		#	save batches in chunks of sites
 		cat(paste('\nSave batch to file', b ))
-		tmp[, CHUNK:= cut(SITE, breaks=c(-1,seq.int(200, 10200, 200),Inf), labels=c(paste('<',seq.int(200, 10200, 200),sep=''),'>10200' ))]
+		tmp[, CHUNK:= cut(SITE, breaks=c(-1,seq.int(200, 10000, 200),Inf), labels=c(seq.int(200, 10200, 200) ))]
 		for(c in tmp[, unique(CHUNK)])
 		{
 			ctr	<- subset(tmp, CHUNK==c)				
-			save(ctr, file=paste(outdir, '/', outfile,'_sites',gsub('<|>','',c),'_batch',b,'.R',sep=''))
+			save(ctr, file=paste(outdir, '/', outfile,'_sites',c,'_batch',b,'.R',sep=''))
 		}		
 		cat(paste('\nSaved batch to file', b ))
 	}	
 	#	load batches and save chunks
 	ofiles	<- data.table(FILE=list.files(outdir, pattern='\\.R$', recursive=T))
+	ofiles	<- subset(ofiles, !grepl('SITES', FILE))
 	set(ofiles, NULL, 'SITES', ofiles[, substring(regmatches(FILE, regexpr('sites[0-9]+',FILE)), 6)])
 	ofiles[, {
 				ctr	<- do.call('rbind',lapply(FILE, function(x)
@@ -1683,7 +2071,7 @@ haircut.get.curated.contigs<- function(indir, outfile)
 					#	determine first and last non-gap sites
 					tx		<- data.table(	TAXON= rownames(cns), PNG_ID=PNG_ID, LEN= ncol(cr),
 							FIRST= apply( as.character(cns), 1, function(x) which(x!='-')[1] ),
-							LAST= ncol(cns)-apply( as.character(cns), 1, function(x) which(rev(x)!='-')[1] )		)
+							LAST= ncol(cns)-apply( as.character(cns), 1, function(x) which(rev(x)!='-')[1] )+1L		)
 					subset(tx, !is.na(FIRST) & !is.na(LAST))	#	some contigs only map into LTR
 				}, by='FILE']
 		set(ctrain, NULL, 'FILE', ctrain[, paste(indir, FILE, sep='/')])
