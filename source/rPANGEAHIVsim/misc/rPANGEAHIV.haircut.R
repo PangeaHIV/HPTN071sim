@@ -433,10 +433,10 @@ haircutwrap.get.call.for.PNG_ID.150816<- function(indir.st,indir.al,outdir,ctrmc
 					files	<- subset(infiles, PNG_ID==png_id)[, INFILE]
 					alfiles	<- subset(infiles, PNG_ID==png_id)[, ALFILE]
 					bc		<- subset(infiles, PNG_ID==png_id)[, BLASTnCUT]
-					tmp		<- haircut.get.call.for.PNG_ID.150816(indir.str, indir.al, png_id, files, alfiles, bc, par, ctrmc, predict.fun)
+					tmp		<- haircut.get.call.for.PNG_ID.150816(indir.st, indir.al, png_id, files, alfiles, bc, par, ctrmc, predict.fun)
 				}
 				#
-				tmp		<- haircut.get.call.for.PNG_ID.150816(indir.str, indir.al, PNG_ID, INFILE, ALFILE, BLASTnCUT, par, ctrmc, predict.fun)
+				tmp		<- haircut.get.call.for.PNG_ID.150816(indir.st, indir.al, PNG_ID, INFILE, ALFILE, BLASTnCUT, par, ctrmc, predict.fun)
 				crs		<- tmp$crs
 				cnsc.df	<- tmp$cnsc.df	
 				#	handle output
