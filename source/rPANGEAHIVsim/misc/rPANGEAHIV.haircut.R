@@ -1734,7 +1734,6 @@ haircutprog.get.call.for.PNG_ID<- function()
 	{
 		cat('\ninput args\n',paste(mfile, trainfile, indir.st, indir.al, outdir, batch.n, batch.id, sep='\n'))
 	}	
-stop()	
 	tmp						<- haircut.get.fitted.model.150816a(NULL, mfile)
 	ctrmc					<- tmp$coef		
 	predict.fun				<- tmp$predict

@@ -1781,7 +1781,7 @@ pipeline.various<- function()
 		outdir		<- paste(DATA,'contigs_150408_model150816a',sep='/')
 		trainfile	<- paste(DATA,'contigs_150408_trainingset_subsets.R',sep='/')
 		batch.n		<- 200
-		for(batch.id in seq.int(1,1))
+		for(batch.id in seq.int(1,14))
 		{			
 			cmd			<- cmd.haircut.call(indir.st, indir.al, outdir, mfile, trainfile=trainfile, batch.n=batch.n, batch.id=batch.id, prog=PR.HAIRCUT.CALL )
 			cmd			<- cmd.hpcwrapper(cmd, hpc.nproc= 1, hpc.q='pqeelab', hpc.walltime=21, hpc.mem="5000mb")
