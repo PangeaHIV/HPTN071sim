@@ -32,7 +32,7 @@ project.PANGEA.RootSeqSim.DATA.SSAfg.select.between.host<- function()
 	label.idx.label			<- 3
 	label.idx.ctime			<- 4		
 	#read hand aligned sequences
-	DATA		<<- '~/git/HPTN071sim/data_rootseq'
+	#DATA		<<- '~/git/HPTN071sim/data_rootseq'
 	infile.gag	<- 'PANGEA_SSAfg_gag_140806_n556_final.fasta'
 	infile.pol	<- 'PANGEA_SSAfg_pol_140806_n556_final.fasta'
 	infile.env	<- 'PANGEA_SSAfg_env_140806_n556_final.fasta'
@@ -131,7 +131,7 @@ project.PANGEA.RootSeqSim.3SEQ.SSAfg.rm.recombinants<- function()
 	require(ape)
 	require(r3SEQ)
 	#DATA			<<- "/work/or105/Gates_2014"
-	DATA			<<- '/Users/Oliver/duke/2014_Gates'
+	#DATA			<<- '/Users/Oliver/duke/2014_Gates'
 	indir			<- paste(DATA,'methods_comparison_rootseqsim/140811',sep='/')	
 	infile			<- 'PANGEA_SSAfgBwh_140811_n415_final.R'
 	outfile			<- 'PANGEA_SSAfgBwhRc-_140811_n390.R'
@@ -162,7 +162,7 @@ project.PANGEA.RootSeqSim.3SEQ.SSAfg.rm.recombinants<- function()
 project.PANGEA.RootSeqSim.BEAST.SSAfg.runXML<- function()
 {
 	#DATA		<<- "/work/or105/Gates_2014"
-	DATA		<<- '/Users/Oliver/duke/2014_Gates'	
+	#DATA		<<- '/Users/Oliver/duke/2014_Gates'	
 	indir		<- paste(DATA,'methods_comparison_rootseqsim/140907',sep='/')
 	#search for XML files in indir
 	infiles		<- list.files(indir, pattern=paste(".xml$",sep=''))
@@ -189,7 +189,7 @@ project.PANGEA.RootSeqSim.BEAST.SSAfg.runXML<- function()
 project.PANGEA.RootSeqSim.BEAST.SSApg.runXML<- function()
 {
 	#DATA		<<- "/work/or105/Gates_2014"
-	DATA		<<- '/Users/Oliver/duke/2014_Gates'	
+	#DATA		<<- '/Users/Oliver/duke/2014_Gates'	
 	indir		<- paste(DATA,'methods_comparison_rootseqsim/140902',sep='/')
 	#search for XML files in indir
 	infiles		<- list.files(indir, pattern=paste(".xml$",sep=''))
@@ -216,7 +216,7 @@ project.PANGEA.RootSeqSim.BEAST.SSApg.runXML<- function()
 project.PANGEA.RootSeqSim.BEAST.SSApg.runXML<- function()
 {
 	#DATA		<<- "/work/or105/Gates_2014"
-	DATA		<<- '/Users/Oliver/duke/2014_Gates'	
+	#DATA		<<- '/Users/Oliver/duke/2014_Gates'	
 	indir		<- paste(DATA,'methods_comparison_rootseqsim/140830',sep='/')
 	#search for XML files in indir
 	infiles		<- list.files(indir, pattern=paste(".xml$",sep=''))
@@ -247,7 +247,7 @@ project.PANGEA.RootSeqSim.BEAST.SSApg.createXML<- function()
 	require(ape)
 	require(r3SEQ)
 	#DATA			<<- "/work/or105/Gates_2014"
-	DATA			<<- '/Users/Oliver/duke/2014_Gates'
+	#DATA			<<- '/Users/Oliver/duke/2014_Gates'
 	s.seed			<- 42
 	if(1)	
 	{		
@@ -455,7 +455,7 @@ project.PANGEA.RootSeqSim.BEAST.SSAfg.createXML<- function()
 	require(ape)
 	require(r3SEQ)
 	#DATA			<<- "/work/or105/Gates_2014"
-	DATA			<<- '/Users/Oliver/duke/2014_Gates'
+	#DATA			<<- '/Users/Oliver/duke/2014_Gates'
 	s.seed			<- 42
 	if(1)	
 	{		
@@ -7332,7 +7332,7 @@ project.PANGEA.RootSeqSim.SIMU.SSAfg.checkancestralseq.createdataset<- function(
 project.PANGEA.RootSeqSim.SIMU.SSAfg.checkancestralseq.runExaML<- function()
 {
 	#DATA			<<- "/work/or105/Gates_2014"
-	DATA				<<- '/Users/Oliver/duke/2014_Gates'
+	#DATA				<<- '/Users/Oliver/duke/2014_Gates'
 	dir.name			<- DATA  	
 	indir				<- paste(dir.name,'methods_comparison_rootseqsim/140813',sep='/')
 	#	ExaML bootstrap args
@@ -7379,7 +7379,7 @@ project.PANGEA.RootSeqSim.SIMU.SSAfg.checkancestralseq.evalExaML<- function()
 	require(phytools)
 	require(ggplot2)
 	#DATA			<<- "/work/or105/Gates_2014"
-	DATA				<<- '/Users/Oliver/duke/2014_Gates'
+	#DATA				<<- '/Users/Oliver/duke/2014_Gates'
 	dir.name			<- DATA  	
 	indir				<- paste(dir.name,'methods_comparison_rootseqsim/140813',sep='/')
 	label.sep			<- '|'
@@ -7592,7 +7592,7 @@ project.PANGEA.RootSeqSim.BEAST.devel.getancestralseq.from.output<- function()
 ##--------------------------------------------------------------------------------------------------------
 project.PANGEA.RootSeqSim.DATA.SSAfg.process.LosAlamos<- function()
 {
-	DATA			<<- '/Users/Oliver/duke/2014_Gates'
+	#DATA			<<- '/Users/Oliver/duke/2014_Gates'
 	indir			<- paste(DATA,'methods_comparison_rootseqsim/140806',sep='/')
 	infile.fasta	<- 'PANGEA_SSAfg_140806_n557.fasta'
 	infile.fasta.gag<- 'PANGEA_SSAfg_gag_140806_n557.fasta'
@@ -7796,8 +7796,8 @@ project.PANGEA.RootSeqSim.DATA.checkDrugResistanceMask<- function()
 {
 	require(XML)
 	require(ape)
-	DATA		<<- "/work/or105/Gates_2014"
-	DATA		<<- '/Users/Oliver/duke/2014_Gates'
+	#DATA		<<- "/work/or105/Gates_2014"
+	#DATA		<<- '/Users/Oliver/duke/2014_Gates'
 	indir		<- paste(DATA,'methods_comparison_rootseqsim/140727',sep='/')
 	outdir		<- paste(DATA,'methods_comparison_rootseqsim/140728',sep='/')
 	infile		<- 'ALLv02.n100.rlx.gmrf' 
@@ -7861,8 +7861,8 @@ project.PANGEA.RootSeqSim.DATA.checkRecombinants<- function()
 	require(XML)
 	require(ape)
 	require(r3SEQ)
-	DATA			<<- "/work/or105/Gates_2014"
-	DATA			<<- '/Users/Oliver/duke/2014_Gates'
+	#DATA			<<- "/work/or105/Gates_2014"
+	#DATA			<<- '/Users/Oliver/duke/2014_Gates'
 	indir			<- paste(DATA,'methods_comparison_rootseqsim/140728',sep='/')	
 	infile			<- 'ALLv02.n100.rlx.gmrf_conc'
 	outfile			<- 'ALLv03.n97.rlx.gmrf'
