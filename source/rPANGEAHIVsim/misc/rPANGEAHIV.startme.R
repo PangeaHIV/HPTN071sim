@@ -128,7 +128,7 @@ my.dumpframes<- function()
 require(rPANGEAHIVsim)
 print(CODE.HOME)
 function.list<-c(list.files(path= paste(CODE.HOME,"R",sep='/'), pattern = ".R$", all.files = FALSE,
-				full.names = TRUE, recursive = FALSE),paste(CODE.HOME,"misc","rPANGEAHIV.prjcts.R",sep='/'),paste(CODE.HOME,"misc","rPANGEAHIV.haircut.R",sep='/'))
+				full.names = TRUE, recursive = FALSE),paste(CODE.HOME,"misc","rPANGEAHIV.prjcts.R",sep='/'),paste(CODE.HOME,"misc","rPANGEAHIV.evaluate.comp.ex.R",sep='/'))
 sapply(function.list,function(x){ source(x,echo=FALSE,print.eval=FALSE, verbose=FALSE) })
 ###############################################################################
 #	run script
