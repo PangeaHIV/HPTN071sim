@@ -36,12 +36,26 @@ treecomparison.submissions.161015<- function()
 	tmp		<- data.table( FILE_CLU_T= tmp, SC= toupper(gsub('_DATEDCLUTREES','',gsub('.newick','',basename(tmp))))) 
 	tfiles	<- merge(tfiles, tmp, by='SC', all=1)	
 	tmp		<- subset(tfiles, !is.na(FILE_CLU_T))[, {
-				z		<- read.tree(FILE_CLU_T)
-				do.call('rbind',lapply(seq_along(z), function(i) data.table(IDCLU=i, TAXA=z[[i]]$tip.label)))				
-			}, by='SC']	
+														z		<- read.tree(FILE_CLU_T)
+														do.call('rbind',lapply(seq_along(z), function(i) data.table(IDCLU=i, TAXA=z[[i]]$tip.label)))				
+													}, by='SC']	
 	tinfo	<- merge(tinfo, tmp, by=c('SC','TAXA'), all=1)
 	tmp		<- subset(tinfo, !is.na(IDCLU))[, list(CLU_N= length(IDPOP)), by=c('SC','IDCLU')]
 	tinfo	<- merge(tinfo, tmp, by=c('SC','IDCLU'), all=1)
+	#	read sequences and determine %gappiness
+	tmp		<- list.files(indir, pattern='fa$|fasta$', full.names=TRUE)
+	tmp		<- data.table( FILE_SEQ_T= tmp, SC= toupper(gsub('_SIMULATED','',gsub('.fa','',basename(tmp)))))
+	z		<- subset(tmp, SC=='VILL_99_APR15')
+	set(z, NULL, 'SC', '150701_VILL_SCENARIO-C')
+	tmp		<- rbind( tmp, z )	
+	tfiles	<- merge(tfiles, tmp, by='SC', all=1)
+	tmp		<- subset(tfiles, !is.na(FILE_SEQ_T))[, {
+				z		<- read.dna(FILE_SEQ_T, format='fasta')	
+				ans		<- sapply(seq_len(nrow(z)), function(i) base.freq(z[i,], all=1))
+				ans		<- apply(ans[c('n','-','?'),], 2, sum)
+				list(TAXA=rownames(z), GPS=ans)				
+			}, by='SC']
+	tinfo	<- merge(tinfo, tmp, by=c('SC','TAXA'), all.x=1)
 	#
 	#	get submitted trees
 	#	
@@ -298,6 +312,8 @@ treecomparison.submissions.161015<- function()
 treecomparison.ana.151019<- function()
 {
 	require(ggplot2)
+	require(gamlss)
+	
 	edir	<- '~/Dropbox (Infectious Disease)/PANGEAHIVsim/201507_TreeReconstruction/evaluation'
 	file	<- paste(edir,'/','submitted_151016.rda',sep='')
 	load(file)
@@ -310,7 +326,23 @@ treecomparison.ana.151019<- function()
 	set(sa, NULL, 'BEST', sa[, factor(BEST, levels=c('Y','N'),labels=c('best tree','replicate tree'))])									
 	set(sa, NULL, 'GENE', sa[, factor(GENE, levels=c('POL','GAG+POL+ENV'),labels=c('pol','gag+pol+env'))])	
 	set(sa, NULL, 'TEAM', sa[, factor(TEAM, levels=sa[, sort(unique(TEAM))],labels=sa[, sort(unique(TEAM))])])
+	set(sa, NULL, 'EXT', sa[, factor(EXT, levels=c('~0pc','5pc'),labels=c('~ 0%/year','5%/year'))])	
 	sa		<- subset(sa, OTHER=='N')
+	
+	sc		<- copy(sclu.info)
+	tmp		<- subset(tinfo, !is.na(IDCLU))[, list(CLU_N=CLU_N[1], MXGPS_CLU= max(GPS), MDGPS_CLU=median(GPS)), by=c('SC','IDCLU')]
+	sc		<- merge(sc, tmp, by=c('SC','IDCLU'))	
+	set(sc, NULL, 'MODEL', sc[, factor(MODEL, levels=c('V','R'),labels=c('Model: Village','Model: Regional'))])
+	set(sc, sc[, which(SC=="VILL_99_APR15")],'SC',"150701_VILL_SCENARIO-C")	
+	set(sc, NULL, 'SC', sc[, factor(SC,	levels=c("150701_REGIONAL_TRAIN1", "150701_REGIONAL_TRAIN2", "150701_REGIONAL_TRAIN3", "150701_REGIONAL_TRAIN4","150701_REGIONAL_TRAIN5","150701_VILL_SCENARIO-A","150701_VILL_SCENARIO-B","150701_VILL_SCENARIO-C","150701_VILL_SCENARIO-D","150701_VILL_SCENARIO-E"), 
+							labels=c('sc 1','sc 2','sc 3','sc 4','sc 5','sc A','sc B','sc C','sc D','sc E'))])
+	set(sc, NULL, 'GAPS', sc[, factor(GAPS, levels=c('none','low','high'),labels=c('Gaps: none','Gaps: low','Gaps: high'))])
+	set(sc, NULL, 'BEST', sc[, factor(BEST, levels=c('Y','N'),labels=c('best tree','replicate tree'))])									
+	set(sc, NULL, 'GENE', sc[, factor(GENE, levels=c('POL','GAG+POL+ENV'),labels=c('pol','gag+pol+env'))])	
+	set(sc, NULL, 'TEAM', sc[, factor(TEAM, levels=sc[, sort(unique(TEAM))],labels=sc[, sort(unique(TEAM))])])
+	set(sc, NULL, 'EXT', sc[, factor(EXT, levels=c('~0pc','5pc'),labels=c('~ 0%/year','5%/year'))])
+	sc		<- subset(sc, OTHER=='N')
+	
 	
 	#
 	#	polvsall by gaps
@@ -330,6 +362,26 @@ treecomparison.ana.151019<- function()
 	ggsave(w=10, h=6, file=paste(edir,'/151016_RF_polvsall_by_gaps.pdf',sep=''))
 
 	
+	#	RF may be confounded by size of data set when evaluating the extent that regional is more difficult
+	#	-->
+	#	hard to extrapolate how standardized RF grows with size of data set,
+	#	but regression extrapolation suggests there is an effect
+	z		<- subset(sa, TEAM!='MetaPIGA' & !grepl('Reg',MODEL))
+	mo		<- gamlss(NRF~TAXAN+GENE+GAPS, sigma.formula=~TAXAN+GENE+GAPS, family=BE(mu.link='cauchit'), data=z)
+	tmp		<- subset(sa, TEAM!='MetaPIGA')
+	tmp[, NRFP:=predict(mo, data=z, newdata=subset(tmp, select=c(TAXAN,GENE,GAPS)), what='mu',type='response')]
+	ggplot( tmp, aes(x=TAXAN) ) + 
+			geom_jitter(aes(y=NRF, shape=TEAM, colour=EXT, fill=EXT,  size=BEST), position = position_jitter(height = .01, width=20), alpha=0.7) +
+			geom_line(aes(y=NRFP), colour='black', size=0.5) +
+			scale_size_manual(values=c(3, 1)) +
+			scale_shape_manual(values=c(21,23,24)) +
+			scale_fill_brewer(palette='Set1') + scale_colour_brewer(palette='Set1') +
+			scale_y_continuous(breaks=seq(0,1,0.2), minor_breaks=seq(0,1,0.1)) +
+			facet_grid(GAPS~GENE) +
+			labs(x='\nsize of simulated data set', y='Robinson-Fould\n(standardized)\n', size='', shape='Method', fill='trms/outside', colour='trms/outside') +
+			theme_bw()
+	ggsave(w=10, h=8, file=paste(edir,'/151020_RF_trmsoutside.pdf',sep=''))
+	
 	#	teams
 	#	--> 
 	#	MetaPIGA fairly bad in terms of RF
@@ -346,8 +398,38 @@ treecomparison.ana.151019<- function()
 			theme_bw() 
 	ggsave(w=10, h=5, file=paste(edir,'/151016_RF_team_by_scenarioandgene.pdf',sep=''))
 	
-	#	effect of not using all sequences?
+	
+	#	taxa excluded:	plot cluster RF as a function of cluster size
+	#	-->
+	#	excluding taxa did not lead to noticeably lower RFs
+	tmp		<- sc[, list(NRFC=median(NRFC)), by=c('CLU_N','SC','GENE','TEAM')]
+	ggplot( subset(sc, GENE=='gag+pol+env'), aes(y=NRFC, x=TAXA_NC, size=BEST, shape=TEAM, fill=TAXA_NC<CLU_N, colour=TAXA_NC<CLU_N)) +
+			geom_jitter(position = position_jitter(height = .01, width=0.1), alpha=0.7) +
+			scale_size_manual(values=c(3, 1)) +
+			scale_shape_manual(values=c(21,22,24), guide=FALSE) +
+			scale_fill_brewer(palette='Set1') +
+			scale_colour_brewer(palette='Set1') +
+			scale_y_continuous(breaks=seq(0,1,0.2), minor_breaks=seq(0,1,0.1)) +			
+			#coord_trans(x='log10') +
+			scale_x_log10(breaks=c(1,2,3,4,5,6,8,10,20,50,100,200,300), minor_breaks=NULL) +
+			labs(x='\nsize of sampled transmission cluster', y='Robinson-Fould\n(standardized per transmission cluster)\n', size='', shape='Method', fill='taxa excluded\nprior to reconstruction', colour='taxa excluded\nprior to reconstruction') +
+			facet_grid(SC~TEAM) +
+			theme_bw() 
+	ggsave(w=16, h=8, file=paste(edir,'/151020_RFCLU_iftaxaexcludedbeforetreereconstruction.pdf',sep=''))
+	
+		
 	#	effect of acute in terms of RF? --> potentially Yes
+	ggplot( subset(sa, TEAM!='MetaPIGA' & grepl('Reg',MODEL) & !grepl('none',GAPS)), aes(y=NRF, x=SC, shape=TEAM, fill=GENE, colour=GENE, size=BEST) ) + 
+			geom_jitter(position = position_jitter(height = .01, width=0.2)) +			
+			scale_size_manual(values=c(3, 1)) +
+			scale_shape_manual(values=c(21,23,24)) +
+			scale_fill_brewer(palette='Paired') +
+			scale_colour_brewer(palette='Paired') +
+			facet_wrap(~GAPS, scales='free_x') +	
+			labs(x='\nsimulated data set', y='Robinson-Fould\n(standardized)\n', size='', shape='Method', fill='part of genome', colour='part of genome') +
+			theme_bw() 
+
+
 	#	effect of ART roll out in terms of RF? --> No
 	
 
