@@ -1,4 +1,24 @@
 ##--------------------------------------------------------------------------------------------------------
+##	olli 23.10.15
+##--------------------------------------------------------------------------------------------------------
+treedist.pathdifference<- function(otree,stree, lambda=1)
+{
+	l				<- length(otree$tip.label)
+	dt1				<- dist.nodes(otree)[1:l, 1:l]
+	dt2				<- dist.nodes(stree)[1:l, 1:l]
+	rownames(dt1)	<- colnames(dt1)	<- otree$tip.label
+	rownames(dt2)	<- colnames(dt2)	<- stree$tip.label
+	ct1				<- cophenetic.phylo(otree)[1:l, 1:l]
+	ct2				<- cophenetic.phylo(stree)[1:l, 1:l]
+	dt2				<- dt2[rownames(dt1),colnames(dt1)]
+	ct2				<- ct2[rownames(ct1),colnames(ct1)]
+	ind				<- lower.tri(dt1)
+	pd				<- sum((dt1[ind] - dt2[ind])^2)
+	cd				<- sum((ct1[ind] - ct2[ind])^2)
+	ld				<- sum((lambda*dt1[ind]+(1-lambda)*ct1[ind] - lambda*dt2[ind]-(1-lambda)*ct2[ind])^2)
+	c('path'=sqrt(pd), 'path.std'=sqrt(pd/choose(l,2)), 'pathl'=sqrt(ld))
+}
+##--------------------------------------------------------------------------------------------------------
 ##	olli 05.10.15
 ##--------------------------------------------------------------------------------------------------------
 treecomparison.submissions.161015<- function()	
@@ -247,9 +267,9 @@ treecomparison.submissions.161015<- function()
 	setkey(submitted.info, IDX)
 	#tmp				<- subset(submitted.info, IDX==463)[1,]
 	#IDX<- 463
-	#IDX_T<-6
+	#IDX_T<-10
 	tmp				<- submitted.info[, {
-				#cat('\nAt IDX', IDX)
+				cat('\nAt IDX', IDX)
 				stree		<- unroot(strs[[IDX]])
 				otree		<- unroot(multi2di(ttrs[[IDX_T]]))				
 				if(!is.binary.tree(stree))
@@ -267,6 +287,33 @@ treecomparison.submissions.161015<- function()
 				#normalize with 2n-6		
 				rf			<- RF.dist(otree, stree, check.labels=TRUE)
 				list(RF=rf, NRF=rf/(2*Ntip(otree)-6))
+			}, by='IDX']
+	submitted.info	<- merge(submitted.info, tmp, by='IDX')
+	#
+	#	compute path differences on complete trees
+	#
+	setkey(submitted.info, IDX)
+	#tmp				<- subset(submitted.info, IDX==463)[1,]
+	#IDX<- 1; IDX_T<- 1
+	#IDX<- 822; IDX_T<- 11
+	tmp				<- submitted.info[, {
+				cat('\nAt IDX', IDX)
+				stree		<- unroot(strs[[IDX]])
+				otree		<- unroot(multi2di(ttrs[[IDX_T]]))				
+				if(!is.binary.tree(stree))
+				{
+					cat('\nFound non-binary tree at IDX',IDX)
+					stree	<- multi2di(stree)
+				}
+				#print(stree)
+				#print(otree)
+				z			<- setdiff(otree$tip.label, stree$tip.label)
+				stopifnot( length(z)==abs(diff(c(TAXAN, TAXAN_T))) )
+				if(length(z))
+					otree	<- unroot(drop.tip(otree, z))								
+				#normalize with choose(n,2)		
+				tmp			<- treedist.pathdifference(otree, stree, lambda=0)
+				list(PD=tmp['path'], NPD=tmp['path.std'])
 			}, by='IDX']
 	submitted.info	<- merge(submitted.info, tmp, by='IDX')
 	#
@@ -305,8 +352,8 @@ treecomparison.submissions.161015<- function()
 					ans		<- data.table(IDCLU=NA_integer_, TAXA_NC=NA_integer_, RFC=NA_integer_, NRFC=NA_real_)
 				ans			
 			}, by='IDX']	
-	sclu.info	<- merge(submitted.info, tmp, by='IDX')	
-	outfile	<- '~/Dropbox (Infectious Disease)/PANGEAHIVsim/201507_TreeReconstruction/evaluation/submitted_151016.rda'
+	sclu.info	<- merge(submitted.info, tmp, by='IDX')		
+	outfile	<- '~/Dropbox (Infectious Disease)/PANGEAHIVsim/201507_TreeReconstruction/evaluation/submitted_151023.rda'
 	save(strs, ttrs, tinfo, submitted.info, sclu.info, file=outfile)
 }
 treecomparison.ana.151019<- function()
@@ -326,7 +373,9 @@ treecomparison.ana.151019<- function()
 	set(sa, NULL, 'BEST', sa[, factor(BEST, levels=c('Y','N'),labels=c('best tree','replicate tree'))])									
 	set(sa, NULL, 'GENE', sa[, factor(GENE, levels=c('POL','GAG+POL+ENV'),labels=c('pol','gag+pol+env'))])	
 	set(sa, NULL, 'TEAM', sa[, factor(TEAM, levels=sa[, sort(unique(TEAM))],labels=sa[, sort(unique(TEAM))])])
-	set(sa, NULL, 'EXT', sa[, factor(EXT, levels=c('~0pc','5pc'),labels=c('~ 0%/year','5%/year'))])	
+	set(sa, NULL, 'EXT', sa[, factor(EXT, levels=c('~0pc','5pc'),labels=c('~ 0%/year','5%/year'))])
+	set(sa, NULL, 'ACUTE', sa[, factor(ACUTE, levels=c('low','high'),labels=c('10%','40%'))])
+	set(sa, NULL, 'ART', sa[, factor(ART, levels=c('none','fast'),labels=c('none','fast'))])
 	sa		<- subset(sa, OTHER=='N')
 	
 	sc		<- copy(sclu.info)
@@ -341,6 +390,7 @@ treecomparison.ana.151019<- function()
 	set(sc, NULL, 'GENE', sc[, factor(GENE, levels=c('POL','GAG+POL+ENV'),labels=c('pol','gag+pol+env'))])	
 	set(sc, NULL, 'TEAM', sc[, factor(TEAM, levels=sc[, sort(unique(TEAM))],labels=sc[, sort(unique(TEAM))])])
 	set(sc, NULL, 'EXT', sc[, factor(EXT, levels=c('~0pc','5pc'),labels=c('~ 0%/year','5%/year'))])
+	set(sc, NULL, 'ART', sc[, factor(ART, levels=c('none','fast'),labels=c('none','fast'))])
 	sc		<- subset(sc, OTHER=='N')
 	
 	
@@ -360,7 +410,16 @@ treecomparison.ana.151019<- function()
 			labs(x='\nsimulated data set', y='Robinson-Fould\n(standardized)\n', size='', shape='Method', fill='part of genome', colour='part of genome') +
 			theme_bw() 
 	ggsave(w=10, h=6, file=paste(edir,'/151016_RF_polvsall_by_gaps.pdf',sep=''))
-
+	ggplot( subset(sa, TEAM!='MetaPIGA'), aes(y=NPD, x=SC, shape=TEAM, fill=GENE, colour=GENE, size=BEST) ) + 
+			geom_jitter(position = position_jitter(height = .01, width=0.2)) +			
+			scale_size_manual(values=c(3, 1)) +
+			scale_shape_manual(values=c(21,23,24)) +
+			scale_fill_brewer(palette='Paired') +
+			scale_colour_brewer(palette='Paired') +
+			facet_wrap(MODEL~GAPS, scales='free') +	
+			labs(x='\nsimulated data set', y='Path difference\n(standardized)\n', size='', shape='Method', fill='part of genome', colour='part of genome') +
+			theme_bw() 
+	ggsave(w=10, h=6, file=paste(edir,'/151023_PD_polvsall_by_gaps.pdf',sep=''))
 	
 	#	RF may be confounded by size of data set when evaluating the extent that regional is more difficult
 	#	-->
@@ -418,21 +477,29 @@ treecomparison.ana.151019<- function()
 	ggsave(w=16, h=8, file=paste(edir,'/151020_RFCLU_iftaxaexcludedbeforetreereconstruction.pdf',sep=''))
 	
 		
-	#	effect of acute in terms of RF? --> potentially Yes
-	ggplot( subset(sa, TEAM!='MetaPIGA' & grepl('Reg',MODEL) & !grepl('none',GAPS)), aes(y=NRF, x=SC, shape=TEAM, fill=GENE, colour=GENE, size=BEST) ) + 
-			geom_jitter(position = position_jitter(height = .01, width=0.2)) +			
+	#	effect of acute in terms of RF? --> Yes
+	ggplot( subset(sa, TEAM!='MetaPIGA' & TEAM!='PhyML' & grepl('Reg',MODEL) & !grepl('none',GAPS)), aes(y=NRF, x=ACUTE, shape=TEAM, fill=ACUTE, colour=ACUTE) ) + 
+			geom_jitter(aes(size=BEST), position = position_jitter(height = .01, width=0.2), alpha=0.8) +
+			geom_boxplot(outlier.shape=NA, colour='black', alpha=0.3) +
 			scale_size_manual(values=c(3, 1)) +
-			scale_shape_manual(values=c(21,23,24)) +
-			scale_fill_brewer(palette='Paired') +
-			scale_colour_brewer(palette='Paired') +
-			facet_wrap(~GAPS, scales='free_x') +	
-			labs(x='\nsimulated data set', y='Robinson-Fould\n(standardized)\n', size='', shape='Method', fill='part of genome', colour='part of genome') +
+			scale_shape_manual(values=c(21,24), guide=FALSE) +
+			scale_fill_brewer(palette='Set1', guide=FALSE) +	scale_colour_brewer(palette='Set1', guide=FALSE) +
+			facet_grid(GAPS~TEAM+GENE, scales='free_x') +	
+			labs(x='\ntransmissions from those in acute infection', y='Robinson-Fould\n(standardized)\n', size='') +
 			theme_bw() 
-
+	ggsave(w=10, h=8, file=paste(edir,'/151020_RF_impactAcute.pdf',sep=''))
 
 	#	effect of ART roll out in terms of RF? --> No
-	
-
+	ggplot( subset(sa, TEAM!='MetaPIGA' & grepl('Vill',MODEL) & !grepl('none',GAPS)), aes(y=NRF, x=ART, shape=TEAM, fill=ART, colour=ART) ) + 
+		geom_jitter(aes(size=BEST), position = position_jitter(height = .01, width=0.2), alpha=0.8) +
+		geom_boxplot(outlier.shape=NA, colour='black', alpha=0.3) +
+		scale_size_manual(values=c(3, 1)) +
+		scale_shape_manual(values=c(21,23,24), guide=FALSE) +
+		scale_fill_brewer(palette='Set2', guide=FALSE) +	scale_colour_brewer(palette='Set2', guide=FALSE) +
+		facet_grid(GAPS~TEAM+GENE, scales='free_x') +	
+		labs(x='\nART roll-out', y='Robinson-Fould\n(standardized)\n', size='') +
+		theme_bw()
+	ggsave(w=10, h=8, file=paste(edir,'/151020_RF_impactART.pdf',sep=''))
 
 }
 treecomparison.submissions.300915<- function()	
