@@ -365,6 +365,10 @@ treecomparison.ana.151019<- function()
 	file	<- paste(edir,'/','submitted_151016.rda',sep='')
 	load(file)
 	sa		<- copy(submitted.info)
+	
+	file	<- paste(edir,'/','submitted_151016_CC.rda',sep='')
+	load(file)
+	sa		<- copy(myinfo)
 	set(sa, NULL, 'MODEL', sa[, factor(MODEL, levels=c('V','R'),labels=c('Model: Village','Model: Regional'))])
 	set(sa, sa[, which(SC=="VILL_99_APR15")],'SC',"150701_VILL_SCENARIO-C")	
 	set(sa, NULL, 'SC', sa[, factor(SC,	levels=c("150701_REGIONAL_TRAIN1", "150701_REGIONAL_TRAIN2", "150701_REGIONAL_TRAIN3", "150701_REGIONAL_TRAIN4","150701_REGIONAL_TRAIN5","150701_VILL_SCENARIO-A","150701_VILL_SCENARIO-B","150701_VILL_SCENARIO-C","150701_VILL_SCENARIO-D","150701_VILL_SCENARIO-E"), 
@@ -410,6 +414,19 @@ treecomparison.ana.151019<- function()
 			labs(x='\nsimulated data set', y='Robinson-Fould\n(standardized)\n', size='', shape='Method', fill='part of genome', colour='part of genome') +
 			theme_bw() 
 	ggsave(w=10, h=6, file=paste(edir,'/151016_RF_polvsall_by_gaps.pdf',sep=''))
+	
+	ggplot( subset(sa, TEAM!='MetaPIGA'), aes(y=kcAll100/1e3, x=SC) ) + 			
+			geom_boxplot(aes(colour=GENE), fill='transparent', size=0.5, outlier.shape=NA, alpha=0.3) +
+			geom_jitter(aes(shape=TEAM, fill=GENE, colour=GENE, size=BEST), position = position_jitter(height = .01, width=0.2)) +
+			scale_size_manual(values=c(3, 1)) +
+			scale_shape_manual(values=c(21,23,24)) +
+			scale_fill_brewer(palette='Paired') +
+			scale_colour_brewer(palette='Paired') +
+			facet_wrap(MODEL~GAPS, scales='free_x') +	
+			labs(x='\nsimulated data set', y='Kendall-Colijn\n(lambda=0)\n', size='', shape='Method', fill='part of genome', colour='part of genome') +
+			theme_bw() 
+	ggsave(w=10, h=6, file=paste(edir,'/151023_KC_polvsall_by_gaps.pdf',sep=''))
+	
 	ggplot( subset(sa, TEAM!='MetaPIGA'), aes(y=NPD, x=SC, shape=TEAM, fill=GENE, colour=GENE, size=BEST) ) + 
 			geom_jitter(position = position_jitter(height = .01, width=0.2)) +			
 			scale_size_manual(values=c(3, 1)) +
@@ -457,6 +474,16 @@ treecomparison.ana.151019<- function()
 			theme_bw() 
 	ggsave(w=10, h=5, file=paste(edir,'/151016_RF_team_by_scenarioandgene.pdf',sep=''))
 	
+	ggplot( sa, aes(y=kcAll100/1e3, x=SC, shape=TEAM, colour=TEAM, fill=TEAM, size=BEST) ) + 
+			geom_jitter(position = position_jitter(height = .01, width=0.2), alpha=0.7) +
+			scale_size_manual(values=c(4, 1)) +
+			scale_shape_manual(values=c(21,22,23,24)) +
+			scale_fill_brewer(palette='Set1') + scale_colour_brewer(palette='Set1') +
+			#scale_y_continuous(breaks=seq(0,1,0.2), minor_breaks=seq(0,1,0.1)) +
+			facet_grid(~GENE) +			
+			labs(x='\nsimulated data set', y='Kendall-Colijn\n(lambda=0)\n', size='', shape='Method', fill='Method', colour='Method') +
+			theme_bw() 
+	ggsave(w=10, h=5, file=paste(edir,'/151023_KC_team_by_scenarioandgene.pdf',sep=''))
 	
 	#	taxa excluded:	plot cluster RF as a function of cluster size
 	#	-->
@@ -488,7 +515,19 @@ treecomparison.ana.151019<- function()
 			labs(x='\ntransmissions from those in acute infection', y='Robinson-Fould\n(standardized)\n', size='') +
 			theme_bw() 
 	ggsave(w=10, h=8, file=paste(edir,'/151020_RF_impactAcute.pdf',sep=''))
-
+	
+	ggplot( subset(sa, TEAM!='MetaPIGA' & TEAM!='PhyML' & grepl('Reg',MODEL) & !grepl('none',GAPS)), aes(y=kcAll100/1e3, x=ACUTE, shape=TEAM, fill=ACUTE, colour=ACUTE) ) + 
+			geom_jitter(aes(size=BEST), position = position_jitter(height = .01, width=0.2), alpha=0.8) +
+			geom_boxplot(outlier.shape=NA, colour='black', alpha=0.3) +
+			scale_size_manual(values=c(3, 1)) +
+			scale_shape_manual(values=c(21,24), guide=FALSE) +
+			scale_fill_brewer(palette='Set1', guide=FALSE) +	scale_colour_brewer(palette='Set1', guide=FALSE) +
+			facet_grid(GAPS~TEAM+GENE, scales='free_x') +	
+			labs(x='\ntransmissions from those in acute infection', y='Kendall-Colijn\n(lambda=0)\n', size='') +
+			theme_bw() 
+	ggsave(w=10, h=8, file=paste(edir,'/151023_KC_impactAcute.pdf',sep=''))
+	
+	
 	#	effect of ART roll out in terms of RF? --> No
 	ggplot( subset(sa, TEAM!='MetaPIGA' & grepl('Vill',MODEL) & !grepl('none',GAPS)), aes(y=NRF, x=ART, shape=TEAM, fill=ART, colour=ART) ) + 
 		geom_jitter(aes(size=BEST), position = position_jitter(height = .01, width=0.2), alpha=0.8) +
@@ -501,6 +540,16 @@ treecomparison.ana.151019<- function()
 		theme_bw()
 	ggsave(w=10, h=8, file=paste(edir,'/151020_RF_impactART.pdf',sep=''))
 
+	ggplot( subset(sa, TEAM!='MetaPIGA' & grepl('Vill',MODEL) & !grepl('none',GAPS)), aes(y=kcAll100/1e3, x=ART, shape=TEAM, fill=ART, colour=ART) ) + 
+			geom_jitter(aes(size=BEST), position = position_jitter(height = .01, width=0.2), alpha=0.8) +
+			geom_boxplot(outlier.shape=NA, colour='black', alpha=0.3) +
+			scale_size_manual(values=c(3, 1)) +
+			scale_shape_manual(values=c(21,23,24), guide=FALSE) +
+			scale_fill_brewer(palette='Set2', guide=FALSE) +	scale_colour_brewer(palette='Set2', guide=FALSE) +
+			facet_grid(GAPS~TEAM+GENE, scales='free_x') +	
+			labs(x='\nART roll-out', y='Kendall-Colijn\n(lambda=0)\n', size='') +
+			theme_bw()
+	ggsave(w=10, h=8, file=paste(edir,'/151023_KC_impactART.pdf',sep=''))
 }
 treecomparison.submissions.300915<- function()	
 {
