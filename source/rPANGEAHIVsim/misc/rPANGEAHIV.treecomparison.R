@@ -143,8 +143,91 @@ treedist.quartets.add<- function(submitted.info=NULL, ttrs=NULL, strs=NULL, file
 		save(strs, ttrs, tinfo, submitted.info, sclu.info, file=gsub('\\.rda','_QD\\.rda',file))
 }
 ##--------------------------------------------------------------------------------------------------------
-##	olli 05.10.15
+##	olli 07.11.15
 ##--------------------------------------------------------------------------------------------------------
+treedist.billera.add<- function(submitted.info=NULL, ttrs=NULL, strs=NULL, file=NULL, with.save=0)
+{
+	#	file<- '/work/or105/Gates_2014/tree_comparison/submitted_151101.rda'
+	require(ape)
+	require(data.table)
+	require(distory)
+	stopifnot( !is.null(submitted.info) || !is.null(file))	
+	if(is.null(submitted.info))
+	{
+		load(file)
+		with.save	<- 1	
+	}		
+	tmp				<- submitted.info[, {
+									tmp	<- lapply(IDX, function(i) strs[[i]]$tip.label)
+									list(POSTHOC_ROOT=Reduce(intersect, tmp)[1])				
+								}, by='IDX_T']
+	submitted.info	<- merge(submitted.info, tmp, by='IDX_T')
+	#tmp			<- subset(submitted.info, IDX==463)[1,]
+	#IDX<- 463
+	#IDX_T<-7
+	#POSTHOC_ROOT<-'HOUSE3326-7343-FEMALE_SAMPLED_30.4797372334259'
+	tmp				<- submitted.info[, {
+				cat('\nAt IDX', IDX)
+				stree		<- strs[[IDX]]
+				otree		<- multi2di(ttrs[[IDX_T]], random=FALSE)				
+				if(!is.binary.tree(stree))
+				{
+					cat('\nFound non-binary tree at IDX',IDX)
+					stree	<- multi2di(stree, random=FALSE)
+				}					
+				#print(stree)
+				#print(otree)
+				z			<- setdiff(otree$tip.label, stree$tip.label)
+				stopifnot( length(z)==abs(diff(c(TAXAN, TAXAN_T))) )
+				if(length(z))
+					otree	<- drop.tip(otree, z)				
+				otree		<- root(otree, outgroup=POSTHOC_ROOT, resolve.root=TRUE)
+				stree		<- root(stree, outgroup=POSTHOC_ROOT, resolve.root=TRUE)
+				tmp			<- data.table(TAXA=otree$tip.label, TAXA_NEW=seq_len(Ntip(otree)))
+				otree$tip.label	<- tmp[, TAXA_NEW]
+				setkey(tmp, TAXA)				
+				stree$tip.label	<- tmp[stree$tip.label, ][, TAXA_NEW]				
+				tmp			<- dist.multiPhylo( list(otree, stree) )[1]				
+				list(BILL=tmp)
+			}, by='IDX']
+	submitted.info	<- merge(submitted.info, tmp, by='IDX')
+	#
+	setkey(tinfo, IDX_T)
+	#	IDX_T<- IDX<- 1
+	tmp		<- subset(submitted.info, MODEL=='R')[, {
+				cat('\nAt IDX', IDX)
+				stree		<- strs[[IDX]]
+				otree		<- ttrs[[IDX_T]]
+				z			<- IDX_T
+				z			<- subset(tinfo, CLU_N>3 & IDX_T==z)
+				z			<- merge(z, data.table(TAXA=stree$tip.label, IN_STREE=1), by='TAXA', all.x=1)
+				z			<- merge(z, z[, list(CLU_NS= length(which(IN_STREE==1))), by='IDCLU'], by='IDCLU')
+				z			<- subset(z, CLU_NS>3)
+				if(nrow(z))
+				{
+					ans		<- z[, {								
+								sclu			<- drop.tip(stree, setdiff(stree$tip.label,TAXA), rooted=TRUE)
+								oclu			<- drop.tip(otree, union( setdiff(otree$tip.label, stree$tip.label), setdiff(otree$tip.label,TAXA)), rooted=TRUE)								
+								tmp				<- data.table(TAXA=oclu$tip.label, TAXA_NEW=seq_len(Ntip(oclu)))
+								oclu$tip.label	<- tmp[, TAXA_NEW]
+								setkey(tmp, TAXA)				
+								sclu$tip.label	<- tmp[sclu$tip.label, ][, TAXA_NEW]
+								#print(sclu)
+								#print(oclu)								
+								tmp				<- dist.multiPhylo( list(oclu, sclu) )[1]
+								#print(tmp)								
+								list(BILL=tmp)								
+							}, by='IDCLU']	
+				}
+				if(!nrow(z))
+					ans		<- data.table(IDCLU=NA_integer_, BILL=NA_real_)
+				ans			
+			}, by='IDX']	
+	sclu.info	<- merge(submitted.info, tmp, by='IDX')		
+	
+	if(with.save)
+		save(strs, ttrs, tinfo, submitted.info, sclu.info, file=gsub('\\.rda','_BL\\.rda',file))
+}
 ##--------------------------------------------------------------------------------------------------------
 ##	olli 05.10.15
 ##--------------------------------------------------------------------------------------------------------
