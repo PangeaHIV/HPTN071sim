@@ -1766,7 +1766,7 @@ pipeline.various<- function()
 	if(1)	#align sequences in fasta file with Clustalo
 	{
 		cmd			<- cmd.various()
-		cmd			<- cmd.hpcwrapper(cmd, hpc.nproc= 1, hpc.q='pqeelab', hpc.walltime=71, hpc.mem="5000mb")
+		cmd			<- cmd.hpcwrapper(cmd, hpc.nproc= 1, hpc.q='pqeelab', hpc.walltime=771, hpc.mem="5000mb")
 		cat(cmd)		
 		outdir		<- paste(HOME,"tmp",sep='/')
 		outfile		<- paste("vrs",paste(strsplit(date(),split=' ')[[1]],collapse='_',sep=''),sep='.')
