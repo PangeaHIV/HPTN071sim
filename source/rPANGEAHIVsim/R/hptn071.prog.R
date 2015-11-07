@@ -1763,7 +1763,7 @@ rPANGEAHIVsim.pipeline.args<- function(	yr.start=1980, yr.end=2020, seed=42,
 ##--------------------------------------------------------------------------------------------------------
 pipeline.various<- function()
 {
-	if(0)	#align sequences in fasta file with Clustalo
+	if(1)	#align sequences in fasta file with Clustalo
 	{
 		cmd			<- cmd.various()
 		cmd			<- cmd.hpcwrapper(cmd, hpc.nproc= 1, hpc.q='pqeelab', hpc.walltime=71, hpc.mem="5000mb")
@@ -1773,7 +1773,7 @@ pipeline.various<- function()
 		cmd.hpccaller(outdir, outfile, cmd)
 		quit("no")		
 	}	
-	if(1)
+	if(0)
 	{
 		mfile		<- paste(DATA,'model_150816a.R',sep='/')
 		indir.st	<- paste(DATA,'contigs_150408_wref_cutstat',sep='/')
@@ -1792,6 +1792,15 @@ pipeline.various<- function()
 		}	
 		quit("no")
 	}
+}
+##--------------------------------------------------------------------------------------------------------
+##	olli originally written 07-11-2015
+##--------------------------------------------------------------------------------------------------------
+prog.treecomparison.metrics<- function()
+{
+	file	<- '/work/or105/Gates_2014/tree_comparison/submitted_151101.rda'
+	treedist.quartets.add(file=file, with.save=1)
+	quit("no")
 }
 ##--------------------------------------------------------------------------------------------------------
 ##	olli originally written 08-09-2014
