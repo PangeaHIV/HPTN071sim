@@ -88,6 +88,7 @@ treedist.quartets.add<- function(submitted.info=NULL, ttrs=NULL, strs=NULL, file
 	#	file<- '/work/or105/Gates_2014/tree_comparison/submitted_151101.rda'
 	require(ape)
 	require(data.table)
+	Sys.setenv(LD_LIBRARY_PATH=paste(Sys.getenv("LD_LIBRARY_PATH"),':','/usr/lib64/',sep=''))
 	stopifnot( !is.null(submitted.info) || !is.null(file))	
 	if(is.null(submitted.info))
 	{
