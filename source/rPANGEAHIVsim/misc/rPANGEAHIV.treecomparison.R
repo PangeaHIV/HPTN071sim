@@ -115,6 +115,7 @@ treedist.quartets.add<- function(submitted.info=NULL, ttrs=NULL, strs=NULL, file
 	setkey(tinfo, IDX_T)
 	tmp		<- subset(submitted.info, MODEL=='R')[, {
 				cat('\nAt IDX', IDX)
+				#	IDX<- 241; IDX_T<- 2
 				stree		<- unroot(strs[[IDX]])
 				otree		<- unroot(ttrs[[IDX_T]])
 				z			<- IDX_T
@@ -127,9 +128,9 @@ treedist.quartets.add<- function(submitted.info=NULL, ttrs=NULL, strs=NULL, file
 					#IDCLU	<- 6
 					#TAXA	<- subset(z, IDCLU==6)[, TAXA]
 					ans		<- z[, {								
-								sclu	<- unroot(drop.tip(stree, setdiff(stree$tip.label,TAXA)))
-								oclu	<- unroot(drop.tip(otree, union( setdiff(otree$tip.label, stree$tip.label), setdiff(otree$tip.label,TAXA))))
-								z		<- quartets.distance.cmd(otree, stree)
+								sclu<- unroot(drop.tip(stree, setdiff(stree$tip.label,TAXA)))
+								oclu<- unroot(drop.tip(otree, union( setdiff(otree$tip.label, stree$tip.label), setdiff(otree$tip.label,TAXA))))
+								z<- quartets.distance.cmd(oclu, sclu)
 								list(NQDC=z['NQD'])
 							}, by='IDCLU']	
 				}
@@ -943,7 +944,7 @@ treecomparison.ana.151019<- function()
 	if('NRF'%in%colnames(sa))
 	{
 		ggplot( subset(sa, TEAM!='MetaPIGA'), aes(y=NRF, x=SC, shape=TEAM, fill=GENE, colour=GENE, size=BEST) ) + 
-				geom_jitter(position = position_jitter(height = .01, width=0.2)) +			
+				geom_jitter(position = position_jitter(height=.001, width=0.2)) +			
 				scale_size_manual(values=c(3, 1)) +
 				scale_shape_manual(values=c(21,23,24)) +
 				scale_fill_brewer(palette='Paired') +
@@ -956,7 +957,7 @@ treecomparison.ana.151019<- function()
 	if('NQD'%in%colnames(sa))
 	{
 		ggplot( subset(sa, TEAM!='MetaPIGA'), aes(y=NQD, x=SC, shape=TEAM, fill=GENE, colour=GENE, size=BEST) ) + 
-				geom_jitter(position = position_jitter(height = .01, width=0.2)) +			
+				geom_jitter(position = position_jitter(height=.001, width=0.2)) +			
 				scale_size_manual(values=c(3, 1)) +
 				scale_shape_manual(values=c(21,23,24)) +
 				scale_fill_brewer(palette='Paired') +
@@ -970,7 +971,7 @@ treecomparison.ana.151019<- function()
 	{		
 		ggplot( subset(sa, TEAM!='MetaPIGA'), aes(y=kcAll100/1e3, x=SC) ) + 			
 				geom_boxplot(aes(colour=GENE), fill='transparent', size=0.5, outlier.shape=NA, alpha=0.3) +
-				geom_jitter(aes(shape=TEAM, fill=GENE, colour=GENE, size=BEST), position = position_jitter(height = .01, width=0.2)) +
+				geom_jitter(aes(shape=TEAM, fill=GENE, colour=GENE, size=BEST), position = position_jitter(height=.001, width=0.2)) +
 				scale_size_manual(values=c(3, 1)) +
 				scale_shape_manual(values=c(21,23,24)) +
 				scale_fill_brewer(palette='Paired') +
@@ -983,7 +984,7 @@ treecomparison.ana.151019<- function()
 	if('NPD'%in%colnames(sa))
 	{
 		ggplot( subset(sa, TEAM!='MetaPIGA'), aes(y=NPD, x=SC, shape=TEAM, fill=GENE, colour=GENE, size=BEST) ) + 
-				geom_jitter(position = position_jitter(height = .01, width=0.2)) +			
+				geom_jitter(position = position_jitter(height=.001, width=0.2)) +			
 				scale_size_manual(values=c(3, 1)) +
 				scale_shape_manual(values=c(21,23,24)) +
 				scale_fill_brewer(palette='Paired') +
@@ -1002,7 +1003,7 @@ treecomparison.ana.151019<- function()
 	tmp		<- subset(sa, TEAM!='MetaPIGA')
 	tmp[, NRFP:=predict(mo, data=z, newdata=subset(tmp, select=c(TAXAN,GENE,GAPS)), what='mu',type='response')]
 	ggplot( tmp, aes(x=TAXAN) ) + 
-			geom_jitter(aes(y=NRF, shape=TEAM, colour=EXT, fill=EXT,  size=BEST), position = position_jitter(height = .01, width=20), alpha=0.7) +
+			geom_jitter(aes(y=NRF, shape=TEAM, colour=EXT, fill=EXT,  size=BEST), position = position_jitter(height=.001, width=20), alpha=0.7) +
 			geom_line(aes(y=NRFP), colour='black', size=0.5) +
 			scale_size_manual(values=c(3, 1)) +
 			scale_shape_manual(values=c(21,23,24)) +
@@ -1020,7 +1021,7 @@ treecomparison.ana.151019<- function()
 	if('NRF'%in%colnames(sa))
 	{
 		ggplot( sa, aes(y=NRF, x=SC, shape=TEAM, colour=TEAM, fill=TEAM, size=BEST) ) + 
-				geom_jitter(position = position_jitter(height = .01, width=0.2), alpha=0.7) +
+				geom_jitter(position = position_jitter(height=.001, width=0.2), alpha=0.7) +
 				scale_size_manual(values=c(4, 1)) +
 				scale_shape_manual(values=c(21,22,23,24)) +
 				scale_fill_brewer(palette='Set1') + scale_colour_brewer(palette='Set1') +
@@ -1033,7 +1034,7 @@ treecomparison.ana.151019<- function()
 	if('NQD'%in%colnames(sa))
 	{
 		ggplot( sa, aes(y=NQD, x=SC, shape=TEAM, colour=TEAM, fill=TEAM, size=BEST) ) + 
-				geom_jitter(position = position_jitter(height = .01, width=0.2), alpha=0.7) +
+				geom_jitter(position = position_jitter(height = .001, width=0.2), alpha=0.7) +
 				scale_size_manual(values=c(4, 1)) +
 				scale_shape_manual(values=c(21,22,23,24)) +
 				scale_fill_brewer(palette='Set1') + scale_colour_brewer(palette='Set1') +
@@ -1046,7 +1047,7 @@ treecomparison.ana.151019<- function()
 	if('kcAll100'%in%colnames(sa))
 	{
 		ggplot( sa, aes(y=kcAll100/1e3, x=SC, shape=TEAM, colour=TEAM, fill=TEAM, size=BEST) ) + 
-				geom_jitter(position = position_jitter(height = .01, width=0.2), alpha=0.7) +
+				geom_jitter(position = position_jitter(height=.001, width=0.2), alpha=0.7) +
 				scale_size_manual(values=c(4, 1)) +
 				scale_shape_manual(values=c(21,22,23,24)) +
 				scale_fill_brewer(palette='Set1') + scale_colour_brewer(palette='Set1') +
@@ -1060,9 +1061,26 @@ treecomparison.ana.151019<- function()
 	#	taxa excluded:	plot cluster RF as a function of cluster size
 	#	-->
 	#	excluding taxa did not lead to noticeably lower RFs
-	tmp		<- sc[, list(NRFC=median(NRFC)), by=c('CLU_N','SC','GENE','TEAM')]
+	if('NRFC'%in%colnames(sc))
+	{
+		tmp		<- sc[, list(NRF=median(NRFC, na.rm=TRUE)), by=c('SC','GENE','TEAM','BEST','IDX','FILE','GAPS','MODEL')]
+		tmp		<- subset(tmp, TEAM!='MetaPIGA')	
+		ggplot( tmp, aes(y=NRF, x=SC, shape=TEAM, fill=GENE, colour=GENE, size=BEST) ) + 
+				geom_jitter(position = position_jitter(height = .001, width=0.2)) +			
+				scale_size_manual(values=c(3, 1)) +
+				scale_shape_manual(values=c(21,22,23,24)) +
+				scale_fill_brewer(palette='Paired') +
+				scale_colour_brewer(palette='Paired') +
+				facet_wrap(MODEL~GAPS, scales='free_x') +	
+				labs(x='\nsimulated data set', y='median Robinson-Fould\n(standardized)\n', size='', shape='Method', fill='part of genome', colour='part of genome') +
+				theme_bw() 
+		ggsave(w=10, h=6, file=paste(edir,'/',timetag,'_RFCLU_polvsall_by_gaps.pdf',sep=''))
+	}
+	'Quartett\n(standardized)\n'
+	
+	
 	ggplot( subset(sc, GENE=='gag+pol+env'), aes(y=NRFC, x=TAXA_NC, size=BEST, shape=TEAM, fill=TAXA_NC<CLU_N, colour=TAXA_NC<CLU_N)) +
-			geom_jitter(position = position_jitter(height = .01, width=0.1), alpha=0.7) +
+			geom_jitter(position = position_jitter(height=.001, width=0.1), alpha=0.7) +
 			scale_size_manual(values=c(3, 1)) +
 			scale_shape_manual(values=c(21,22,24), guide=FALSE) +
 			scale_fill_brewer(palette='Set1') +
@@ -1080,7 +1098,7 @@ treecomparison.ana.151019<- function()
 	if('NRF'%in%colnames(sa))
 	{
 		ggplot( subset(sa, TEAM!='MetaPIGA' & TEAM!='PhyML' & grepl('Reg',MODEL) & !grepl('none',GAPS)), aes(y=NRF, x=ACUTE, shape=TEAM, fill=ACUTE, colour=ACUTE) ) + 
-				geom_jitter(aes(size=BEST), position = position_jitter(height = .01, width=0.2), alpha=0.8) +
+				geom_jitter(aes(size=BEST), position = position_jitter(height=.001, width=0.2), alpha=0.8) +
 				geom_boxplot(outlier.shape=NA, colour='black', alpha=0.3) +
 				scale_size_manual(values=c(3, 1)) +
 				scale_shape_manual(values=c(21,24), guide=FALSE) +
@@ -1093,7 +1111,7 @@ treecomparison.ana.151019<- function()
 	if('NQD'%in%colnames(sa))
 	{
 		ggplot( subset(sa, TEAM!='MetaPIGA' & TEAM!='PhyML' & grepl('Reg',MODEL) & !grepl('none',GAPS)), aes(y=NQD, x=ACUTE, shape=TEAM, fill=ACUTE, colour=ACUTE) ) + 
-				geom_jitter(aes(size=BEST), position = position_jitter(height = .01, width=0.2), alpha=0.8) +
+				geom_jitter(aes(size=BEST), position = position_jitter(height=.001, width=0.2), alpha=0.8) +
 				geom_boxplot(outlier.shape=NA, colour='black', alpha=0.3) +
 				scale_size_manual(values=c(3, 1)) +
 				scale_shape_manual(values=c(21,24), guide=FALSE) +
@@ -1106,7 +1124,7 @@ treecomparison.ana.151019<- function()
 	if('kcAll100'%in%colnames(sa))
 	{
 		ggplot( subset(sa, TEAM!='MetaPIGA' & TEAM!='PhyML' & grepl('Reg',MODEL) & !grepl('none',GAPS)), aes(y=kcAll100/1e3, x=ACUTE, shape=TEAM, fill=ACUTE, colour=ACUTE) ) + 
-				geom_jitter(aes(size=BEST), position = position_jitter(height = .01, width=0.2), alpha=0.8) +
+				geom_jitter(aes(size=BEST), position = position_jitter(height=.001, width=0.2), alpha=0.8) +
 				geom_boxplot(outlier.shape=NA, colour='black', alpha=0.3) +
 				scale_size_manual(values=c(3, 1)) +
 				scale_shape_manual(values=c(21,24), guide=FALSE) +
@@ -1121,7 +1139,7 @@ treecomparison.ana.151019<- function()
 	if('NRF'%in%colnames(sa))
 	{
 		ggplot( subset(sa, TEAM!='MetaPIGA' & grepl('Vill',MODEL) & !grepl('none',GAPS)), aes(y=NRF, x=ART, shape=TEAM, fill=ART, colour=ART) ) + 
-			geom_jitter(aes(size=BEST), position = position_jitter(height = .01, width=0.2), alpha=0.8) +
+			geom_jitter(aes(size=BEST), position = position_jitter(height=.001, width=0.2), alpha=0.8) +
 			geom_boxplot(outlier.shape=NA, colour='black', alpha=0.3) +
 			scale_size_manual(values=c(3, 1)) +
 			scale_shape_manual(values=c(21,23,24), guide=FALSE) +
@@ -1134,7 +1152,7 @@ treecomparison.ana.151019<- function()
 	if('NQD'%in%colnames(sa))
 	{
 		ggplot( subset(sa, TEAM!='MetaPIGA' & grepl('Vill',MODEL) & !grepl('none',GAPS)), aes(y=NQD, x=ART, shape=TEAM, fill=ART, colour=ART) ) + 
-				geom_jitter(aes(size=BEST), position = position_jitter(height = .01, width=0.2), alpha=0.8) +
+				geom_jitter(aes(size=BEST), position = position_jitter(height=.001, width=0.2), alpha=0.8) +
 				geom_boxplot(outlier.shape=NA, colour='black', alpha=0.3) +
 				scale_size_manual(values=c(3, 1)) +
 				scale_shape_manual(values=c(21,23,24), guide=FALSE) +
@@ -1147,7 +1165,7 @@ treecomparison.ana.151019<- function()
 	if('kcAll100'%in%colnames(sa))
 	{
 		ggplot( subset(sa, TEAM!='MetaPIGA' & grepl('Vill',MODEL) & !grepl('none',GAPS)), aes(y=kcAll100/1e3, x=ART, shape=TEAM, fill=ART, colour=ART) ) + 
-				geom_jitter(aes(size=BEST), position = position_jitter(height = .01, width=0.2), alpha=0.8) +
+				geom_jitter(aes(size=BEST), position = position_jitter(height=.001, width=0.2), alpha=0.8) +
 				geom_boxplot(outlier.shape=NA, colour='black', alpha=0.3) +
 				scale_size_manual(values=c(3, 1)) +
 				scale_shape_manual(values=c(21,23,24), guide=FALSE) +
