@@ -137,7 +137,7 @@ treedist.quartets.add<- function(submitted.info=NULL, ttrs=NULL, strs=NULL, file
 					ans		<- data.table(IDCLU=NA_integer_, NQDC=NA_real_)
 				ans			
 			}, by='IDX']	
-	sclu.info	<- merge(submitted.info, tmp, by='IDX')		
+	sclu.info	<- merge(sclu.info, tmp, by=c('IDX','IDCLU'))		
 	
 	if(with.save)
 		save(strs, ttrs, tinfo, submitted.info, sclu.info, file=gsub('\\.rda','_QD\\.rda',file))
@@ -162,12 +162,11 @@ treedist.billera.add<- function(submitted.info=NULL, ttrs=NULL, strs=NULL, file=
 									list(POSTHOC_ROOT=Reduce(intersect, tmp)[1])				
 								}, by='IDX_T']
 	submitted.info	<- merge(submitted.info, tmp, by='IDX_T')
-	#tmp			<- subset(submitted.info, IDX==463)[1,]
-	#IDX<- 463
-	#IDX_T<-7
+	#tmp			<- subset(submitted.info, IDX==65)[1,]
+	#IDX<- 65;	IDX_T<-3; POSTHOC_ROOT<-'IDPOP_101537|F|DOB_2000.58|2019.48'
 	#POSTHOC_ROOT<-'HOUSE3326-7343-FEMALE_SAMPLED_30.4797372334259'
 	tmp				<- submitted.info[, {
-				cat('\nAt IDX', IDX)
+				cat('\nFT: At IDX', IDX)
 				stree		<- strs[[IDX]]
 				otree		<- multi2di(ttrs[[IDX_T]], random=FALSE)				
 				if(!is.binary.tree(stree))
@@ -192,10 +191,13 @@ treedist.billera.add<- function(submitted.info=NULL, ttrs=NULL, strs=NULL, file=
 			}, by='IDX']
 	submitted.info	<- merge(submitted.info, tmp, by='IDX')
 	#
+	if(with.save)
+		save(strs, ttrs, tinfo, submitted.info, sclu.info, file=gsub('\\.rda','_BL\\.rda',file))
+	#
 	setkey(tinfo, IDX_T)
 	#	IDX_T<- IDX<- 1
 	tmp		<- subset(submitted.info, MODEL=='R')[, {
-				cat('\nAt IDX', IDX)
+				cat('\nCT: At IDX', IDX)
 				stree		<- strs[[IDX]]
 				otree		<- ttrs[[IDX_T]]
 				z			<- IDX_T
@@ -205,15 +207,20 @@ treedist.billera.add<- function(submitted.info=NULL, ttrs=NULL, strs=NULL, file=
 				z			<- subset(z, CLU_NS>3)
 				if(nrow(z))
 				{
-					ans		<- z[, {								
+					TAXA	<- subset(z, IDCLU==22)[, TAXA]
+					ans		<- z[, {	
+								print(IDCLU)
 								sclu			<- drop.tip(stree, setdiff(stree$tip.label,TAXA), rooted=TRUE)
 								oclu			<- drop.tip(otree, union( setdiff(otree$tip.label, stree$tip.label), setdiff(otree$tip.label,TAXA)), rooted=TRUE)								
 								tmp				<- data.table(TAXA=oclu$tip.label, TAXA_NEW=seq_len(Ntip(oclu)))
 								oclu$tip.label	<- tmp[, TAXA_NEW]
 								setkey(tmp, TAXA)				
 								sclu$tip.label	<- tmp[sclu$tip.label, ][, TAXA_NEW]
-								#print(sclu)
-								#print(oclu)								
+								if(!is.root(sclu) | !is.root(oclu))
+								{
+									sclu		<- root(sclu, outgroup='1',resolve.root=1)
+									oclu		<- root(oclu, outgroup='1',resolve.root=1)
+								}
 								tmp				<- dist.multiPhylo( list(oclu, sclu) )[1]
 								#print(tmp)								
 								list(BILL=tmp)								
