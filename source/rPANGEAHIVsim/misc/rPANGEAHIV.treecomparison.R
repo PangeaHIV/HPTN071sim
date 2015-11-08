@@ -73,13 +73,13 @@ quartets.distance <- function (t1,t2) {
 	}
 	d
 }
-quartets.distance.cmd	<- function(otree, stree)
+quartets.distance.cmd	<- function(otree, stree, PROG.QDIST='/apps/qdist/2.0/bin/qdist')
 {
 	file1	<- paste( getwd(), '/tree1', sep='')
 	file2	<- paste( getwd(), '/tree2', sep='')
 	write.tree(otree,file=file1)
 	write.tree(stree,file=file2)
-	cmd<- paste('qdist',file1,file2)
+	cmd<- paste(PROG.QDIST,file1,file2)
 	tmp		<- system(cmd, intern=TRUE)
 	c('TAXA_NJ'=Ntip(otree), 'NQD'=as.numeric(tail(unlist(strsplit(tmp[2],'\t')),1)))
 }
