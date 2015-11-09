@@ -209,7 +209,7 @@ treedist.billera.add<- function(submitted.info=NULL, ttrs=NULL, strs=NULL, file=
 				z			<- subset(z, CLU_NS>3)
 				if(nrow(z))
 				{
-					TAXA	<- subset(z, IDCLU==22)[, TAXA]
+					#TAXA	<- subset(z, IDCLU==22)[, TAXA]
 					ans		<- z[, {	
 								print(IDCLU)
 								sclu			<- drop.tip(stree, setdiff(stree$tip.label,TAXA), rooted=TRUE)
@@ -218,7 +218,7 @@ treedist.billera.add<- function(submitted.info=NULL, ttrs=NULL, strs=NULL, file=
 								oclu$tip.label	<- tmp[, TAXA_NEW]
 								setkey(tmp, TAXA)				
 								sclu$tip.label	<- tmp[sclu$tip.label, ][, TAXA_NEW]
-								if(!is.root(sclu) | !is.root(oclu))
+								if(!is.rooted(sclu) | !is.rooted(oclu))
 								{
 									sclu		<- root(sclu, outgroup='1',resolve.root=1)
 									oclu		<- root(oclu, outgroup='1',resolve.root=1)
