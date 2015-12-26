@@ -1,7 +1,7 @@
-Package: rPANGEAHIVsim
-Version: 1.0-0
-Date: 2014/01/20
-Title: rPANGEAHIVsim
+Package: PANGEA.HIV.sim
+Version: 1.0-1
+Date: 2015/12/26
+Title: PANGEA.HIV.sim
 Author: {Oliver Ratmann}
 Maintainer: Oliver Ratmann <oliver.ratmann@imperial.ac.uk>
 Depends:
@@ -16,6 +16,6 @@ Depends:
     ggplot2,
     igraph,
     distr
-Description: R scripts for the PANGEA-HIV methods comparison exercise.
+Description: HIV Phylogenetic Simulation Model for the PANGEA-HIV methods comparison exercise.
 License: GPL (>=2)
 LazyLoad: yes

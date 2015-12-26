@@ -1,38 +1,38 @@
 
-rPANGEAHIV Installation
+PANGEA.HIV.sim Installation
 ======================
 
 To install this R package from the command line: 
 
- 1. cd to the directory that contains 'rPANGEAHIVsim' 
- 2. type 'R CMD build rPANGEAHIVsim'  
- 3. type 'R CMD INSTALL rPANGEAHIVsim_1.0-0.tar.gz'
+ 1. cd to the directory that contains 'PANGEA.HIV.sim' 
+ 2. type 'R CMD build PANGEA.HIV.sim'  
+ 3. type 'R CMD INSTALL PANGEA.HIV.sim_1.0-0.tar.gz'
 
 
 ----------
 
-rPANGEAHIV in action
+PANGEA.HIV.sim in action
 ======================
-The central function is rPANGEAHIVsim.pipeline(). This function creates a UNIX batch file that must be started manually. The user syntax (in R) for example input files is as follows:
+The central function is PANGEA.HIV.sim.pipeline(). This function creates a UNIX batch file that must be started manually. The user syntax (in R) for example input files is as follows:
 
-    library(rPANGEAHIVsim)
-    indir		<- system.file(package="rPANGEAHIVsim", "misc")
+    library(PANGEA.HIV.sim)
+    indir		<- system.file(package="PANGEA.HIV.sim", "misc")
     infile.ind	<- '140716_RUN001_IND.csv'
     infile.trm	<- '140716_RUN001_TRM.csv'
     outdir	<- '/Users/Oliver/git/HPTN071sim/tmp140909'
     dir.create(outdir, showWarnings=FALSE)
-    file		<- rPANGEAHIVsim.pipeline(indir, infile.ind, infile.trm, outdir)
+    file		<- PANGEA.HIV.sim.pipeline(indir, infile.ind, infile.trm, outdir)
 
-See also '?rPANGEAHIVsim.pipeline' for help.
+See also '?PANGEA.HIV.sim.pipeline' for help.
 
 
 ----------
  
-rPANGEAHIV Documentation
+PANGEA.HIV.sim Documentation
 ======================
 
 **PANGEAphy-01: help with the software**
-> The package documentation can be loaded with `library(help=rPANGEAHIVsim)`. The main function is `rPANGEAHIVsim.pipeline`, which glues various subprograms together. Type `?rPANGEAHIVsim.pipeline` for help. You can also type, for example,  `?prog.HPTN071.input.parser.v2` to see how the different subprograms can be executed. 
+> The package documentation can be loaded with `library(help=PANGEA.HIV.sim)`. The main function is `PANGEA.HIV.sim.pipeline`, which glues various subprograms together. Type `?PANGEA.HIV.sim.pipeline` for help. You can also type, for example,  `?prog.HPTN071.input.parser.v2` to see how the different subprograms can be executed. 
 
 ----------
 
