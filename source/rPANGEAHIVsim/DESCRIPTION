@@ -19,7 +19,3 @@ Depends:
 Description: R scripts for the PANGEA-HIV methods comparison exercise.
 License: GPL (>=2)
 LazyLoad: yes
-Collate:
-    'hptn071.fun.R'
-    'hptn071.cmd.R'
-    'hptn071.prog.R'
